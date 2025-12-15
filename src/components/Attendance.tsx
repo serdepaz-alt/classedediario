@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
+import { format, isBefore, isAfter, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,15 +21,15 @@ import {
   CheckCircle, 
   XCircle, 
   Clock,
-  ChevronLeft,
   Plus,
   AlertTriangle,
   BarChart3,
   Search,
-  Info,
 } from "lucide-react";
 import { AddDisciplinaDialog } from "./attendance/AddDisciplinaDialog";
 import { DisciplinaDetailsDialog } from "./attendance/DisciplinaDetailsDialog";
+import { EditDisciplinaDialog } from "./attendance/EditDisciplinaDialog";
+import { DisciplinaCard } from "./attendance/DisciplinaCard";
 
 interface Disciplina {
   id: string;
@@ -43,6 +43,7 @@ interface Disciplina {
   dias_uteis: number | null;
   dias_subtraidos: number | null;
   nome_professor: string | null;
+  turma_id: string | null;
   turmas?: {
     nome: string;
   } | null;
@@ -61,13 +62,6 @@ interface Presenca {
   justificativa?: string;
 }
 
-const recentHistory = [
-  "Mendercar até loga de (olles (H 2anos)",
-  "Eerniotes de Roalitas",
-  "Aluntorpas pés Costes de Doles",
-  "Los perla liquer",
-];
-
 const studentsAtRisk = [
   { name: "João Santos", percentage: 65, absences: 14 },
   { name: "Pedro", percentage: 55, absences: 21 },
@@ -82,8 +76,38 @@ export const Attendance = () => {
   const [presencas, setPresencas] = useState<Map<string, string>>(new Map());
   const [showAddDisciplina, setShowAddDisciplina] = useState(false);
   const [showDisciplinaDetails, setShowDisciplinaDetails] = useState(false);
+  const [showEditDisciplina, setShowEditDisciplina] = useState(false);
   const [sortOrder, setSortOrder] = useState("name-asc");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Collapsible states
+  const [pastExpanded, setPastExpanded] = useState(false);
+  const [currentExpanded, setCurrentExpanded] = useState(true);
+  const [futureExpanded, setFutureExpanded] = useState(false);
+
+  // Classify disciplines
+  const { pastDisciplinas, currentDisciplinas, futureDisciplinas } = useMemo(() => {
+    const today = startOfDay(new Date());
+    
+    const past: Disciplina[] = [];
+    const current: Disciplina[] = [];
+    const future: Disciplina[] = [];
+
+    disciplinas.forEach((d) => {
+      const startDate = startOfDay(new Date(d.data_inicio));
+      const endDate = startOfDay(new Date(d.data_termino));
+
+      if (isAfter(startDate, today)) {
+        future.push(d);
+      } else if (isBefore(endDate, today)) {
+        past.push(d);
+      } else {
+        current.push(d);
+      }
+    });
+
+    return { pastDisciplinas: past, currentDisciplinas: current, futureDisciplinas: future };
+  }, [disciplinas]);
 
   // Fetch disciplinas
   useEffect(() => {
@@ -100,8 +124,15 @@ export const Attendance = () => {
 
       if (!error && data) {
         setDisciplinas(data);
-        if (data.length > 0 && !selectedDisciplina) {
-          setSelectedDisciplina(data[0]);
+        // Auto-select first current discipline
+        const today = startOfDay(new Date());
+        const currentDisc = data.find((d) => {
+          const startDate = startOfDay(new Date(d.data_inicio));
+          const endDate = startOfDay(new Date(d.data_termino));
+          return !isAfter(startDate, today) && !isBefore(endDate, today);
+        });
+        if (currentDisc && !selectedDisciplina) {
+          setSelectedDisciplina(currentDisc);
         }
       }
     };
@@ -112,13 +143,17 @@ export const Attendance = () => {
   // Fetch students when disciplina changes
   useEffect(() => {
     const fetchStudents = async () => {
-      if (!user || !selectedDisciplina) return;
+      if (!user || !selectedDisciplina || !selectedDisciplina.turma_id) {
+        setStudents([]);
+        return;
+      }
 
       const { data, error } = await supabase
         .from("students")
         .select("id, nome, matricula")
         .eq("user_id", user.id)
-        .eq("turma_id", selectedDisciplina.turmas?.nome ? undefined : null);
+        .eq("turma_id", selectedDisciplina.turma_id)
+        .order("nome", { ascending: true });
 
       if (!error && data) {
         setStudents(data);
@@ -146,7 +181,11 @@ export const Attendance = () => {
 
       if (!error && data) {
         const presencaMap = new Map<string, string>();
-        data.forEach(p => presencaMap.set(p.student_id, p.status));
+        data.forEach(p => {
+          if (p.student_id) {
+            presencaMap.set(p.student_id, p.status);
+          }
+        });
         setPresencas(prev => {
           const newMap = new Map(prev);
           presencaMap.forEach((status, studentId) => {
@@ -159,6 +198,26 @@ export const Attendance = () => {
 
     fetchPresencas();
   }, [user, selectedDisciplina, selectedDate]);
+
+  const refreshDisciplinas = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from("disciplinas")
+      .select("*, turmas (nome)")
+      .eq("user_id", user.id);
+
+    if (data) {
+      setDisciplinas(data);
+      // Re-select the edited disciplina
+      if (selectedDisciplina) {
+        const updated = data.find(d => d.id === selectedDisciplina.id);
+        if (updated) {
+          setSelectedDisciplina(updated);
+        }
+      }
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -267,10 +326,6 @@ export const Attendance = () => {
           <p className="text-muted-foreground">Gerencie a frequência dos estudantes</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <Button variant="outline" size="sm">
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Aula Anterior
-          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowAddDisciplina(true)}>
             <Plus className="w-4 h-4 mr-1" />
             Adicionar Disciplina
@@ -285,30 +340,55 @@ export const Attendance = () => {
         </div>
       </div>
 
-      {/* Discipline Selector */}
-      {disciplinas.length > 0 && (
-        <div className="flex items-center gap-4 flex-wrap">
-          <span className="text-sm font-medium">Disciplina:</span>
-          <Select
-            value={selectedDisciplina?.id || ""}
-            onValueChange={(value) => {
-              const disc = disciplinas.find(d => d.id === value);
-              setSelectedDisciplina(disc || null);
-            }}
-          >
-            <SelectTrigger className="w-[280px]">
-              <SelectValue placeholder="Selecione a disciplina" />
-            </SelectTrigger>
-            <SelectContent>
-              {disciplinas.map((d) => (
-                <SelectItem key={d.id} value={d.id}>
-                  {d.nome} - {d.turmas?.nome || ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      {/* Discipline Cards - 3 Collapsible Sections */}
+      <div className="space-y-4">
+        {/* Past Disciplines */}
+        <DisciplinaCard
+          title="Disciplinas Anteriores"
+          disciplinas={pastDisciplinas}
+          isExpanded={pastExpanded}
+          onToggle={() => setPastExpanded(!pastExpanded)}
+          onSelectDisciplina={(d) => {
+            setSelectedDisciplina(d);
+            setPastExpanded(false);
+            setCurrentExpanded(true);
+          }}
+          variant="past"
+        />
+
+        {/* Current Discipline */}
+        <DisciplinaCard
+          title="Disciplina Atual"
+          disciplinas={currentDisciplinas}
+          isExpanded={currentExpanded}
+          onToggle={() => setCurrentExpanded(!currentExpanded)}
+          currentDisciplina={selectedDisciplina}
+          onSelectDisciplina={setSelectedDisciplina}
+          onDetailsClick={(d) => {
+            setSelectedDisciplina(d);
+            setShowDisciplinaDetails(true);
+          }}
+          onEditClick={(d) => {
+            setSelectedDisciplina(d);
+            setShowEditDisciplina(true);
+          }}
+          variant="current"
+        />
+
+        {/* Future Disciplines */}
+        <DisciplinaCard
+          title="Disciplinas Futuras"
+          disciplinas={futureDisciplinas}
+          isExpanded={futureExpanded}
+          onToggle={() => setFutureExpanded(!futureExpanded)}
+          onSelectDisciplina={(d) => {
+            setSelectedDisciplina(d);
+            setFutureExpanded(false);
+            setCurrentExpanded(true);
+          }}
+          variant="future"
+        />
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -366,54 +446,31 @@ export const Attendance = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content Area */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Current Discipline Card */}
-          {selectedDisciplina && (
-            <Card className="p-6 gradient-card shadow-card border-0">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-3">Disciplina Atual</h3>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="text-muted-foreground">Título:</span> {selectedDisciplina.nome}</p>
-                    <p><span className="text-muted-foreground">Turma/Ano:</span> {selectedDisciplina.turmas?.nome || "N/A"} ({selectedDisciplina.curso})</p>
-                    <p><span className="text-muted-foreground">Prof:</span> {selectedDisciplina.nome_professor || "Não informado"}</p>
-                  </div>
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="mt-4"
-                    onClick={() => setShowDisciplinaDetails(true)}
-                  >
-                    <Info className="w-4 h-4 mr-2" />
-                    Mais Detalhes
-                  </Button>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">Ordenar por:</span>
-                  <Select value={sortOrder} onValueChange={setSortOrder}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="name-asc">Nome (A-Z)</SelectItem>
-                      <SelectItem value="name-desc">Nome (Z-A)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button variant="ghost" size="icon">
-                    <Search className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          )}
-
           {/* Student List */}
           <Card className="gradient-card shadow-card border-0">
             <div className="p-6 border-b">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-4">
                 <h3 className="text-lg font-semibold text-foreground">Lista de Chamada</h3>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CalendarIcon className="w-4 h-4" />
-                  {selectedDate && format(selectedDate, "dd 'de' MMMM 'de' yyyy (EEEE)", { locale: ptBR })}
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CalendarIcon className="w-4 h-4" />
+                    {selectedDate && format(selectedDate, "dd 'de' MMMM 'de' yyyy (EEEE)", { locale: ptBR })}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Ordenar:</span>
+                    <Select value={sortOrder} onValueChange={setSortOrder}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="name-asc">Nome (A-Z)</SelectItem>
+                        <SelectItem value="name-desc">Nome (Z-A)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button variant="ghost" size="icon">
+                      <Search className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -424,13 +481,16 @@ export const Attendance = () => {
                   <div className="text-center py-8 text-muted-foreground">
                     <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p>Nenhum estudante encontrado.</p>
-                    <p className="text-sm">Adicione estudantes na aba Estudantes.</p>
+                    <p className="text-sm">
+                      {selectedDisciplina?.turma_id 
+                        ? "Adicione estudantes à turma na aba Estudantes."
+                        : "Edite a disciplina para vincular uma turma."}
+                    </p>
                   </div>
                 ) : (
                   sortedStudents.map((student) => {
                     const status = presencas.get(student.id) || "pending";
                     const statusInfo = getStatusBadge(status);
-                    const StatusIcon = statusInfo.icon;
                     
                     return (
                       <div
@@ -509,19 +569,6 @@ export const Attendance = () => {
             />
           </Card>
 
-          {/* Recent History */}
-          <Card className="p-4 gradient-card shadow-card border-0">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Histórico Recente</h3>
-            <ul className="space-y-2 text-sm">
-              {recentHistory.map((item, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
           {/* Students at Risk */}
           <Card className="p-4 gradient-card shadow-card border-0">
             <div className="flex items-center gap-2 mb-4">
@@ -547,24 +594,20 @@ export const Attendance = () => {
       <AddDisciplinaDialog
         open={showAddDisciplina}
         onOpenChange={setShowAddDisciplina}
-        onSuccess={() => {
-          // Refresh disciplinas
-          if (user) {
-            supabase
-              .from("disciplinas")
-              .select("*, turmas (nome)")
-              .eq("user_id", user.id)
-              .then(({ data }) => {
-                if (data) setDisciplinas(data);
-              });
-          }
-        }}
+        onSuccess={refreshDisciplinas}
       />
 
       <DisciplinaDetailsDialog
         open={showDisciplinaDetails}
         onOpenChange={setShowDisciplinaDetails}
         disciplina={selectedDisciplina}
+      />
+
+      <EditDisciplinaDialog
+        open={showEditDisciplina}
+        onOpenChange={setShowEditDisciplina}
+        disciplina={selectedDisciplina}
+        onSuccess={refreshDisciplinas}
       />
     </div>
   );
