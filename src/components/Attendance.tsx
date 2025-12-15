@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +53,7 @@ interface Student {
   id: string;
   nome: string;
   matricula: string;
+  email?: string | null;
 }
 
 interface Presenca {
@@ -62,10 +63,11 @@ interface Presenca {
   justificativa?: string;
 }
 
-const studentsAtRisk = [
-  { name: "João Santos", percentage: 65, absences: 14 },
-  { name: "Pedro", percentage: 55, absences: 21 },
-];
+interface StudentAtRisk {
+  name: string;
+  percentage: number;
+  absences: number;
+}
 
 export const Attendance = () => {
   const { user } = useAuth();
@@ -79,11 +81,22 @@ export const Attendance = () => {
   const [showEditDisciplina, setShowEditDisciplina] = useState(false);
   const [sortOrder, setSortOrder] = useState("name-asc");
   const [isLoading, setIsLoading] = useState(false);
+  const [studentsAtRisk, setStudentsAtRisk] = useState<StudentAtRisk[]>([]);
 
   // Collapsible states
   const [pastExpanded, setPastExpanded] = useState(false);
   const [currentExpanded, setCurrentExpanded] = useState(true);
   const [futureExpanded, setFutureExpanded] = useState(false);
+
+  // Track class start time (when teacher opens the page)
+  const classStartTimeRef = useRef<Date | null>(null);
+
+  // Set class start time on initial load
+  useEffect(() => {
+    if (!classStartTimeRef.current) {
+      classStartTimeRef.current = new Date();
+    }
+  }, []);
 
   // Classify disciplines
   const { pastDisciplinas, currentDisciplinas, futureDisciplinas } = useMemo(() => {
@@ -150,7 +163,7 @@ export const Attendance = () => {
 
       const { data, error } = await supabase
         .from("students")
-        .select("id, nome, matricula")
+        .select("id, nome, matricula, email")
         .eq("user_id", user.id)
         .eq("turma_id", selectedDisciplina.turma_id)
         .order("nome", { ascending: true });
@@ -199,6 +212,51 @@ export const Attendance = () => {
     fetchPresencas();
   }, [user, selectedDisciplina, selectedDate]);
 
+  // Fetch students at risk
+  useEffect(() => {
+    const fetchStudentsAtRisk = async () => {
+      if (!user || !selectedDisciplina) return;
+
+      const { data, error } = await supabase
+        .from("presencas")
+        .select("student_id, status")
+        .eq("user_id", user.id)
+        .eq("disciplina_id", selectedDisciplina.id);
+
+      if (!error && data && students.length > 0) {
+        const studentStats = new Map<string, { absences: number; total: number }>();
+        
+        data.forEach(p => {
+          if (p.student_id) {
+            const current = studentStats.get(p.student_id) || { absences: 0, total: 0 };
+            current.total++;
+            if (p.status === "ausente" || p.status === "atrasado") {
+              current.absences++;
+            }
+            studentStats.set(p.student_id, current);
+          }
+        });
+
+        const atRisk: StudentAtRisk[] = [];
+        studentStats.forEach((stats, studentId) => {
+          const student = students.find(s => s.id === studentId);
+          if (student && stats.absences >= 2) {
+            const percentage = Math.round(((stats.total - stats.absences) / stats.total) * 100);
+            atRisk.push({
+              name: student.nome,
+              percentage,
+              absences: stats.absences,
+            });
+          }
+        });
+
+        setStudentsAtRisk(atRisk.sort((a, b) => a.percentage - b.percentage).slice(0, 5));
+      }
+    };
+
+    fetchStudentsAtRisk();
+  }, [user, selectedDisciplina, students]);
+
   const refreshDisciplinas = async () => {
     if (!user) return;
     
@@ -219,39 +277,8 @@ export const Attendance = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "presente":
-        return { label: "Presente", variant: "default" as const, icon: CheckCircle, color: "bg-green-500" };
-      case "ausente":
-        return { label: "Ausente", variant: "destructive" as const, icon: XCircle, color: "bg-red-500" };
-      case "atrasado":
-        return { label: "Atrasado", variant: "secondary" as const, icon: Clock, color: "bg-yellow-500" };
-      default:
-        return { label: "Ausente", variant: "outline" as const, icon: Clock, color: "bg-gray-300" };
-    }
-  };
-
-  const cycleStatus = (studentId: string) => {
-    const currentStatus = presencas.get(studentId) || "pending";
-    let newStatus: string;
-    
-    switch (currentStatus) {
-      case "pending":
-      case "ausente":
-        newStatus = "presente";
-        break;
-      case "presente":
-        newStatus = "atrasado";
-        break;
-      case "atrasado":
-        newStatus = "ausente";
-        break;
-      default:
-        newStatus = "presente";
-    }
-
-    setPresencas(new Map(presencas.set(studentId, newStatus)));
+  const setStatus = (studentId: string, status: string) => {
+    setPresencas(new Map(presencas.set(studentId, status)));
   };
 
   const markAllPresent = () => {
@@ -267,6 +294,8 @@ export const Attendance = () => {
     setIsLoading(true);
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
+      const saveTime = new Date().toISOString();
+      const startTime = classStartTimeRef.current?.toISOString() || saveTime;
       
       // Delete existing records for this date/disciplina
       await supabase
@@ -276,7 +305,7 @@ export const Attendance = () => {
         .eq("disciplina_id", selectedDisciplina.id)
         .eq("data", dateStr);
 
-      // Insert new records
+      // Insert new records with timestamps
       const records = Array.from(presencas.entries())
         .filter(([_, status]) => status !== "pending")
         .map(([studentId, status]) => ({
@@ -285,6 +314,8 @@ export const Attendance = () => {
           student_id: studentId,
           data: dateStr,
           status,
+          horario_inicio: startTime,
+          horario_salvamento: saveTime,
         }));
 
       if (records.length > 0) {
@@ -293,6 +324,82 @@ export const Attendance = () => {
       }
 
       toast.success("Chamada salva com sucesso!");
+
+      // Get accumulated absences/lates for each student
+      const { data: allPresencas } = await supabase
+        .from("presencas")
+        .select("student_id, status")
+        .eq("user_id", user.id)
+        .eq("disciplina_id", selectedDisciplina.id);
+
+      if (allPresencas) {
+        const studentStats = new Map<string, { absences: number; lates: number }>();
+        
+        allPresencas.forEach(p => {
+          if (p.student_id) {
+            const current = studentStats.get(p.student_id) || { absences: 0, lates: 0 };
+            if (p.status === "ausente") current.absences++;
+            if (p.status === "atrasado") current.lates++;
+            studentStats.set(p.student_id, current);
+          }
+        });
+
+        // Identify students with issues (2+ absences or lates)
+        const studentsWithIssues = students
+          .filter(s => {
+            const stats = studentStats.get(s.id);
+            return stats && (stats.absences + stats.lates >= 2);
+          })
+          .map(s => {
+            const stats = studentStats.get(s.id)!;
+            const currentStatus = presencas.get(s.id) || "pending";
+            return {
+              student_id: s.id,
+              student_name: s.nome,
+              student_email: s.email || null,
+              total_absences: stats.absences,
+              total_lates: stats.lates,
+              status: currentStatus,
+            };
+          });
+
+        // Identify present students for recognition
+        const studentsPresent = students
+          .filter(s => presencas.get(s.id) === "presente")
+          .map(s => ({
+            student_id: s.id,
+            student_name: s.nome,
+            student_email: s.email || null,
+          }));
+
+        // Send notifications via edge function (if RESEND_API_KEY is configured)
+        if (studentsWithIssues.length > 0 || studentsPresent.length > 0) {
+          try {
+            const response = await supabase.functions.invoke("send-attendance-notifications", {
+              body: {
+                disciplina_id: selectedDisciplina.id,
+                disciplina_nome: selectedDisciplina.nome,
+                data: dateStr,
+                admin_email: user.email || "",
+                students_with_issues: studentsWithIssues,
+                students_present: studentsPresent,
+              },
+            });
+            
+            if (response.error) {
+              console.log("Notificações não enviadas:", response.error.message);
+            } else {
+              console.log("Notificações enviadas com sucesso");
+            }
+          } catch (error) {
+            console.log("Edge function não configurada ou erro ao enviar notificações");
+          }
+        }
+      }
+
+      // Reset start time for next session
+      classStartTimeRef.current = new Date();
+
     } catch (error: any) {
       toast.error("Erro ao salvar chamada: " + error.message);
     } finally {
@@ -490,7 +597,6 @@ export const Attendance = () => {
                 ) : (
                   sortedStudents.map((student) => {
                     const status = presencas.get(student.id) || "pending";
-                    const statusInfo = getStatusBadge(status);
                     
                     return (
                       <div
@@ -506,27 +612,48 @@ export const Attendance = () => {
                           <span className="font-medium text-foreground">{student.nome}</span>
                         </div>
                         
-                        <div className="flex items-center gap-3">
-                          <Button
-                            variant={status === "presente" ? "default" : "outline"}
-                            size="sm"
-                            className={status === "presente" ? "bg-green-500 hover:bg-green-600" : ""}
-                            onClick={() => cycleStatus(student.id)}
-                          >
-                            {statusInfo.label}
-                          </Button>
+                        {/* 3 Status Icons Side by Side */}
+                        <div className="flex items-center gap-2">
+                          {/* Present Button */}
                           <button
-                            onClick={() => cycleStatus(student.id)}
-                            className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
-                              status === "presente" ? "bg-green-500 text-white" :
-                              status === "ausente" ? "bg-red-500 text-white" :
-                              status === "atrasado" ? "bg-yellow-500 text-white" :
-                              "bg-gray-200"
+                            onClick={() => setStatus(student.id, "presente")}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                              status === "presente"
+                                ? "bg-green-500 text-white shadow-md"
+                                : "bg-green-100 text-green-700 hover:bg-green-200"
                             }`}
+                            title="Presente"
                           >
-                            {status === "presente" && <CheckCircle className="w-4 h-4" />}
-                            {status === "ausente" && <XCircle className="w-4 h-4" />}
-                            {status === "atrasado" && <Clock className="w-4 h-4" />}
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="hidden sm:inline">P</span>
+                          </button>
+
+                          {/* Absent Button */}
+                          <button
+                            onClick={() => setStatus(student.id, "ausente")}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                              status === "ausente"
+                                ? "bg-red-500 text-white shadow-md"
+                                : "bg-red-100 text-red-700 hover:bg-red-200"
+                            }`}
+                            title="Ausente"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            <span className="hidden sm:inline">F</span>
+                          </button>
+
+                          {/* Late Button */}
+                          <button
+                            onClick={() => setStatus(student.id, "atrasado")}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                              status === "atrasado"
+                                ? "bg-yellow-500 text-white shadow-md"
+                                : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                            }`}
+                            title="Atrasado"
+                          >
+                            <Clock className="w-4 h-4" />
+                            <span className="hidden sm:inline">A</span>
                           </button>
                         </div>
                       </div>
@@ -575,14 +702,20 @@ export const Attendance = () => {
               <AlertTriangle className="w-5 h-5 text-yellow-500" />
               <h3 className="text-lg font-semibold text-foreground">Alunos de Risco</h3>
             </div>
-            <ul className="space-y-2 text-sm">
-              {studentsAtRisk.map((student, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <span className="text-yellow-500">•</span>
-                  <span>{student.name} ({student.percentage}% - {student.absences} Faltas)</span>
-                </li>
-              ))}
-            </ul>
+            {studentsAtRisk.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum aluno em situação de risco.
+              </p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {studentsAtRisk.map((student, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <span className="text-yellow-500">•</span>
+                    <span>{student.name} ({student.percentage}% - {student.absences} Faltas/Atrasos)</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Button variant="link" className="p-0 h-auto mt-3 text-primary">
               [Ver Relatório Completo]
             </Button>
