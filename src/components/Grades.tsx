@@ -8,11 +8,11 @@ import {
   TrendingUp, 
   Award, 
   Download,
-  Trophy,
-  X
+  Trophy
 } from "lucide-react";
 import { StudentGradesFlyout } from "@/components/grades/StudentGradesFlyout";
 import { GradeBarChart } from "@/components/grades/GradeBarChart";
+import { GradeEntry } from "@/components/grades/GradeEntry";
 
 const subjects = ["Matemática", "Português", "História", "Geografia"];
 
@@ -55,6 +55,7 @@ const gradesData = [
 export const Grades = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<typeof gradesData[0] | null>(null);
+  const [showGradeEntry, setShowGradeEntry] = useState(false);
 
   const calculateAverage = (grades: number[]) => {
     return grades.reduce((sum, grade) => sum + grade, 0) / grades.length;
@@ -87,6 +88,11 @@ export const Grades = () => {
   const highestGrade = Math.max(...gradesData.flatMap(student => 
     Object.values(student.grades).flat()));
 
+  // Show Grade Entry view
+  if (showGradeEntry) {
+    return <GradeEntry onBack={() => setShowGradeEntry(false)} />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -96,7 +102,10 @@ export const Grades = () => {
           <p className="text-muted-foreground">Acompanhe o desempenho acadêmico</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button className="bg-primary hover:bg-primary/90">
+          <Button 
+            className="bg-primary hover:bg-primary/90"
+            onClick={() => setShowGradeEntry(true)}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Lançar Notas
           </Button>
