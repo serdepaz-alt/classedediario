@@ -1,0 +1,208 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Educational Design System - Modern Class Diary Theme
+All colors MUST be HSL for perfect theming.
+*/
+
+@layer base {
+  :root {
+    /* Background & Surface Colors */
+    --background: 218 27% 98%;
+    --foreground: 218 27% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 218 27% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 218 27% 12%;
+
+    /* Educational Brand Colors */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 217 91% 70%;
+
+    --secondary: 47 96% 89%;
+    --secondary-foreground: 24 45% 37%;
+
+    --muted: 218 27% 96%;
+    --muted-foreground: 218 27% 46%;
+
+    --accent: 142 71% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Status Colors for Education */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 43 96% 56%;
+    --warning-foreground: 24 45% 37%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* UI Elements */
+    --border: 218 27% 87%;
+    --input: 218 27% 94%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    /* Educational Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(142 71% 55%));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(218 27% 98%));
+
+    /* Shadows for depth */
+    --shadow-card: 0 4px 6px -1px hsl(218 27% 12% / 0.1), 0 2px 4px -1px hsl(218 27% 12% / 0.06);
+    --shadow-elevated: 0 20px 25px -5px hsl(218 27% 12% / 0.1), 0 10px 10px -5px hsl(218 27% 12% / 0.04);
+    --shadow-glow: 0 0 20px hsl(var(--primary) / 0.3);
+
+    /* Sidebar for navigation */
+    --sidebar-background: hsl(var(--card));
+    --sidebar-foreground: hsl(var(--foreground));
+    --sidebar-primary: hsl(var(--primary));
+    --sidebar-primary-foreground: hsl(var(--primary-foreground));
+    --sidebar-accent: hsl(var(--muted));
+    --sidebar-accent-foreground: hsl(var(--foreground));
+    --sidebar-border: hsl(var(--border));
+    --sidebar-ring: hsl(var(--ring));
+
+    /* Animation Variables */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  .dark {
+    /* Dark mode for educational theme */
+    --background: 218 27% 8%;
+    --foreground: 218 27% 96%;
+
+    --card: 218 27% 12%;
+    --card-foreground: 218 27% 96%;
+
+    --popover: 218 27% 12%;
+    --popover-foreground: 218 27% 96%;
+
+    --primary: 217 91% 65%;
+    --primary-foreground: 218 27% 8%;
+    --primary-glow: 217 91% 75%;
+
+    --secondary: 218 27% 16%;
+    --secondary-foreground: 218 27% 96%;
+
+    --muted: 218 27% 16%;
+    --muted-foreground: 218 27% 65%;
+
+    --accent: 142 71% 50%;
+    --accent-foreground: 218 27% 8%;
+
+    --success: 142 71% 50%;
+    --success-foreground: 218 27% 8%;
+    
+    --warning: 43 96% 61%;
+    --warning-foreground: 24 45% 12%;
+
+    --destructive: 0 84% 65%;
+    --destructive-foreground: 218 27% 96%;
+
+    --border: 218 27% 20%;
+    --input: 218 27% 16%;
+    --ring: 217 91% 65%;
+
+    /* Dark gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(142 71% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(218 27% 14%));
+
+    --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+    --shadow-elevated: 0 20px 25px -5px hsl(0 0% 0% / 0.3), 0 10px 10px -5px hsl(0 0% 0% / 0.1);
+    --shadow-glow: 0 0 20px hsl(var(--primary) / 0.4);
+
+    --sidebar-background: hsl(var(--card));
+    --sidebar-foreground: hsl(var(--foreground));
+    --sidebar-primary: hsl(var(--primary));
+    --sidebar-primary-foreground: hsl(var(--primary-foreground));
+    --sidebar-accent: hsl(var(--muted));
+    --sidebar-accent-foreground: hsl(var(--foreground));
+    --sidebar-border: hsl(var(--border));
+    --sidebar-ring: hsl(var(--ring));
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Smooth scrolling and improved focus states */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer utilities {
+  /* Educational utility classes */
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-success {
+    background: var(--gradient-success);
+  }
+  
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+  
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+  
+  .transition-bounce {
+    transition: var(--transition-bounce);
+  }
+}
