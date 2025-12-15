@@ -17,10 +17,10 @@ import {
 
 const menuItems = [
   { icon: Home, label: "Dashboard", path: "/" },
+  { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: Users, label: "Estudantes", path: "/students" },
   { icon: CalendarCheck, label: "Presença", path: "/attendance" },
   { icon: TrendingUp, label: "Notas", path: "/grades" },
-  { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: StickyNote, label: "Anotações", path: "/notes" },
   { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
 ];
