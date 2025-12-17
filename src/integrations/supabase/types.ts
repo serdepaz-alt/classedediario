@@ -103,6 +103,75 @@ export type Database = {
         }
         Relationships: []
       }
+      notas: {
+        Row: {
+          bonus: number | null
+          created_at: string
+          disciplina_id: string
+          id: string
+          is_locked: boolean
+          nome_avaliacao: string
+          notificacao_enviada_em: string | null
+          notificacao_status: string
+          numero_avaliacao: number
+          peso: number
+          student_id: string
+          updated_at: string
+          user_id: string
+          valor: number | null
+          valor_notificado: number | null
+        }
+        Insert: {
+          bonus?: number | null
+          created_at?: string
+          disciplina_id: string
+          id?: string
+          is_locked?: boolean
+          nome_avaliacao?: string
+          notificacao_enviada_em?: string | null
+          notificacao_status?: string
+          numero_avaliacao?: number
+          peso?: number
+          student_id: string
+          updated_at?: string
+          user_id: string
+          valor?: number | null
+          valor_notificado?: number | null
+        }
+        Update: {
+          bonus?: number | null
+          created_at?: string
+          disciplina_id?: string
+          id?: string
+          is_locked?: boolean
+          nome_avaliacao?: string
+          notificacao_enviada_em?: string | null
+          notificacao_status?: string
+          numero_avaliacao?: number
+          peso?: number
+          student_id?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number | null
+          valor_notificado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_disciplina_id_fkey"
+            columns: ["disciplina_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       presencas: {
         Row: {
           created_at: string

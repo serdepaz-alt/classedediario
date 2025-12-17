@@ -8,13 +8,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, FileUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { TurmaCard } from "./turmas/TurmaCard";
 import { AddTurmaDialog } from "./turmas/AddTurmaDialog";
 import { TurmaDetailsDialog } from "./turmas/TurmaDetailsDialog";
+import { ImportPdfDialog } from "./turmas/ImportPdfDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +50,7 @@ export const Turmas = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [importPdfDialogOpen, setImportPdfDialogOpen] = useState(false);
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [turmaToDelete, setTurmaToDelete] = useState<Turma | null>(null);
 
@@ -190,6 +192,10 @@ export const Turmas = () => {
             </SelectContent>
           </Select>
 
+          <Button variant="outline" onClick={() => setImportPdfDialogOpen(true)}>
+            <FileUp className="w-4 h-4 mr-2" />
+            Importar PDF
+          </Button>
           <Button onClick={() => setAddDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Adicionar Turma
@@ -288,6 +294,13 @@ export const Turmas = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import PDF Dialog */}
+      <ImportPdfDialog
+        open={importPdfDialogOpen}
+        onOpenChange={setImportPdfDialogOpen}
+        onSuccess={fetchTurmas}
+      />
     </div>
   );
 };
