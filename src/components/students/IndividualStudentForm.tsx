@@ -34,9 +34,9 @@ const ESTADOS_BR = [
 ];
 
 const studentSchema = z.object({
+  turma_id: z.string().min(1, "Seleção de turma obrigatória"),
   matricula: z.string().min(1, "Matrícula obrigatória"),
   nome: z.string().min(1, "Nome obrigatório").max(100, "Máximo 100 caracteres"),
-  turma_id: z.string().optional(),
   data_nascimento: z.date().optional(),
   cpf: z.string().optional(),
   rg: z.string().optional(),
@@ -179,6 +179,40 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
         <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Dados Pessoais
         </h3>
+
+        {/* Seleção de Turma - Campo obrigatório logo abaixo do título */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1">
+            <GraduationCap className="h-4 w-4" />
+            Turma *
+          </Label>
+          <Select
+            value={form.watch("turma_id")}
+            onValueChange={(value) => form.setValue("turma_id", value)}
+          >
+            <SelectTrigger className={cn(
+              form.formState.errors.turma_id && "border-destructive"
+            )}>
+              <SelectValue placeholder="Selecione a turma do estudante" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              {turmas.length === 0 ? (
+                <div className="py-4 text-center text-sm text-muted-foreground">
+                  Nenhuma turma cadastrada
+                </div>
+              ) : (
+                turmas.map((turma) => (
+                  <SelectItem key={turma.id} value={turma.id}>
+                    {turma.nome} {turma.curso ? `- ${turma.curso}` : ""} {turma.periodo ? `(${turma.periodo})` : ""}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          {form.formState.errors.turma_id && (
+            <p className="text-sm text-destructive">{form.formState.errors.turma_id.message}</p>
+          )}
+        </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -385,60 +419,36 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
           Matrícula
         </h3>
         
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Data de Matrícula *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !form.watch("data_matricula") && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {form.watch("data_matricula") ? (
-                    format(form.watch("data_matricula"), "dd/MM/yyyy", { locale: ptBR })
-                  ) : (
-                    "Selecione a data"
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-popover" align="start">
-                <Calendar
-                  mode="single"
-                  selected={form.watch("data_matricula")}
-                  onSelect={(date) => date && form.setValue("data_matricula", date)}
-                  initialFocus
-                  locale={ptBR}
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Turma</Label>
-            <Select
-              value={form.watch("turma_id")}
-              onValueChange={(value) => form.setValue("turma_id", value)}
-            >
-              <SelectTrigger>
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Selecione a turma" />
-                </div>
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                {turmas.map((turma) => (
-                  <SelectItem key={turma.id} value={turma.id}>
-                    {turma.nome} {turma.curso ? `- ${turma.curso}` : ""} {turma.periodo ? `(${turma.periodo})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-2">
+          <Label>Data de Matrícula *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !form.watch("data_matricula") && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {form.watch("data_matricula") ? (
+                  format(form.watch("data_matricula"), "dd/MM/yyyy", { locale: ptBR })
+                ) : (
+                  "Selecione a data"
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-popover" align="start">
+              <Calendar
+                mode="single"
+                selected={form.watch("data_matricula")}
+                onSelect={(date) => date && form.setValue("data_matricula", date)}
+                initialFocus
+                locale={ptBR}
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
