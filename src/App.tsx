@@ -12,6 +12,7 @@ import GradesPage from "./pages/GradesPage";
 import NotesPage from "./pages/NotesPage";
 import ProgrammaticContentPage from "./pages/ProgrammaticContentPage";
 import TurmasPage from "./pages/TurmasPage";
+import PredictivePage from "./pages/PredictivePage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/notes" element={<ProtectedRoute><NotesPage /></ProtectedRoute>} />
             <Route path="/programmatic-content" element={<ProtectedRoute><ProgrammaticContentPage /></ProtectedRoute>} />
             <Route path="/turmas" element={<ProtectedRoute><TurmasPage /></ProtectedRoute>} />
+            <Route path="/predictive" element={<ProtectedRoute><PredictivePage /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

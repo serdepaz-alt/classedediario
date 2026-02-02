@@ -12,11 +12,13 @@ import {
   GraduationCap,
   FileText,
   LogOut,
-  Layers
+  Layers,
+  BrainCircuit
 } from "lucide-react";
 
 const menuItems = [
   { icon: Home, label: "Dashboard", path: "/" },
+  { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: Users, label: "Estudantes", path: "/students" },
   { icon: CalendarCheck, label: "Presença", path: "/attendance" },
