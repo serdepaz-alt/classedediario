@@ -14,6 +14,155 @@ export type Database = {
   }
   public: {
     Tables: {
+      cad_disciplinas: {
+        Row: {
+          carga_horaria: number | null
+          created_at: string | null
+          curso: string | null
+          id: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          carga_horaria?: number | null
+          created_at?: string | null
+          curso?: string | null
+          id?: string
+          nome: string
+          user_id: string
+        }
+        Update: {
+          carga_horaria?: number | null
+          created_at?: string | null
+          curso?: string | null
+          id?: string
+          nome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cad_professores: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          especialidade: string | null
+          id: string
+          nome: string
+          status: string | null
+          telefone: string | null
+          updated_at: string | null
+          user_id: string
+          valor_hora: number
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          especialidade?: string | null
+          id?: string
+          nome: string
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+          user_id: string
+          valor_hora?: number
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          especialidade?: string | null
+          id?: string
+          nome?: string
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+          user_id?: string
+          valor_hora?: number
+        }
+        Relationships: []
+      }
+      cronograma_mestre: {
+        Row: {
+          aceite_professor: boolean | null
+          created_at: string | null
+          data_aula: string
+          disciplina_id: string | null
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          observacoes: string | null
+          professor_id: string | null
+          status_aula: string | null
+          status_financeiro: string | null
+          turma_id: string | null
+          updated_at: string | null
+          user_id: string
+          valor_calculado: number | null
+        }
+        Insert: {
+          aceite_professor?: boolean | null
+          created_at?: string | null
+          data_aula: string
+          disciplina_id?: string | null
+          hora_fim: string
+          hora_inicio: string
+          id?: string
+          observacoes?: string | null
+          professor_id?: string | null
+          status_aula?: string | null
+          status_financeiro?: string | null
+          turma_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          valor_calculado?: number | null
+        }
+        Update: {
+          aceite_professor?: boolean | null
+          created_at?: string | null
+          data_aula?: string
+          disciplina_id?: string | null
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          observacoes?: string | null
+          professor_id?: string | null
+          status_aula?: string | null
+          status_financeiro?: string | null
+          turma_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          valor_calculado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cronograma_mestre_disciplina_id_fkey"
+            columns: ["disciplina_id"]
+            isOneToOne: false
+            referencedRelation: "cad_disciplinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cronograma_mestre_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "cad_professores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cronograma_mestre_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cronograma_mestre_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "vw_hotspots_turmas"
+            referencedColumns: ["turma_id"]
+          },
+        ]
+      }
       disciplinas: {
         Row: {
           carga_horaria_diaria: number
@@ -74,6 +223,13 @@ export type Database = {
             referencedRelation: "turmas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "disciplinas_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "vw_hotspots_turmas"
+            referencedColumns: ["turma_id"]
+          },
         ]
       }
       feriados: {
@@ -102,6 +258,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      logs_preditivos: {
+        Row: {
+          aula_id: string | null
+          created_at: string | null
+          custo_adicional: number | null
+          descricao: string | null
+          id: string
+          tipo_alteracao: string
+          user_id: string | null
+        }
+        Insert: {
+          aula_id?: string | null
+          created_at?: string | null
+          custo_adicional?: number | null
+          descricao?: string | null
+          id?: string
+          tipo_alteracao: string
+          user_id?: string | null
+        }
+        Update: {
+          aula_id?: string | null
+          created_at?: string | null
+          custo_adicional?: number | null
+          descricao?: string | null
+          id?: string
+          tipo_alteracao?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_preditivos_aula_id_fkey"
+            columns: ["aula_id"]
+            isOneToOne: false
+            referencedRelation: "cronograma_mestre"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notas: {
         Row: {
@@ -307,6 +501,13 @@ export type Database = {
             referencedRelation: "turmas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "students_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "vw_hotspots_turmas"
+            referencedColumns: ["turma_id"]
+          },
         ]
       }
       turmas: {
@@ -350,7 +551,50 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vw_analise_preditiva: {
+        Row: {
+          custo_com_risco: number | null
+          custo_planejado: number | null
+          fator_risco: number | null
+          indice_volatilidade: number | null
+          mes_referencia: string | null
+          status_risco: string | null
+          turma_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cronograma_mestre_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cronograma_mestre_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "vw_hotspots_turmas"
+            referencedColumns: ["turma_id"]
+          },
+        ]
+      }
+      vw_hotspots_turmas: {
+        Row: {
+          custo_planejado: number | null
+          disciplina: string | null
+          impacto_financeiro_estimado: number | null
+          percentual_substituicoes: number | null
+          professor_titular: string | null
+          status_risco: string | null
+          total_aulas: number | null
+          total_substituicoes: number | null
+          turma: string | null
+          turma_id: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
