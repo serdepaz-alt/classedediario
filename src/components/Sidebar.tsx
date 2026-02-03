@@ -14,12 +14,14 @@ import {
   LogOut,
   Layers,
   BrainCircuit,
-  UserCheck
+  UserCheck,
+  CalendarClock
 } from "lucide-react";
 
 const menuItems = [
   { icon: Home, label: "Dashboard", path: "/" },
   { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
+  { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: UserCheck, label: "Professores", path: "/professores" },
   { icon: Users, label: "Estudantes", path: "/students" },
