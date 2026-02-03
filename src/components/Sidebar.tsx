@@ -13,13 +13,15 @@ import {
   FileText,
   LogOut,
   Layers,
-  BrainCircuit
+  BrainCircuit,
+  UserCheck
 } from "lucide-react";
 
 const menuItems = [
   { icon: Home, label: "Dashboard", path: "/" },
   { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
+  { icon: UserCheck, label: "Professores", path: "/professores" },
   { icon: Users, label: "Estudantes", path: "/students" },
   { icon: CalendarCheck, label: "Presença", path: "/attendance" },
   { icon: TrendingUp, label: "Notas", path: "/grades" },

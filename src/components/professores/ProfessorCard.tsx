@@ -1,0 +1,102 @@
+import { Professor } from "@/hooks/useProfessores";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical, Pencil, Trash2, Mail, Phone, Clock, GraduationCap } from "lucide-react";
+
+interface ProfessorCardProps {
+  professor: Professor;
+  onEdit: (professor: Professor) => void;
+  onDelete: (professor: Professor) => void;
+}
+
+export const ProfessorCard = ({ professor, onEdit, onDelete }: ProfessorCardProps) => {
+  const statusColors: Record<string, string> = {
+    Ativo: "bg-success/10 text-success border-success/20",
+    Inativo: "bg-muted text-muted-foreground border-muted",
+    Afastado: "bg-warning/10 text-warning border-warning/20",
+  };
+
+  return (
+    <Card className="group hover:shadow-card transition-smooth">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-lg font-semibold text-primary">
+                {professor.nome.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">{professor.nome}</h3>
+              <Badge
+                variant="outline"
+                className={statusColors[professor.status || "Ativo"]}
+              >
+                {professor.status || "Ativo"}
+              </Badge>
+            </div>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100 transition-smooth"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(professor)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onDelete(professor)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          {professor.email && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Mail className="h-4 w-4" />
+              <span>{professor.email}</span>
+            </div>
+          )}
+          {professor.telefone && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Phone className="h-4 w-4" />
+              <span>{professor.telefone}</span>
+            </div>
+          )}
+          {professor.especialidade && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <GraduationCap className="h-4 w-4" />
+              <span>{professor.especialidade}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4 text-primary" />
+            <span className="font-medium text-primary">
+              R$ {professor.valor_hora.toFixed(2)}/hora
+            </span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
