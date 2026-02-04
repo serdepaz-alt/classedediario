@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Aula } from "@/hooks/useCronograma";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Clock, User, BookOpen } from "lucide-react";
+import { Clock, User, BookOpen, GripVertical } from "lucide-react";
 
 interface GanttChartProps {
   aulasByTurma: Record<string, { turma: Aula["turma"]; aulas: Aula[] }>;
@@ -14,6 +15,7 @@ interface GanttChartProps {
   }>;
   onAulaClick: (aula: Aula) => void;
   onEmptyClick: (dateStr: string) => void;
+  onAulaDrop?: (aulaId: string, newDate: string, turmaId: string) => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -28,8 +30,50 @@ export const GanttChart = ({
   weekDays,
   onAulaClick,
   onEmptyClick,
+  onAulaDrop,
 }: GanttChartProps) => {
+  const [draggedAula, setDraggedAula] = useState<Aula | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ dateStr: string; turmaId: string } | null>(null);
+
   const turmaEntries = Object.entries(aulasByTurma);
+
+  const handleDragStart = (e: React.DragEvent, aula: Aula) => {
+    e.stopPropagation();
+    setDraggedAula(aula);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", aula.id);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedAula(null);
+    setDropTarget(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, dateStr: string, turmaId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    setDropTarget({ dateStr, turmaId });
+  };
+
+  const handleDragLeave = () => {
+    setDropTarget(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dateStr: string, turmaId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (draggedAula && onAulaDrop) {
+      // Only update if dropped on a different day or turma
+      if (draggedAula.data_aula !== dateStr || draggedAula.turma_id !== turmaId) {
+        onAulaDrop(draggedAula.id, dateStr, turmaId);
+      }
+    }
+    
+    setDraggedAula(null);
+    setDropTarget(null);
+  };
 
   if (turmaEntries.length === 0) {
     return (
@@ -93,23 +137,33 @@ export const GanttChart = ({
           {/* Dias */}
           {weekDays.map((day) => {
             const dayAulas = aulas.filter((a) => a.data_aula === day.dateStr);
+            const isDropTarget = dropTarget?.dateStr === day.dateStr && dropTarget?.turmaId === turmaId;
 
             return (
               <div
                 key={day.dateStr}
                 className={cn(
-                  "p-1 border-r last:border-r-0 min-h-[80px] cursor-pointer hover:bg-accent/30 transition-colors",
-                  day.isToday && "bg-primary/5"
+                  "p-1 border-r last:border-r-0 min-h-[80px] cursor-pointer transition-all duration-200",
+                  day.isToday && "bg-primary/5",
+                  isDropTarget && "bg-primary/20 ring-2 ring-primary ring-inset",
+                  !isDropTarget && "hover:bg-accent/30"
                 )}
                 onClick={() => onEmptyClick(day.dateStr)}
+                onDragOver={(e) => handleDragOver(e, day.dateStr, turmaId)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, day.dateStr, turmaId)}
               >
                 <div className="space-y-1">
                   {dayAulas.map((aula) => (
                     <div
                       key={aula.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, aula)}
+                      onDragEnd={handleDragEnd}
                       className={cn(
-                        "p-2 rounded text-xs text-white cursor-pointer transition-smooth",
-                        statusColors[aula.status_aula || "Agendada"]
+                        "p-2 rounded text-xs text-white cursor-grab active:cursor-grabbing transition-all duration-200 group",
+                        statusColors[aula.status_aula || "Agendada"],
+                        draggedAula?.id === aula.id && "opacity-50 scale-95"
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -117,6 +171,7 @@ export const GanttChart = ({
                       }}
                     >
                       <div className="flex items-center gap-1 font-medium">
+                        <GripVertical className="h-3 w-3 opacity-0 group-hover:opacity-70 transition-opacity" />
                         <Clock className="h-3 w-3" />
                         {aula.hora_inicio.slice(0, 5)} - {aula.hora_fim.slice(0, 5)}
                       </div>
