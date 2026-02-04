@@ -33,6 +33,12 @@ export const CronogramaView = () => {
   const [defaultDate, setDefaultDate] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [aulaToDelete, setAulaToDelete] = useState<Aula | null>(null);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [pendingMove, setPendingMove] = useState<{
+    aula: Aula;
+    newDate: string;
+    newTurmaId: string;
+  } | null>(null);
 
   const {
     aulasByTurma,
@@ -77,14 +83,22 @@ export const CronogramaView = () => {
     }
   };
 
-  const handleAulaDrop = async (aulaId: string, newDate: string, newTurmaId: string) => {
+  const handleAulaDrop = (aulaId: string, newDate: string, newTurmaId: string) => {
     const aula = Object.values(aulasByTurma)
       .flatMap(({ aulas }) => aulas)
       .find((a) => a.id === aulaId);
     
     if (aula) {
+      setPendingMove({ aula, newDate, newTurmaId });
+      setMoveDialogOpen(true);
+    }
+  };
+
+  const confirmMove = async () => {
+    if (pendingMove) {
+      const { aula, newDate, newTurmaId } = pendingMove;
       await updateAula.mutateAsync({
-        id: aulaId,
+        id: aula.id,
         formData: {
           turma_id: newTurmaId !== "sem-turma" ? newTurmaId : aula.turma_id || "",
           disciplina_id: aula.disciplina_id || undefined,
@@ -96,6 +110,8 @@ export const CronogramaView = () => {
           observacoes: aula.observacoes || undefined,
         },
       });
+      setMoveDialogOpen(false);
+      setPendingMove(null);
     }
   };
 
@@ -219,6 +235,42 @@ export const CronogramaView = () => {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Excluir"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Move Confirmation */}
+      <AlertDialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar realocação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja mover a aula de{" "}
+              <strong>{pendingMove?.aula.data_aula}</strong> para{" "}
+              <strong>{pendingMove?.newDate}</strong>?
+              {pendingMove?.aula.professor && (
+                <span className="block mt-2 text-sm">
+                  Professor: {pendingMove.aula.professor.nome}
+                </span>
+              )}
+              {pendingMove?.aula.disciplina && (
+                <span className="block text-sm">
+                  Disciplina: {pendingMove.aula.disciplina.nome}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingMove(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMove}>
+              {updateAula.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Mover aula"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
