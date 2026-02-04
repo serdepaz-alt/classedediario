@@ -77,6 +77,28 @@ export const CronogramaView = () => {
     }
   };
 
+  const handleAulaDrop = async (aulaId: string, newDate: string, newTurmaId: string) => {
+    const aula = Object.values(aulasByTurma)
+      .flatMap(({ aulas }) => aulas)
+      .find((a) => a.id === aulaId);
+    
+    if (aula) {
+      await updateAula.mutateAsync({
+        id: aulaId,
+        formData: {
+          turma_id: newTurmaId !== "sem-turma" ? newTurmaId : aula.turma_id || "",
+          disciplina_id: aula.disciplina_id || undefined,
+          professor_id: aula.professor_id || undefined,
+          data_aula: newDate,
+          hora_inicio: aula.hora_inicio,
+          hora_fim: aula.hora_fim,
+          status_aula: aula.status_aula || "Agendada",
+          observacoes: aula.observacoes || undefined,
+        },
+      });
+    }
+  };
+
   const handleDeleteClick = () => {
     if (selectedAula) {
       setAulaToDelete(selectedAula);
@@ -157,6 +179,7 @@ export const CronogramaView = () => {
         weekDays={weekDays}
         onAulaClick={handleAulaClick}
         onEmptyClick={handleEmptyClick}
+        onAulaDrop={handleAulaDrop}
       />
 
       {/* Form Dialog */}
