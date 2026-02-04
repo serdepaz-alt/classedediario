@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format, addWeeks, subWeeks, startOfWeek } from "date-fns";
+import { format, addWeeks, subWeeks, startOfWeek, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCronograma, Aula, AulaFormData } from "@/hooks/useCronograma";
 import { GanttChart } from "./GanttChart";
@@ -248,8 +248,17 @@ export const CronogramaView = () => {
             <AlertDialogTitle>Confirmar realocação</AlertDialogTitle>
             <AlertDialogDescription>
               Deseja mover a aula de{" "}
-              <strong>{pendingMove?.aula.data_aula}</strong> para{" "}
-              <strong>{pendingMove?.newDate}</strong>?
+              <strong>
+                {pendingMove?.aula.data_aula
+                  ? format(parseISO(pendingMove.aula.data_aula), "dd 'de' MMMM", { locale: ptBR })
+                  : ""}
+              </strong>{" "}
+              para{" "}
+              <strong>
+                {pendingMove?.newDate
+                  ? format(parseISO(pendingMove.newDate), "dd 'de' MMMM", { locale: ptBR })
+                  : ""}
+              </strong>?
               {pendingMove?.aula.professor && (
                 <span className="block mt-2 text-sm">
                   Professor: {pendingMove.aula.professor.nome}
