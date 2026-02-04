@@ -37,7 +37,16 @@ export const GanttChart = ({
 
   const turmaEntries = Object.entries(aulasByTurma);
 
+  const isAulaDraggable = (aula: Aula) => {
+    const status = aula.status_aula || "Agendada";
+    return status !== "Realizada" && status !== "Cancelada";
+  };
+
   const handleDragStart = (e: React.DragEvent, aula: Aula) => {
+    if (!isAulaDraggable(aula)) {
+      e.preventDefault();
+      return;
+    }
     e.stopPropagation();
     setDraggedAula(aula);
     e.dataTransfer.effectAllowed = "move";
@@ -154,41 +163,48 @@ export const GanttChart = ({
                 onDrop={(e) => handleDrop(e, day.dateStr, turmaId)}
               >
                 <div className="space-y-1">
-                  {dayAulas.map((aula) => (
-                    <div
-                      key={aula.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, aula)}
-                      onDragEnd={handleDragEnd}
-                      className={cn(
-                        "p-2 rounded text-xs text-white cursor-grab active:cursor-grabbing transition-all duration-200 group",
-                        statusColors[aula.status_aula || "Agendada"],
-                        draggedAula?.id === aula.id && "opacity-50 scale-95"
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAulaClick(aula);
-                      }}
-                    >
-                      <div className="flex items-center gap-1 font-medium">
-                        <GripVertical className="h-3 w-3 opacity-0 group-hover:opacity-70 transition-opacity" />
-                        <Clock className="h-3 w-3" />
-                        {aula.hora_inicio.slice(0, 5)} - {aula.hora_fim.slice(0, 5)}
+                  {dayAulas.map((aula) => {
+                    const isDraggable = isAulaDraggable(aula);
+                    return (
+                      <div
+                        key={aula.id}
+                        draggable={isDraggable}
+                        onDragStart={(e) => handleDragStart(e, aula)}
+                        onDragEnd={handleDragEnd}
+                        className={cn(
+                          "p-2 rounded text-xs text-white transition-all duration-200 group",
+                          statusColors[aula.status_aula || "Agendada"],
+                          isDraggable && "cursor-grab active:cursor-grabbing",
+                          !isDraggable && "cursor-not-allowed opacity-80",
+                          draggedAula?.id === aula.id && "opacity-50 scale-95"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAulaClick(aula);
+                        }}
+                      >
+                        <div className="flex items-center gap-1 font-medium">
+                          {isDraggable && (
+                            <GripVertical className="h-3 w-3 opacity-0 group-hover:opacity-70 transition-opacity" />
+                          )}
+                          <Clock className="h-3 w-3" />
+                          {aula.hora_inicio.slice(0, 5)} - {aula.hora_fim.slice(0, 5)}
+                        </div>
+                        {aula.professor && (
+                          <div className="flex items-center gap-1 mt-1 opacity-90">
+                            <User className="h-3 w-3" />
+                            <span className="truncate">{aula.professor.nome}</span>
+                          </div>
+                        )}
+                        {aula.disciplina && (
+                          <div className="flex items-center gap-1 mt-0.5 opacity-90">
+                            <BookOpen className="h-3 w-3" />
+                            <span className="truncate">{aula.disciplina.nome}</span>
+                          </div>
+                        )}
                       </div>
-                      {aula.professor && (
-                        <div className="flex items-center gap-1 mt-1 opacity-90">
-                          <User className="h-3 w-3" />
-                          <span className="truncate">{aula.professor.nome}</span>
-                        </div>
-                      )}
-                      {aula.disciplina && (
-                        <div className="flex items-center gap-1 mt-0.5 opacity-90">
-                          <BookOpen className="h-3 w-3" />
-                          <span className="truncate">{aula.disciplina.nome}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
