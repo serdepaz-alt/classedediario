@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { AdminPasswordDialog } from "@/components/admin/AdminPasswordDialog";
 import { 
   BookOpen, 
   Users, 
@@ -15,7 +17,8 @@ import {
   Layers,
   BrainCircuit,
   UserCheck,
-  CalendarClock
+  CalendarClock,
+  Settings
 } from "lucide-react";
 
 const menuItems = [
@@ -34,6 +37,7 @@ const menuItems = [
 export const Sidebar = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const [showAdminDialog, setShowAdminDialog] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -72,7 +76,26 @@ export const Sidebar = () => {
             </Link>
           );
         })}
+
+        {/* Admin Menu Item */}
+        <button
+          onClick={() => setShowAdminDialog(true)}
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-lg transition-smooth text-sm font-medium w-full text-left",
+            location.pathname === "/admin"
+              ? "bg-primary text-primary-foreground shadow-card"
+              : "text-muted-foreground hover:text-foreground hover:bg-accent"
+          )}
+        >
+          <Settings className="w-5 h-5" />
+          Administrativo
+        </button>
       </nav>
+
+      <AdminPasswordDialog 
+        open={showAdminDialog} 
+        onOpenChange={setShowAdminDialog} 
+      />
 
       <div className="absolute bottom-6 left-6 right-6 space-y-3">
         <div className="gradient-card p-4 rounded-lg border">
