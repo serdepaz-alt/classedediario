@@ -16,6 +16,7 @@ import PredictivePage from "./pages/PredictivePage";
 import ProfessoresPage from "./pages/ProfessoresPage";
 import CronogramaPage from "./pages/CronogramaPage";
 import AuthPage from "./pages/AuthPage";
+import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/predictive" element={<ProtectedRoute><PredictivePage /></ProtectedRoute>} />
             <Route path="/professores" element={<ProtectedRoute><ProfessoresPage /></ProtectedRoute>} />
             <Route path="/cronograma" element={<ProtectedRoute><CronogramaPage /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
