@@ -80,6 +80,67 @@ export type Database = {
         }
         Relationships: []
       }
+      conteudo_programatico_docs: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          disciplina_id: string | null
+          id: string
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes: number | null
+          tipo_arquivo: string
+          turma_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          disciplina_id?: string | null
+          id?: string
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          tipo_arquivo: string
+          turma_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          disciplina_id?: string | null
+          id?: string
+          nome_arquivo?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          tipo_arquivo?: string
+          turma_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conteudo_programatico_docs_disciplina_id_fkey"
+            columns: ["disciplina_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteudo_programatico_docs_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteudo_programatico_docs_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "vw_hotspots_turmas"
+            referencedColumns: ["turma_id"]
+          },
+        ]
+      }
       cronograma_mestre: {
         Row: {
           aceite_professor: boolean | null
@@ -365,6 +426,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      padroes_disciplinas: {
+        Row: {
+          carga_horaria_diaria: number
+          carga_horaria_total: number
+          created_at: string | null
+          id: string
+          nome: string
+          turno: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          carga_horaria_diaria?: number
+          carga_horaria_total?: number
+          created_at?: string | null
+          id?: string
+          nome: string
+          turno: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          carga_horaria_diaria?: number
+          carga_horaria_total?: number
+          created_at?: string | null
+          id?: string
+          nome?: string
+          turno?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      periodos_letivos: {
+        Row: {
+          ano_letivo: number
+          ativo: boolean | null
+          created_at: string | null
+          data_fim: string
+          data_inicio: string
+          id: string
+          nome: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ano_letivo: number
+          ativo?: boolean | null
+          created_at?: string | null
+          data_fim: string
+          data_inicio: string
+          id?: string
+          nome: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ano_letivo?: number
+          ativo?: boolean | null
+          created_at?: string | null
+          data_fim?: string
+          data_inicio?: string
+          id?: string
+          nome?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       presencas: {
         Row: {
