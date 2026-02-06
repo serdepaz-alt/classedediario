@@ -5,134 +5,114 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Save, Calculator, Clock, BookOpen } from "lucide-react";
+import { Plus, Trash2, Save, Calculator, Clock, BookOpen, Check, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-interface Disciplina {
-  id: string;
-  nome: string;
-  cargaTotal: number;
-  cargaDiaria: number;
-  qtdDias: number;
-}
-
-// Seed data
-const seedDataMatutino: Omit<Disciplina, 'id' | 'qtdDias'>[] = [
-  { nome: "Anatomia", cargaTotal: 81, cargaDiaria: 3 },
-  { nome: "Microbiologia", cargaTotal: 51, cargaDiaria: 3 },
-];
-
-const seedDataNoturnoIntermediario: Omit<Disciplina, 'id' | 'qtdDias'>[] = [
-  { nome: "Anatomia", cargaTotal: 80, cargaDiaria: 2 },
-  { nome: "Microbiologia", cargaTotal: 50, cargaDiaria: 2 },
-  { nome: "Higiene", cargaTotal: 30, cargaDiaria: 2 },
-];
-
-const generateId = () => Math.random().toString(36).substring(2, 9);
-
-const calcularQtdDias = (cargaTotal: number, cargaDiaria: number): number => {
-  if (cargaDiaria <= 0) return 0;
-  return Math.ceil(cargaTotal / cargaDiaria);
-};
-
-const getCargaDiariaSugerida = (turno: string, nomeDisciplina: string): number => {
-  // Se for Estágio, força 5h
-  if (nomeDisciplina.toLowerCase().includes("estágio")) {
-    return 5;
-  }
-  
-  // Regras por turno
-  if (turno === "Matutino") {
-    return 3;
-  }
-  
-  // Noturno ou Intermediário
-  return 2;
-};
+import { 
+  usePadroesDisciplinas, 
+  Turno, 
+  PadraoDisciplinaFormData,
+  getCargaDiariaSugerida,
+  getCargaDiariaEstagio,
+  calcularQtdDias
+} from "@/hooks/usePadroesDisciplinas";
 
 export const PadroesMaracacoTab = () => {
-  const [turnoSelecionado, setTurnoSelecionado] = useState<string>("Matutino");
-  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [turnoSelecionado, setTurnoSelecionado] = useState<Turno>("Matutino");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  
+  const { padroes, isLoading, createPadrao, updatePadrao, deletePadrao } = usePadroesDisciplinas(turnoSelecionado);
 
-  // Carregar seed data baseado no turno
+  // Form state para novo registro
+  const [newForm, setNewForm] = useState<PadraoDisciplinaFormData>({
+    turno: turnoSelecionado,
+    nome: "",
+    carga_horaria_total: 60,
+    carga_horaria_diaria: getCargaDiariaSugerida(turnoSelecionado),
+  });
+
+  // Form state para edição
+  const [editForm, setEditForm] = useState<PadraoDisciplinaFormData>({
+    turno: turnoSelecionado,
+    nome: "",
+    carga_horaria_total: 60,
+    carga_horaria_diaria: 2,
+  });
+
+  // Atualizar carga diária sugerida quando mudar o turno
   useEffect(() => {
-    const seedData = turnoSelecionado === "Matutino" 
-      ? seedDataMatutino 
-      : seedDataNoturnoIntermediario;
-
-    const disciplinasComCalculo = seedData.map(d => ({
-      ...d,
-      id: generateId(),
-      qtdDias: calcularQtdDias(d.cargaTotal, d.cargaDiaria),
+    setNewForm(prev => ({
+      ...prev,
+      turno: turnoSelecionado,
+      carga_horaria_diaria: getCargaDiariaSugerida(turnoSelecionado),
     }));
-
-    setDisciplinas(disciplinasComCalculo);
   }, [turnoSelecionado]);
 
-  const handleAddDisciplina = () => {
-    const cargaDiariaSugerida = getCargaDiariaSugerida(turnoSelecionado, "");
-    const novaDisciplina: Disciplina = {
-      id: generateId(),
-      nome: "",
-      cargaTotal: 0,
-      cargaDiaria: cargaDiariaSugerida,
-      qtdDias: 0,
-    };
-    setDisciplinas([...disciplinas, novaDisciplina]);
-    setEditingId(novaDisciplina.id);
-  };
-
-  const handleRemoveDisciplina = (id: string) => {
-    setDisciplinas(disciplinas.filter(d => d.id !== id));
-    toast.success("Disciplina removida");
-  };
-
-  const handleUpdateDisciplina = (id: string, field: keyof Disciplina, value: string | number) => {
-    setDisciplinas(disciplinas.map(d => {
-      if (d.id !== id) return d;
-
-      let updatedDisciplina = { ...d, [field]: value };
-
-      // Se mudou o nome, verificar se é Estágio
-      if (field === "nome" && typeof value === "string") {
-        const novaCargaDiaria = getCargaDiariaSugerida(turnoSelecionado, value);
-        if (value.toLowerCase().includes("estágio")) {
-          updatedDisciplina.cargaDiaria = 5; // Força 5h para Estágio
-          toast.info("Disciplina 'Estágio' detectada: Carga Diária fixada em 5h");
-        }
-      }
-
-      // Recalcular qtdDias sempre que cargaTotal ou cargaDiaria mudar
-      if (field === "cargaTotal" || field === "cargaDiaria") {
-        updatedDisciplina.qtdDias = calcularQtdDias(
-          field === "cargaTotal" ? Number(value) : updatedDisciplina.cargaTotal,
-          field === "cargaDiaria" ? Number(value) : updatedDisciplina.cargaDiaria
-        );
-      }
-
-      return updatedDisciplina;
-    }));
-  };
-
-  const handleSave = () => {
-    const disciplinasValidas = disciplinas.filter(d => d.nome.trim() !== "" && d.cargaTotal > 0);
-    if (disciplinasValidas.length < disciplinas.length) {
-      toast.warning("Algumas disciplinas incompletas foram mantidas. Preencha todos os campos.");
-      return;
+  // Aplicar regra de estágio no nome
+  const handleNomeChange = (nome: string, isEdit: boolean) => {
+    const cargaEstagio = getCargaDiariaEstagio(nome);
+    if (cargaEstagio !== null) {
+      toast.info("Disciplina 'Estágio' detectada: Carga Diária fixada em 5h");
     }
-    toast.success("Padrões salvos com sucesso!");
+    if (isEdit) {
+      setEditForm(prev => ({
+        ...prev,
+        nome,
+        carga_horaria_diaria: cargaEstagio ?? prev.carga_horaria_diaria,
+      }));
+    } else {
+      setNewForm(prev => ({
+        ...prev,
+        nome,
+        carga_horaria_diaria: cargaEstagio ?? prev.carga_horaria_diaria,
+      }));
+    }
+  };
+
+  const handleAddNew = async () => {
+    if (!newForm.nome.trim()) return;
+    await createPadrao.mutateAsync(newForm);
+    setNewForm({
+      turno: turnoSelecionado,
+      nome: "",
+      carga_horaria_total: 60,
+      carga_horaria_diaria: getCargaDiariaSugerida(turnoSelecionado),
+    });
+    setIsAdding(false);
+  };
+
+  const handleStartEdit = (padrao: typeof padroes[0]) => {
+    setEditingId(padrao.id);
+    setEditForm({
+      turno: padrao.turno,
+      nome: padrao.nome,
+      carga_horaria_total: padrao.carga_horaria_total,
+      carga_horaria_diaria: padrao.carga_horaria_diaria,
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return;
+    await updatePadrao.mutateAsync({ id: editingId, formData: editForm });
     setEditingId(null);
   };
 
+  const handleDelete = async (id: string) => {
+    if (confirm("Tem certeza que deseja remover este padrão?")) {
+      await deletePadrao.mutateAsync(id);
+    }
+  };
+
+  const isEstagio = (nome: string) => nome.toLowerCase().includes("estágio");
+
   const totalHoras = useMemo(() => 
-    disciplinas.reduce((acc, d) => acc + d.cargaTotal, 0), 
-    [disciplinas]
+    padroes.reduce((acc, d) => acc + d.carga_horaria_total, 0), 
+    [padroes]
   );
 
   const totalDias = useMemo(() => 
-    disciplinas.reduce((acc, d) => acc + d.qtdDias, 0), 
-    [disciplinas]
+    padroes.reduce((acc, d) => acc + calcularQtdDias(d.carga_horaria_total, d.carga_horaria_diaria), 0), 
+    [padroes]
   );
 
   return (
@@ -162,7 +142,7 @@ export const PadroesMaracacoTab = () => {
         {/* Filtro de Turno */}
         <div className="flex items-center gap-4">
           <label className="text-sm font-medium">Selecione o Turno:</label>
-          <Select value={turnoSelecionado} onValueChange={setTurnoSelecionado}>
+          <Select value={turnoSelecionado} onValueChange={(v) => setTurnoSelecionado(v as Turno)}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Selecione o turno" />
             </SelectTrigger>
@@ -176,6 +156,17 @@ export const PadroesMaracacoTab = () => {
             <Calculator className="w-3 h-3 mr-1" />
             Carga sugerida: {turnoSelecionado === "Matutino" ? "3h" : "2h"}/dia
           </Badge>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="ml-auto"
+            onClick={() => setIsAdding(true)}
+            disabled={isAdding}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar Disciplina
+          </Button>
         </div>
 
         {/* Tabela Editável */}
@@ -187,88 +178,205 @@ export const PadroesMaracacoTab = () => {
                 <TableHead className="w-[150px] text-center">Carga Total (h)</TableHead>
                 <TableHead className="w-[150px] text-center">Carga Diária (h)</TableHead>
                 <TableHead className="w-[120px] text-center">Qtd. Dias</TableHead>
-                <TableHead className="w-[80px] text-center">Ações</TableHead>
+                <TableHead className="w-[100px] text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {disciplinas.map((disciplina) => {
-                const isEstagio = disciplina.nome.toLowerCase().includes("estágio");
-                
-                return (
-                  <TableRow key={disciplina.id} className="hover:bg-muted/30">
-                    <TableCell>
-                      <Input
-                        value={disciplina.nome}
-                        onChange={(e) => handleUpdateDisciplina(disciplina.id, "nome", e.target.value)}
-                        placeholder="Nome da disciplina"
-                        className="border-0 bg-transparent focus-visible:ring-1"
-                      />
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Input
-                        type="number"
-                        value={disciplina.cargaTotal || ""}
-                        onChange={(e) => handleUpdateDisciplina(disciplina.id, "cargaTotal", Number(e.target.value))}
-                        placeholder="0"
-                        className="border-0 bg-transparent focus-visible:ring-1 text-center w-20 mx-auto"
-                        min={0}
-                      />
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Input
-                          type="number"
-                          value={disciplina.cargaDiaria || ""}
-                          onChange={(e) => handleUpdateDisciplina(disciplina.id, "cargaDiaria", Number(e.target.value))}
-                          placeholder="0"
-                          className="border-0 bg-transparent focus-visible:ring-1 text-center w-20"
-                          min={1}
-                          disabled={isEstagio}
-                        />
-                        {isEstagio && (
-                          <Badge variant="secondary" className="text-xs">Fixo</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className="font-mono">
-                        {disciplina.qtdDias}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveDisciplina(disciplina.id)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {disciplinas.length === 0 && (
+              {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    Nenhuma disciplina cadastrada. Clique em "Adicionar" para começar.
+                  <TableCell colSpan={5} className="text-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
+              ) : (
+                <>
+                  {/* Linha para adicionar novo */}
+                  {isAdding && (
+                    <TableRow className="bg-primary/5">
+                      <TableCell>
+                        <Input
+                          placeholder="Nome da disciplina"
+                          value={newForm.nome}
+                          onChange={(e) => handleNomeChange(e.target.value, false)}
+                          className="border-0 bg-transparent focus-visible:ring-1"
+                          autoFocus
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Input
+                          type="number"
+                          value={newForm.carga_horaria_total}
+                          onChange={(e) => setNewForm(prev => ({ ...prev, carga_horaria_total: parseInt(e.target.value) || 0 }))}
+                          className="border-0 bg-transparent focus-visible:ring-1 text-center w-20 mx-auto"
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Input
+                            type="number"
+                            value={newForm.carga_horaria_diaria}
+                            onChange={(e) => setNewForm(prev => ({ ...prev, carga_horaria_diaria: parseInt(e.target.value) || 0 }))}
+                            className="border-0 bg-transparent focus-visible:ring-1 text-center w-20"
+                            disabled={isEstagio(newForm.nome)}
+                          />
+                          {isEstagio(newForm.nome) && (
+                            <Badge variant="secondary" className="text-xs">Fixo</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="font-mono">
+                          {calcularQtdDias(newForm.carga_horaria_total, newForm.carga_horaria_diaria)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-1">
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-100"
+                            onClick={handleAddNew}
+                            disabled={createPadrao.isPending}
+                          >
+                            {createPadrao.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-100"
+                            onClick={() => setIsAdding(false)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+
+                  {/* Linhas existentes */}
+                  {padroes.map((padrao) => (
+                    <TableRow key={padrao.id} className="hover:bg-muted/30">
+                      <TableCell>
+                        {editingId === padrao.id ? (
+                          <Input
+                            value={editForm.nome}
+                            onChange={(e) => handleNomeChange(e.target.value, true)}
+                            className="border-0 bg-transparent focus-visible:ring-1"
+                          />
+                        ) : (
+                          <span className="font-medium">{padrao.nome}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {editingId === padrao.id ? (
+                          <Input
+                            type="number"
+                            value={editForm.carga_horaria_total}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, carga_horaria_total: parseInt(e.target.value) || 0 }))}
+                            className="border-0 bg-transparent focus-visible:ring-1 text-center w-20 mx-auto"
+                          />
+                        ) : (
+                          <span>{padrao.carga_horaria_total}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {editingId === padrao.id ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <Input
+                              type="number"
+                              value={editForm.carga_horaria_diaria}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, carga_horaria_diaria: parseInt(e.target.value) || 0 }))}
+                              className="border-0 bg-transparent focus-visible:ring-1 text-center w-20"
+                              disabled={isEstagio(editForm.nome)}
+                            />
+                            {isEstagio(editForm.nome) && (
+                              <Badge variant="secondary" className="text-xs">Fixo</Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1">
+                            <span>{padrao.carga_horaria_diaria}</span>
+                            {isEstagio(padrao.nome) && (
+                              <Badge variant="secondary" className="text-xs">Fixo</Badge>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="font-mono">
+                          {editingId === padrao.id 
+                            ? calcularQtdDias(editForm.carga_horaria_total, editForm.carga_horaria_diaria)
+                            : calcularQtdDias(padrao.carga_horaria_total, padrao.carga_horaria_diaria)
+                          }
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-1">
+                          {editingId === padrao.id ? (
+                            <>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-100"
+                                onClick={handleSaveEdit}
+                                disabled={updatePadrao.isPending}
+                              >
+                                {updatePadrao.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                              </Button>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-100"
+                                onClick={() => setEditingId(null)}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                className="h-7 w-7"
+                                onClick={() => handleStartEdit(padrao)}
+                              >
+                                <Save className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleDelete(padrao.id)}
+                                disabled={deletePadrao.isPending}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+
+                  {padroes.length === 0 && !isAdding && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        Nenhum padrão cadastrado para este turno.
+                        <br />
+                        <Button 
+                          variant="link" 
+                          size="sm" 
+                          onClick={() => setIsAdding(true)}
+                        >
+                          Adicionar o primeiro
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
               )}
             </TableBody>
           </Table>
-        </div>
-
-        {/* Botões de Ação */}
-        <div className="flex items-center justify-between pt-4">
-          <Button variant="outline" onClick={handleAddDisciplina}>
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Disciplina
-          </Button>
-          <Button onClick={handleSave}>
-            <Save className="w-4 h-4 mr-2" />
-            Salvar Padrões
-          </Button>
         </div>
 
         {/* Info Card */}
