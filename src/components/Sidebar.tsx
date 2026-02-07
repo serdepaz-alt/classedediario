@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { AdminPasswordDialog } from "@/components/admin/AdminPasswordDialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   BookOpen, 
   Users, 
@@ -18,33 +19,52 @@ import {
   BrainCircuit,
   UserCheck,
   CalendarClock,
-  Settings
+  Settings,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 
-const menuItems = [
+const mainMenuItems = [
   { icon: Home, label: "Dashboard", path: "/" },
-  { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
-  { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
-  { icon: Layers, label: "Turmas", path: "/turmas" },
-  { icon: UserCheck, label: "Professores", path: "/professores" },
-  { icon: Users, label: "Estudantes", path: "/students" },
   { icon: CalendarCheck, label: "Presença", path: "/attendance" },
   { icon: TrendingUp, label: "Notas", path: "/grades" },
   { icon: StickyNote, label: "Anotações", path: "/notes" },
   { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
 ];
 
+const adminSubMenuItems = [
+  { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
+  { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
+  { icon: Layers, label: "Turmas", path: "/turmas" },
+  { icon: UserCheck, label: "Professores", path: "/professores" },
+  { icon: Users, label: "Estudantes", path: "/students" },
+  { icon: Settings, label: "Configurações", path: "/admin", requiresAuth: true },
+];
+
 export const Sidebar = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const [showAdminDialog, setShowAdminDialog] = useState(false);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+  
+  // Check if any admin submenu is active
+  const isAdminSectionActive = adminSubMenuItems.some(item => location.pathname === item.path);
+  const [isAdminOpen, setIsAdminOpen] = useState(isAdminSectionActive);
 
   const handleSignOut = async () => {
     await signOut();
   };
 
+  const handleAdminItemClick = (item: typeof adminSubMenuItems[0], e: React.MouseEvent) => {
+    if (item.requiresAuth) {
+      e.preventDefault();
+      setPendingPath(item.path);
+      setShowAdminDialog(true);
+    }
+  };
+
   return (
-    <div className="fixed left-0 top-0 h-full w-64 gradient-card border-r border-border p-6 shadow-elevated">
+    <div className="fixed left-0 top-0 h-full w-64 gradient-card border-r border-border p-6 shadow-elevated overflow-y-auto">
       <div className="flex items-center gap-3 mb-8">
         <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center">
           <GraduationCap className="w-6 h-6 text-white" />
@@ -56,7 +76,8 @@ export const Sidebar = () => {
       </div>
 
       <nav className="space-y-2">
-        {menuItems.map((item) => {
+        {/* Main Menu Items */}
+        {mainMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
           
@@ -77,19 +98,69 @@ export const Sidebar = () => {
           );
         })}
 
-        {/* Admin Menu Item */}
-        <button
-          onClick={() => setShowAdminDialog(true)}
-          className={cn(
-            "flex items-center gap-3 px-4 py-3 rounded-lg transition-smooth text-sm font-medium w-full text-left",
-            location.pathname === "/admin"
-              ? "bg-primary text-primary-foreground shadow-card"
-              : "text-muted-foreground hover:text-foreground hover:bg-accent"
-          )}
-        >
-          <Settings className="w-5 h-5" />
-          Administrativo
-        </button>
+        {/* Admin Collapsible Menu */}
+        <Collapsible open={isAdminOpen} onOpenChange={setIsAdminOpen}>
+          <CollapsibleTrigger asChild>
+            <button
+              className={cn(
+                "flex items-center justify-between w-full px-4 py-3 rounded-lg transition-smooth text-sm font-medium",
+                isAdminSectionActive
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <Settings className="w-5 h-5" />
+                Administrativo
+              </div>
+              {isAdminOpen ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pl-4 mt-1 space-y-1">
+            {adminSubMenuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              
+              if (item.requiresAuth) {
+                return (
+                  <button
+                    key={item.path}
+                    onClick={(e) => handleAdminItemClick(item, e)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-smooth text-sm font-medium w-full text-left",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-card"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {item.label}
+                  </button>
+                );
+              }
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-smooth text-sm font-medium",
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-card"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </CollapsibleContent>
+        </Collapsible>
       </nav>
 
       <AdminPasswordDialog 
