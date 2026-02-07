@@ -64,8 +64,9 @@ export const Sidebar = () => {
   };
 
   return (
-    <div className="fixed left-0 top-0 h-full w-64 gradient-card border-r border-border p-6 shadow-elevated overflow-y-auto">
-      <div className="flex items-center gap-3 mb-8">
+    <div className="fixed left-0 top-0 h-full w-64 gradient-card border-r border-border shadow-elevated flex flex-col">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-6 pb-4">
         <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center">
           <GraduationCap className="w-6 h-6 text-white" />
         </div>
@@ -75,7 +76,8 @@ export const Sidebar = () => {
         </div>
       </div>
 
-      <nav className="space-y-2">
+      {/* Navigation - Scrollable */}
+      <nav className="flex-1 overflow-y-auto px-6 space-y-2">
         {/* Main Menu Items */}
         {mainMenuItems.map((item) => {
           const Icon = item.icon;
@@ -168,7 +170,8 @@ export const Sidebar = () => {
         onOpenChange={setShowAdminDialog} 
       />
 
-      <div className="absolute bottom-6 left-6 right-6 space-y-3">
+      {/* Footer - Professor Panel */}
+      <div className="p-6 pt-4 space-y-3 border-t border-border mt-auto">
         <div className="gradient-card p-4 rounded-lg border">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
