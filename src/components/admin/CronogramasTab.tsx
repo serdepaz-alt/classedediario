@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Calendar, Plus, Trash2, Edit2, Loader2, CalendarRange } from "lucide-react";
 import { usePeriodosLetivos, PeriodoLetivoFormData } from "@/hooks/usePeriodosLetivos";
+import { FeriadosManager } from "./FeriadosManager";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -79,6 +80,8 @@ export const CronogramasTab = () => {
   };
 
   return (
+    <div className="space-y-6">
+    <FeriadosManager />
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -251,5 +254,6 @@ export const CronogramasTab = () => {
         </Dialog>
       </CardContent>
     </Card>
+    </div>
   );
 };
