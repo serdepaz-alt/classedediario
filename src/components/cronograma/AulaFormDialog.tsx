@@ -28,7 +28,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Aula, AulaFormData } from "@/hooks/useCronograma";
-import { Loader2 } from "lucide-react";
+import { useConflictDetection } from "@/hooks/useConflictDetection";
+import { ConflictAlerts } from "@/components/cronograma/ConflictAlerts";
+import { Loader2, ShieldCheck } from "lucide-react";
 
 const aulaSchema = z.object({
   turma_id: z.string().min(1, "Selecione uma turma"),
@@ -79,6 +81,22 @@ export const AulaFormDialog = ({
       observacoes: "",
     },
   });
+
+  const watchedValues = form.watch(["professor_id", "turma_id", "data_aula", "hora_inicio", "hora_fim"]);
+  const [professorId, turmaId, dataAula, horaInicio, horaFim] = watchedValues;
+
+  const conflictParams = (dataAula && horaInicio && horaFim && (professorId || turmaId))
+    ? {
+        professor_id: professorId || undefined,
+        turma_id: turmaId || undefined,
+        data_aula: dataAula,
+        hora_inicio: horaInicio,
+        hora_fim: horaFim,
+        exclude_aula_id: aula?.id,
+      }
+    : null;
+
+  const { conflicts, isLoading: checkingConflicts, hasErrors } = useConflictDetection(conflictParams);
 
   useEffect(() => {
     if (aula) {
@@ -243,6 +261,15 @@ export const AulaFormDialog = ({
               />
             </div>
 
+            {/* Semáforo de Conflitos */}
+            <ConflictAlerts conflicts={conflicts} isLoading={checkingConflicts} />
+            {!checkingConflicts && conflicts.length === 0 && professorId && dataAula && horaInicio && horaFim && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+                <ShieldCheck className="h-3.5 w-3.5 text-green-600" />
+                <span>Sem conflitos detectados</span>
+              </div>
+            )}
+
             <FormField
               control={form.control}
               name="status_aula"
@@ -293,7 +320,7 @@ export const AulaFormDialog = ({
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || hasErrors}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? "Salvar" : "Agendar"}
               </Button>
