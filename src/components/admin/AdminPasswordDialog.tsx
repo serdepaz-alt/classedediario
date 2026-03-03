@@ -18,7 +18,7 @@ interface AdminPasswordDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const ADMIN_PASSWORD = "admin123";
+const ADMIN_PASSWORD = "202600";
 
 export const AdminPasswordDialog = ({ open, onOpenChange }: AdminPasswordDialogProps) => {
   const navigate = useNavigate();
