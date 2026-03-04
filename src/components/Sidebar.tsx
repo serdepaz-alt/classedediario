@@ -22,7 +22,8 @@ import {
   Settings,
   ChevronDown,
   ChevronRight,
-  DollarSign
+  DollarSign,
+  ClipboardCheck
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -36,6 +37,7 @@ const mainMenuItems = [
 const adminSubMenuItems = [
   { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
   { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
+  { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: UserCheck, label: "Professores", path: "/professores" },

@@ -8,11 +8,15 @@ import {
   TrendingUp, 
   Award, 
   Download,
-  Trophy
+  Trophy,
+  Lock,
+  AlertTriangle
 } from "lucide-react";
 import { StudentGradesFlyout } from "@/components/grades/StudentGradesFlyout";
 import { GradeBarChart } from "@/components/grades/GradeBarChart";
 import { GradeEntry } from "@/components/grades/GradeEntry";
+import { useAceiteCronograma } from "@/hooks/useAceiteCronograma";
+import { Link } from "react-router-dom";
 
 const subjects = ["Matemática", "Português", "História", "Geografia"];
 
@@ -56,6 +60,7 @@ export const Grades = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<typeof gradesData[0] | null>(null);
   const [showGradeEntry, setShowGradeEntry] = useState(false);
+  const { hasPending, pendingCount } = useAceiteCronograma();
 
   const calculateAverage = (grades: number[]) => {
     return grades.reduce((sum, grade) => sum + grade, 0) / grades.length;
@@ -105,8 +110,13 @@ export const Grades = () => {
           <Button 
             className="bg-primary hover:bg-primary/90"
             onClick={() => setShowGradeEntry(true)}
+            disabled={hasPending}
           >
-            <Plus className="w-4 h-4 mr-2" />
+            {hasPending ? (
+              <Lock className="w-4 h-4 mr-2" />
+            ) : (
+              <Plus className="w-4 h-4 mr-2" />
+            )}
             Lançar Notas
           </Button>
           <Button variant="outline">
@@ -115,6 +125,27 @@ export const Grades = () => {
           </Button>
         </div>
       </div>
+
+      {/* Lock Banner */}
+      {hasPending && (
+        <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                Lançamento de notas bloqueado
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Existem {pendingCount} aula{pendingCount > 1 ? "s" : ""} pendente{pendingCount > 1 ? "s" : ""} de aceite no cronograma. 
+                Aceite todas as aulas para liberar o lançamento de notas.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/aceite-cronograma">Ir para Aceite</Link>
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
