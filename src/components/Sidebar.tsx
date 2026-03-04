@@ -21,7 +21,8 @@ import {
   CalendarClock,
   Settings,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  DollarSign
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -34,6 +35,7 @@ const mainMenuItems = [
 
 const adminSubMenuItems = [
   { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
+  { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: UserCheck, label: "Professores", path: "/professores" },
