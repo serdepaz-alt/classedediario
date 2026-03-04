@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Aula } from "@/hooks/useCronograma";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Clock, User, BookOpen, GripVertical } from "lucide-react";
+import { Clock, User, BookOpen, GripVertical, CheckCircle2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -200,6 +200,9 @@ export const GanttChart = ({
                             )}
                             <Clock className="h-3 w-3" />
                             {aula.hora_inicio.slice(0, 5)} - {aula.hora_fim.slice(0, 5)}
+                            {aula.aceite_professor && (
+                              <CheckCircle2 className="h-3 w-3 ml-auto text-emerald-300" />
+                            )}
                           </div>
                           {aula.professor && (
                             <div className="flex items-center gap-1 mt-1 opacity-90">

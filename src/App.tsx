@@ -16,6 +16,7 @@ import PredictivePage from "./pages/PredictivePage";
 import SmartFinancePage from "./pages/SmartFinancePage";
 import ProfessoresPage from "./pages/ProfessoresPage";
 import CronogramaPage from "./pages/CronogramaPage";
+import AceiteCronogramaPage from "./pages/AceiteCronogramaPage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/smart-finance" element={<ProtectedRoute><SmartFinancePage /></ProtectedRoute>} />
             <Route path="/professores" element={<ProtectedRoute><ProfessoresPage /></ProtectedRoute>} />
             <Route path="/cronograma" element={<ProtectedRoute><CronogramaPage /></ProtectedRoute>} />
+            <Route path="/aceite-cronograma" element={<ProtectedRoute><AceiteCronogramaPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
