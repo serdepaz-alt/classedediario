@@ -13,6 +13,7 @@ import NotesPage from "./pages/NotesPage";
 import ProgrammaticContentPage from "./pages/ProgrammaticContentPage";
 import TurmasPage from "./pages/TurmasPage";
 import PredictivePage from "./pages/PredictivePage";
+import SmartFinancePage from "./pages/SmartFinancePage";
 import ProfessoresPage from "./pages/ProfessoresPage";
 import CronogramaPage from "./pages/CronogramaPage";
 import AuthPage from "./pages/AuthPage";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/programmatic-content" element={<ProtectedRoute><ProgrammaticContentPage /></ProtectedRoute>} />
             <Route path="/turmas" element={<ProtectedRoute><TurmasPage /></ProtectedRoute>} />
             <Route path="/predictive" element={<ProtectedRoute><PredictivePage /></ProtectedRoute>} />
+            <Route path="/smart-finance" element={<ProtectedRoute><SmartFinancePage /></ProtectedRoute>} />
             <Route path="/professores" element={<ProtectedRoute><ProfessoresPage /></ProtectedRoute>} />
             <Route path="/cronograma" element={<ProtectedRoute><CronogramaPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
