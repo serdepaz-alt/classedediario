@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-export type Turno = "Matutino" | "Noturno" | "Intermediário";
+export type Turno = "Matutino" | "Vespertino" | "Noturno" | "Intermediário";
 
 export interface PadraoDisciplina {
   id: string;
@@ -25,7 +25,7 @@ export interface PadraoDisciplinaFormData {
 
 // Regra de negócio: sugerir carga diária baseada no turno
 export const getCargaDiariaSugerida = (turno: Turno): number => {
-  return turno === "Matutino" ? 3 : 2;
+  return (turno === "Matutino" || turno === "Vespertino") ? 3 : 2;
 };
 
 // Regra de negócio: disciplinas com "Estágio" têm carga fixa de 5h
