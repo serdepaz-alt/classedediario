@@ -148,13 +148,14 @@ export const PadroesMaracacoTab = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Matutino">Matutino (3h/dia)</SelectItem>
+              <SelectItem value="Vespertino">Vespertino (3h/dia)</SelectItem>
               <SelectItem value="Noturno">Noturno (2h/dia)</SelectItem>
               <SelectItem value="Intermediário">Intermediário (2h/dia)</SelectItem>
             </SelectContent>
           </Select>
           <Badge variant="outline" className="ml-2">
             <Calculator className="w-3 h-3 mr-1" />
-            Carga sugerida: {turnoSelecionado === "Matutino" ? "3h" : "2h"}/dia
+            Carga sugerida: {(turnoSelecionado === "Matutino" || turnoSelecionado === "Vespertino") ? "3h" : "2h"}/dia
           </Badge>
           
           <Button 
@@ -385,6 +386,7 @@ export const PadroesMaracacoTab = () => {
           <ul className="text-sm text-muted-foreground space-y-1">
             <li>• <strong>Qtd. Dias</strong> = Carga Total ÷ Carga Diária (arredondado para cima)</li>
             <li>• <strong>Matutino:</strong> Sugere carga diária de 3h</li>
+            <li>• <strong>Vespertino:</strong> Sugere carga diária de 3h</li>
             <li>• <strong>Noturno/Intermediário:</strong> Sugere carga diária de 2h</li>
             <li>• <strong>Estágio:</strong> Força carga diária de 5h (sempre)</li>
           </ul>
