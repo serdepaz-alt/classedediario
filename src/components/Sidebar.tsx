@@ -23,7 +23,8 @@ import {
   ChevronDown,
   ChevronRight,
   DollarSign,
-  ClipboardCheck
+  ClipboardCheck,
+  ShieldAlert
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -38,6 +39,7 @@ const adminSubMenuItems = [
   { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
   { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
   { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
+  { icon: ShieldAlert, label: "Gestão de Exceções", path: "/gestao-excecoes" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: UserCheck, label: "Professores", path: "/professores" },
