@@ -96,10 +96,16 @@ export const CronogramasTab = () => {
               Configure os períodos letivos para geração automática de cronogramas
             </CardDescription>
           </div>
-          <Button onClick={() => handleOpenDialog()} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Novo Período
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setSequenciaDialogOpen(true)} className="gap-2">
+              <ListOrdered className="w-4 h-4" />
+              Cadastro de Sequência de Disciplinas por Turma
+            </Button>
+            <Button variant="outline" onClick={() => handleOpenDialog()} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Novo Período
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
