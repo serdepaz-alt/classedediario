@@ -19,7 +19,6 @@ export const CronogramasTab = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [sequenciaDialogOpen, setSequenciaDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<PeriodoLetivoFormData>({
     nome: "",
