@@ -1,0 +1,2 @@
+ALTER TABLE padroes_disciplinas DROP CONSTRAINT padroes_disciplinas_turno_check;
+ALTER TABLE padroes_disciplinas ADD CONSTRAINT padroes_disciplinas_turno_check CHECK (turno = ANY (ARRAY['Matutino'::text, 'Vespertino'::text, 'Noturno'::text, 'Intermediário'::text]));
