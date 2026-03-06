@@ -7,15 +7,17 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, Plus, Trash2, Edit2, Loader2, CalendarRange } from "lucide-react";
+import { Calendar, Plus, Trash2, Edit2, Loader2, CalendarRange, ListOrdered } from "lucide-react";
 import { usePeriodosLetivos, PeriodoLetivoFormData } from "@/hooks/usePeriodosLetivos";
 import { FeriadosManager } from "./FeriadosManager";
+import { SequenciaDisciplinasDialog } from "./SequenciaDisciplinasDialog";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export const CronogramasTab = () => {
   const { periodos, isLoading, createPeriodo, updatePeriodo, deletePeriodo } = usePeriodosLetivos();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [sequenciaDialogOpen, setSequenciaDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<PeriodoLetivoFormData>({
@@ -94,10 +96,16 @@ export const CronogramasTab = () => {
               Configure os períodos letivos para geração automática de cronogramas
             </CardDescription>
           </div>
-          <Button onClick={() => handleOpenDialog()} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Novo Período
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setSequenciaDialogOpen(true)} className="gap-2">
+              <ListOrdered className="w-4 h-4" />
+              Cadastro de Sequência de Disciplinas por Turma
+            </Button>
+            <Button variant="outline" onClick={() => handleOpenDialog()} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Novo Período
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -254,6 +262,11 @@ export const CronogramasTab = () => {
         </Dialog>
       </CardContent>
     </Card>
+
+      <SequenciaDisciplinasDialog
+        open={sequenciaDialogOpen}
+        onOpenChange={setSequenciaDialogOpen}
+      />
     </div>
   );
 };
