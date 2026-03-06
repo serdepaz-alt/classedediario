@@ -262,6 +262,11 @@ export const CronogramasTab = () => {
         </Dialog>
       </CardContent>
     </Card>
+
+      <SequenciaDisciplinasDialog
+        open={sequenciaDialogOpen}
+        onOpenChange={setSequenciaDialogOpen}
+      />
     </div>
   );
 };
