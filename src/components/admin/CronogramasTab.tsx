@@ -7,9 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, Plus, Trash2, Edit2, Loader2, CalendarRange } from "lucide-react";
+import { Calendar, Plus, Trash2, Edit2, Loader2, CalendarRange, ListOrdered } from "lucide-react";
 import { usePeriodosLetivos, PeriodoLetivoFormData } from "@/hooks/usePeriodosLetivos";
 import { FeriadosManager } from "./FeriadosManager";
+import { SequenciaDisciplinasDialog } from "./SequenciaDisciplinasDialog";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
