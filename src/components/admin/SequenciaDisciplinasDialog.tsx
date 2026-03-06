@@ -1,0 +1,290 @@
+import { useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  ArrowUp,
+  ArrowDown,
+  CalendarDays,
+  Loader2,
+  Save,
+  Clock,
+  BookOpen,
+  AlertTriangle,
+} from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useSequenciaDisciplinas } from "@/hooks/useSequenciaDisciplinas";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export const SequenciaDisciplinasDialog = ({ open, onOpenChange }: Props) => {
+  const {
+    turmas,
+    selectedTurmaId,
+    selectedTurma,
+    turno,
+    sequencia,
+    dataInicio,
+    isLoadingTurmas,
+    isLoadingPadroes,
+    isSaving,
+    cargaTotalCurso,
+    totalDiasCurso,
+    fetchTurmas,
+    loadPadroes,
+    handleSetDataInicio,
+    moveItem,
+    salvar,
+    reset,
+  } = useSequenciaDisciplinas();
+
+  useEffect(() => {
+    if (open) {
+      reset();
+      fetchTurmas();
+    }
+  }, [open, fetchTurmas, reset]);
+
+  const handleSave = async () => {
+    const success = await salvar();
+    if (success) {
+      onOpenChange(false);
+    }
+  };
+
+  const formatDateBR = (dateStr: string) => {
+    if (!dateStr) return "—";
+    try {
+      return format(parseISO(dateStr), "dd/MM/yyyy", { locale: ptBR });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CalendarDays className="w-5 h-5 text-primary" />
+            Cadastro de Sequência de Disciplinas por Turma
+          </DialogTitle>
+          <DialogDescription>
+            Selecione uma turma, defina a data de início e o sistema calculará
+            automaticamente o cronograma completo.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          {/* Step 1: Turma Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Selecione a Turma</Label>
+              {isLoadingTurmas ? (
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Carregando turmas...
+                </div>
+              ) : (
+                <Select
+                  value={selectedTurmaId}
+                  onValueChange={(id) => loadPadroes(id)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma turma" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {turmas.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {selectedTurma && (
+              <div className="flex items-end gap-3">
+                <Badge variant="secondary" className="h-8 px-3">
+                  <BookOpen className="w-3 h-3 mr-1" />
+                  Turno: {turno}
+                </Badge>
+                {selectedTurma.curso && (
+                  <Badge variant="outline" className="h-8 px-3">
+                    Curso: {selectedTurma.curso}
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Step 2: Start Date */}
+          {selectedTurmaId && sequencia.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="data_inicio_seq" className="flex items-center gap-2">
+                📅 Data de Início da Turma
+              </Label>
+              <Input
+                id="data_inicio_seq"
+                type="date"
+                className="w-[200px]"
+                value={dataInicio}
+                onChange={(e) => handleSetDataInicio(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Summary KPIs */}
+          {sequencia.length > 0 && (
+            <div className="flex items-center gap-4 flex-wrap">
+              <Badge variant="secondary" className="h-8 px-3">
+                <Clock className="w-3 h-3 mr-1" />
+                Carga Total: {cargaTotalCurso}h
+              </Badge>
+              <Badge variant="outline" className="h-8 px-3">
+                Total de Dias: {totalDiasCurso} dias úteis
+              </Badge>
+              <Badge variant="outline" className="h-8 px-3">
+                {sequencia.length} disciplina(s)
+              </Badge>
+              {dataInicio && sequencia.length > 0 && sequencia[sequencia.length - 1].data_termino && (
+                <Badge className="h-8 px-3 bg-primary/10 text-primary border-primary/20">
+                  Término: {formatDateBR(sequencia[sequencia.length - 1].data_termino)}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Step 3: Discipline Sequence Table */}
+          {isLoadingPadroes ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : sequencia.length > 0 ? (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-[60px] text-center">Ordem</TableHead>
+                    <TableHead>Disciplina</TableHead>
+                    <TableHead className="text-center w-[100px]">Carga (h)</TableHead>
+                    <TableHead className="text-center w-[80px]">Diária</TableHead>
+                    <TableHead className="text-center w-[80px]">Dias</TableHead>
+                    <TableHead className="text-center w-[110px]">Início</TableHead>
+                    <TableHead className="text-center w-[110px]">Término</TableHead>
+                    <TableHead className="text-center w-[80px]">Mover</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sequencia.map((item, idx) => (
+                    <TableRow key={`${item.nome}-${idx}`} className="hover:bg-muted/30">
+                      <TableCell className="text-center font-mono font-bold text-muted-foreground">
+                        {item.ordem}
+                      </TableCell>
+                      <TableCell className="font-medium">{item.nome}</TableCell>
+                      <TableCell className="text-center">{item.carga_horaria_total}h</TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {item.carga_horaria_diaria}h
+                          {item.nome.toLowerCase().includes("estágio") && (
+                            <Badge variant="secondary" className="text-[10px] px-1">Fixo</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="font-mono">
+                          {item.qtd_dias}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center text-sm">
+                        {formatDateBR(item.data_inicio)}
+                      </TableCell>
+                      <TableCell className="text-center text-sm">
+                        {formatDateBR(item.data_termino)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-0.5">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            disabled={idx === 0}
+                            onClick={() => moveItem(idx, "up")}
+                          >
+                            <ArrowUp className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            disabled={idx === sequencia.length - 1}
+                            onClick={() => moveItem(idx, "down")}
+                          >
+                            <ArrowDown className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : selectedTurmaId ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-amber-500" />
+              <p>Nenhum padrão de disciplina cadastrado para o turno <strong>{turno}</strong>.</p>
+              <p className="text-sm mt-1">Cadastre os padrões na aba "Padrões de Marcação" antes de gerar o cronograma.</p>
+            </div>
+          ) : null}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || sequencia.length === 0 || !dataInicio}
+            className="gap-2"
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            Salvar Cronograma
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
