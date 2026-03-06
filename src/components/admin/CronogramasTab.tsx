@@ -17,6 +17,8 @@ import { ptBR } from "date-fns/locale";
 export const CronogramasTab = () => {
   const { periodos, isLoading, createPeriodo, updatePeriodo, deletePeriodo } = usePeriodosLetivos();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [sequenciaDialogOpen, setSequenciaDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<PeriodoLetivoFormData>({
