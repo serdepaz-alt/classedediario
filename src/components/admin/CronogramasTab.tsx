@@ -137,7 +137,7 @@ export const CronogramasTab = () => {
                 Visualize e gerencie os cronogramas de disciplinas por turma
               </CardDescription>
             </div>
-            <Button onClick={() => setSequenciaDialogOpen(true)} className="gap-2">
+            <Button onClick={() => { setEditTurmaId(null); setSequenciaDialogOpen(true); }} className="gap-2">
               <ListOrdered className="w-4 h-4" />
               Cadastro de Sequência de Disciplinas por Turma
             </Button>
