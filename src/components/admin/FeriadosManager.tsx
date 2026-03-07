@@ -112,7 +112,7 @@ export const FeriadosManager = () => {
               </Button>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border max-h-[360px] overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
