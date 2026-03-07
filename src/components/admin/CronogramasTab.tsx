@@ -114,8 +114,8 @@ export const CronogramasTab = () => {
       currentIdx = Math.max(0, items.length - 3);
     }
 
-    const startIdx = Math.max(0, currentIdx - 2);
-    const endIdx = Math.min(items.length, currentIdx + 3);
+    const startIdx = Math.max(0, currentIdx - 1);
+    const endIdx = Math.min(items.length, currentIdx + 2);
     return { visible: items.slice(startIdx, endIdx), currentIdx, startIdx };
   };
 
