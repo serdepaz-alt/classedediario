@@ -229,11 +229,16 @@ export const CronogramasTab = () => {
                             return (
                               <TableRow
                                 key={d.id}
-                                className={
+                                className={cn(
+                                  "cursor-pointer",
                                   isCurrent
                                     ? "bg-primary/10 border-l-4 border-l-primary"
                                     : "hover:bg-muted/30"
-                                }
+                                )}
+                                onClick={() => {
+                                  setEditTurmaId(d.turma_id);
+                                  setSequenciaDialogOpen(true);
+                                }}
                               >
                                 <TableCell className="text-center font-mono font-bold text-muted-foreground">
                                   {globalIdx + 1}
