@@ -338,6 +338,7 @@ export const useSequenciaDisciplinas = () => {
     totalDiasCurso,
     fetchTurmas,
     loadPadroes,
+    loadExistingSequencia,
     handleSetDataInicio,
     moveItem,
     validate,
