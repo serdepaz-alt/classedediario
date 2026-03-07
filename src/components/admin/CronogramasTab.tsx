@@ -71,6 +71,7 @@ export const CronogramasTab = () => {
 
   const handleSequenciaSaved = () => {
     setSequenciaDialogOpen(false);
+    setEditTurmaId(null);
     fetchDisciplinas();
   };
 
@@ -291,6 +292,7 @@ export const CronogramasTab = () => {
       <SequenciaDisciplinasDialog
         open={sequenciaDialogOpen}
         onOpenChange={handleSequenciaSaved}
+        initialTurmaId={editTurmaId}
       />
     </div>
   );
