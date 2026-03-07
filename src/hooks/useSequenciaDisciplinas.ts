@@ -113,6 +113,54 @@ export const useSequenciaDisciplinas = () => {
     }
   }, [turmas, user?.id]);
 
+  // Load existing disciplinas from the database for editing
+  const loadExistingSequencia = useCallback(async (turmaId: string) => {
+    const turma = turmas.find((t) => t.id === turmaId);
+    if (!turma || !user?.id) return;
+
+    setSelectedTurma(turma);
+    setSelectedTurmaId(turmaId);
+    const mappedTurno = mapPeriodoToTurno(turma.periodo);
+    setTurno(mappedTurno);
+    setIsLoadingPadroes(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("disciplinas")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("turma_id", turmaId)
+        .order("data_inicio", { ascending: true });
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        // No existing data, fall back to loading patterns
+        setIsLoadingPadroes(false);
+        await loadPadroes(turmaId);
+        return;
+      }
+
+      const items: SequenciaItem[] = data.map((d, idx) => ({
+        ordem: idx + 1,
+        nome: d.nome,
+        carga_horaria_total: d.carga_horaria_total || 0,
+        carga_horaria_diaria: d.carga_horaria_diaria,
+        qtd_dias: d.dias_uteis || 0,
+        data_inicio: d.data_inicio,
+        data_termino: d.data_termino,
+      }));
+
+      setSequencia(items);
+      setDataInicio(items[0]?.data_inicio || "");
+    } catch (err) {
+      console.error("Erro ao carregar sequência existente:", err);
+      toast.error("Erro ao carregar sequência da turma");
+    } finally {
+      setIsLoadingPadroes(false);
+    }
+  }, [turmas, user?.id, loadPadroes]);
+
   // Advance N business days from a start date, skipping weekends and holidays
   const advanceBusinessDays = useCallback(
     (start: Date, days: number): Date => {
@@ -290,6 +338,7 @@ export const useSequenciaDisciplinas = () => {
     totalDiasCurso,
     fetchTurmas,
     loadPadroes,
+    loadExistingSequencia,
     handleSetDataInicio,
     moveItem,
     validate,

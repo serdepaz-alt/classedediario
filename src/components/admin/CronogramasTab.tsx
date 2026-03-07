@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Loader2, CalendarRange, ListOrdered } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { FeriadosManager } from "./FeriadosManager";
 import { SequenciaDisciplinasDialog } from "./SequenciaDisciplinasDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +33,7 @@ const CURSOS = ["Técnico em Enfermagem"];
 export const CronogramasTab = () => {
   const { user } = useAuth();
   const [sequenciaDialogOpen, setSequenciaDialogOpen] = useState(false);
+  const [editTurmaId, setEditTurmaId] = useState<string | null>(null);
   const [filtroTurno, setFiltroTurno] = useState("Matutino");
   const [filtroCurso, setFiltroCurso] = useState("Técnico em Enfermagem");
   const [disciplinas, setDisciplinas] = useState<DisciplinaRow[]>([]);
@@ -69,6 +71,7 @@ export const CronogramasTab = () => {
 
   const handleSequenciaSaved = () => {
     setSequenciaDialogOpen(false);
+    setEditTurmaId(null);
     fetchDisciplinas();
   };
 
@@ -134,7 +137,7 @@ export const CronogramasTab = () => {
                 Visualize e gerencie os cronogramas de disciplinas por turma
               </CardDescription>
             </div>
-            <Button onClick={() => setSequenciaDialogOpen(true)} className="gap-2">
+            <Button onClick={() => { setEditTurmaId(null); setSequenciaDialogOpen(true); }} className="gap-2">
               <ListOrdered className="w-4 h-4" />
               Cadastro de Sequência de Disciplinas por Turma
             </Button>
@@ -228,11 +231,16 @@ export const CronogramasTab = () => {
                             return (
                               <TableRow
                                 key={d.id}
-                                className={
+                                className={cn(
+                                  "cursor-pointer",
                                   isCurrent
                                     ? "bg-primary/10 border-l-4 border-l-primary"
                                     : "hover:bg-muted/30"
-                                }
+                                )}
+                                onClick={() => {
+                                  setEditTurmaId(d.turma_id);
+                                  setSequenciaDialogOpen(true);
+                                }}
                               >
                                 <TableCell className="text-center font-mono font-bold text-muted-foreground">
                                   {globalIdx + 1}
@@ -284,6 +292,7 @@ export const CronogramasTab = () => {
       <SequenciaDisciplinasDialog
         open={sequenciaDialogOpen}
         onOpenChange={handleSequenciaSaved}
+        initialTurmaId={editTurmaId}
       />
     </div>
   );
