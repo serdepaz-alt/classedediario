@@ -43,9 +43,10 @@ import { useSequenciaDisciplinas } from "@/hooks/useSequenciaDisciplinas";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialTurmaId?: string | null;
 }
 
-export const SequenciaDisciplinasDialog = ({ open, onOpenChange }: Props) => {
+export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId }: Props) => {
   const {
     turmas,
     selectedTurmaId,
@@ -60,6 +61,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange }: Props) => {
     totalDiasCurso,
     fetchTurmas,
     loadPadroes,
+    loadExistingSequencia,
     handleSetDataInicio,
     moveItem,
     salvar,
@@ -72,6 +74,13 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange }: Props) => {
       fetchTurmas();
     }
   }, [open, fetchTurmas, reset]);
+
+  // When turmas are loaded and we have an initialTurmaId, auto-load that turma
+  useEffect(() => {
+    if (open && initialTurmaId && turmas.length > 0 && !selectedTurmaId) {
+      loadExistingSequencia(initialTurmaId);
+    }
+  }, [open, initialTurmaId, turmas, selectedTurmaId, loadExistingSequencia]);
 
   const handleSave = async () => {
     const success = await salvar();

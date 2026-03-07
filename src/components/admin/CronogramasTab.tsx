@@ -32,6 +32,7 @@ const CURSOS = ["Técnico em Enfermagem"];
 export const CronogramasTab = () => {
   const { user } = useAuth();
   const [sequenciaDialogOpen, setSequenciaDialogOpen] = useState(false);
+  const [editTurmaId, setEditTurmaId] = useState<string | null>(null);
   const [filtroTurno, setFiltroTurno] = useState("Matutino");
   const [filtroCurso, setFiltroCurso] = useState("Técnico em Enfermagem");
   const [disciplinas, setDisciplinas] = useState<DisciplinaRow[]>([]);
