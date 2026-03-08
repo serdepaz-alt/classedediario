@@ -206,7 +206,6 @@ export const CronogramasTab = () => {
 
   return (
     <div className="space-y-6">
-      <FeriadosManager />
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -411,6 +410,8 @@ export const CronogramasTab = () => {
           )}
         </CardContent>
       </Card>
+
+      <FeriadosManager />
 
       <SequenciaDisciplinasDialog
         open={sequenciaDialogOpen}
