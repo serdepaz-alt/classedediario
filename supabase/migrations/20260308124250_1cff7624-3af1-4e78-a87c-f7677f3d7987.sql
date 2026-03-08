@@ -1,0 +1,1 @@
+ALTER TABLE public.turmas ADD COLUMN data_inicio date NULL;

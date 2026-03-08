@@ -645,6 +645,7 @@ export type Database = {
           ano_letivo: number
           created_at: string | null
           curso: string | null
+          data_inicio: string | null
           disciplina: string | null
           horario: string | null
           id: string
@@ -658,6 +659,7 @@ export type Database = {
           ano_letivo: number
           created_at?: string | null
           curso?: string | null
+          data_inicio?: string | null
           disciplina?: string | null
           horario?: string | null
           id?: string
@@ -671,6 +673,7 @@ export type Database = {
           ano_letivo?: number
           created_at?: string | null
           curso?: string | null
+          data_inicio?: string | null
           disciplina?: string | null
           horario?: string | null
           id?: string

@@ -18,6 +18,7 @@ interface TurmaCardProps {
     curso: string | null;
     disciplina: string | null;
     horario: string | null;
+    data_inicio: string | null;
     status: string | null;
   };
   stats?: {
@@ -123,6 +124,11 @@ export const TurmaCard = ({
         {turma.horario && (
           <p className="text-sm text-muted-foreground mb-1">
             Horário: {turma.horario}
+          </p>
+        )}
+        {turma.data_inicio && (
+          <p className="text-sm text-muted-foreground mb-1">
+            Início: {new Date(turma.data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}
           </p>
         )}
         <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">

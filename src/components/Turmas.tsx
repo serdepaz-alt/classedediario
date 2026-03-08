@@ -35,6 +35,7 @@ interface Turma {
   curso: string | null;
   disciplina: string | null;
   horario: string | null;
+  data_inicio: string | null;
   status: string | null;
 }
 
