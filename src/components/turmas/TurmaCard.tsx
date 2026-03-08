@@ -17,6 +17,7 @@ interface TurmaCardProps {
     periodo: string | null;
     curso: string | null;
     disciplina: string | null;
+    horario: string | null;
     status: string | null;
   };
   stats?: {
@@ -119,6 +120,11 @@ export const TurmaCard = ({
         <p className="text-sm text-muted-foreground mb-1">
           Turno: {turma.periodo || "Não definido"}
         </p>
+        {turma.horario && (
+          <p className="text-sm text-muted-foreground mb-1">
+            Horário: {turma.horario}
+          </p>
+        )}
         <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
           <Calendar className="w-3.5 h-3.5" />
           <span>Ano: {turma.ano_letivo}</span>
