@@ -140,10 +140,13 @@ export const Grades = () => {
 
   // Handle turma selection from dropdown - fetch disciplinas for that turma
   const handleTurmaSelect = async (turma: { id: string; nome: string }) => {
+    const today = new Date().toISOString().split('T')[0];
     const { data } = await supabase
       .from("disciplinas")
       .select("id, nome")
       .eq("turma_id", turma.id)
+      .lte("data_inicio", today)
+      .gte("data_termino", today)
       .order("nome");
 
     if (data && data.length > 0) {
@@ -153,14 +156,11 @@ export const Grades = () => {
         disciplina_id: d.id,
         disciplina_nome: d.nome,
       })));
-      setSelectedTurmaForSelector(turma);
-      setViewMode("selector");
     } else {
-      // If only one or no disciplinas, could show a message
       setTurmaDisciplinas([]);
-      setSelectedTurmaForSelector(turma);
-      setViewMode("selector");
     }
+    setSelectedTurmaForSelector(turma);
+    setViewMode("selector");
   };
 
   // Show selector (using fetched disciplinas for the turma)
