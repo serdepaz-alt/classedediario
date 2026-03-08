@@ -177,10 +177,24 @@ export const Attendance = () => {
     detectActiveAula();
   }, [user, currentTime]);
 
-  // Group disciplines by turma and detect current discipline per turma
+  // Group disciplines by turma, prioritize cronograma-scheduled turmas for today
   const turmaGroups = useMemo((): TurmaGroup[] => {
     const today = startOfDay(new Date());
     const grouped = new Map<string, TurmaGroup>();
+    const nowTime = format(currentTime, "HH:mm:ss");
+
+    // Build set of turma IDs scheduled today from cronograma
+    const todayScheduledTurmaIds = new Set(
+      todayAulas.map((a) => a.turma_id).filter(Boolean) as string[]
+    );
+
+    // Build a map of cronograma turma info for turmas not in disciplinas
+    const cronogramaTurmaInfo = new Map<string, ActiveAula>();
+    todayAulas.forEach((a) => {
+      if (a.turma_id && !cronogramaTurmaInfo.has(a.turma_id)) {
+        cronogramaTurmaInfo.set(a.turma_id, a);
+      }
+    });
 
     disciplinas.forEach((d) => {
       if (!d.turma_id) return;
@@ -209,13 +223,42 @@ export const Attendance = () => {
       }
     });
 
-    // Sort: turmas with active discipline first, then by name
+    // Also create groups for cronograma turmas that have no disciplinas entries
+    todayAulas.forEach((aula) => {
+      if (aula.turma_id && !grouped.has(aula.turma_id) && aula.turma) {
+        grouped.set(aula.turma_id, {
+          turmaId: aula.turma_id,
+          turmaNome: aula.turma.nome,
+          turno: "",
+          curso: aula.turma.curso || "",
+          disciplinas: [],
+          disciplinaAtual: null,
+          chamadaFeita: todayAttendanceDone.has(aula.turma_id),
+        });
+      }
+    });
+
+    // Sort: cronograma-active turmas first (current time slot), then scheduled today, then others
     return Array.from(grouped.values()).sort((a, b) => {
+      const aIsActiveNow = todayAulas.some(
+        (au) => au.turma_id === a.turmaId && au.hora_inicio <= nowTime && au.hora_fim >= nowTime
+      );
+      const bIsActiveNow = todayAulas.some(
+        (au) => au.turma_id === b.turmaId && au.hora_inicio <= nowTime && au.hora_fim >= nowTime
+      );
+      if (aIsActiveNow && !bIsActiveNow) return -1;
+      if (!aIsActiveNow && bIsActiveNow) return 1;
+
+      const aScheduled = todayScheduledTurmaIds.has(a.turmaId);
+      const bScheduled = todayScheduledTurmaIds.has(b.turmaId);
+      if (aScheduled && !bScheduled) return -1;
+      if (!aScheduled && bScheduled) return 1;
+
       if (a.disciplinaAtual && !b.disciplinaAtual) return -1;
       if (!a.disciplinaAtual && b.disciplinaAtual) return 1;
       return a.turmaNome.localeCompare(b.turmaNome);
     });
-  }, [disciplinas, todayAttendanceDone]);
+  }, [disciplinas, todayAttendanceDone, todayAulas, currentTime]);
 
   // Auto-select turma from active aula detection or fallback to discipline-based
   useEffect(() => {
