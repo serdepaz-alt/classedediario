@@ -47,6 +47,7 @@ export const Grades = () => {
   const [selectedStudent, setSelectedStudent] = useState<DashboardStudent | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("dashboard");
   const [entryParams, setEntryParams] = useState<{ turmaId: string; disciplinaId: string; turmaNome: string; disciplinaNome: string } | null>(null);
+  const [selectedTurmaForSelector, setSelectedTurmaForSelector] = useState<{ id: string; nome: string } | null>(null);
   const { hasPending, pendingCount } = useAceiteCronograma();
   const { user } = useAuth();
   const { professorNome, turmasDisponiveis, loading: loadingProfessor, fetchAllGradesForDisciplina } = useGrades();
