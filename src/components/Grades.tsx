@@ -138,18 +138,36 @@ export const Grades = () => {
     return "destructive";
   };
 
-  // Handle turma selection from dropdown
-  const handleTurmaSelect = (turma: { id: string; nome: string }) => {
-    setSelectedTurmaForSelector(turma);
-    setViewMode("selector");
+  // Handle turma selection from dropdown - fetch disciplinas for that turma
+  const handleTurmaSelect = async (turma: { id: string; nome: string }) => {
+    const { data } = await supabase
+      .from("disciplinas")
+      .select("id, nome")
+      .eq("turma_id", turma.id)
+      .order("nome");
+
+    if (data && data.length > 0) {
+      setTurmaDisciplinas(data.map(d => ({
+        turma_id: turma.id,
+        turma_nome: turma.nome,
+        disciplina_id: d.id,
+        disciplina_nome: d.nome,
+      })));
+      setSelectedTurmaForSelector(turma);
+      setViewMode("selector");
+    } else {
+      // If only one or no disciplinas, could show a message
+      setTurmaDisciplinas([]);
+      setSelectedTurmaForSelector(turma);
+      setViewMode("selector");
+    }
   };
 
-  // Show selector (filtered by selected turma)
+  // Show selector (using fetched disciplinas for the turma)
   if (viewMode === "selector" && selectedTurmaForSelector) {
-    const filteredTurmas = turmasDisponiveis.filter(t => t.turma_id === selectedTurmaForSelector.id);
     return (
       <TurmaDisciplinaSelector
-        turmas={filteredTurmas}
+        turmas={turmaDisciplinas}
         professorNome={professorNome}
         onSelect={(turmaId, disciplinaId, turmaNome, disciplinaNome) => {
           setEntryParams({ turmaId, disciplinaId, turmaNome, disciplinaNome });
@@ -157,6 +175,7 @@ export const Grades = () => {
         }}
         onBack={() => {
           setSelectedTurmaForSelector(null);
+          setTurmaDisciplinas([]);
           setViewMode("dashboard");
         }}
       />
