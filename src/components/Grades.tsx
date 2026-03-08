@@ -137,17 +137,27 @@ export const Grades = () => {
     return "destructive";
   };
 
-  // Show selector
-  if (viewMode === "selector") {
+  // Handle turma selection from dropdown
+  const handleTurmaSelect = (turma: { id: string; nome: string }) => {
+    setSelectedTurmaForSelector(turma);
+    setViewMode("selector");
+  };
+
+  // Show selector (filtered by selected turma)
+  if (viewMode === "selector" && selectedTurmaForSelector) {
+    const filteredTurmas = turmasDisponiveis.filter(t => t.turma_id === selectedTurmaForSelector.id);
     return (
       <TurmaDisciplinaSelector
-        turmas={turmasDisponiveis}
+        turmas={filteredTurmas}
         professorNome={professorNome}
         onSelect={(turmaId, disciplinaId, turmaNome, disciplinaNome) => {
           setEntryParams({ turmaId, disciplinaId, turmaNome, disciplinaNome });
           setViewMode("entry");
         }}
-        onBack={() => setViewMode("dashboard")}
+        onBack={() => {
+          setSelectedTurmaForSelector(null);
+          setViewMode("dashboard");
+        }}
       />
     );
   }
