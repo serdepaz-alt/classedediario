@@ -67,13 +67,22 @@ export const useSequenciaDisciplinas = () => {
     if (!user?.id) return;
     setIsLoadingTurmas(true);
     try {
-      const { data, error } = await supabase
-        .from("turmas")
-        .select("id, nome, periodo, curso, data_inicio")
-        .eq("user_id", user.id)
-        .order("nome");
-      if (error) throw error;
-      setTurmas(data || []);
+      const [turmasRes, profsRes] = await Promise.all([
+        supabase
+          .from("turmas")
+          .select("id, nome, periodo, curso, data_inicio")
+          .eq("user_id", user.id)
+          .order("nome"),
+        supabase
+          .from("cad_professores")
+          .select("id, nome")
+          .eq("user_id", user.id)
+          .eq("status", "Ativo")
+          .order("nome"),
+      ]);
+      if (turmasRes.error) throw turmasRes.error;
+      setTurmas(turmasRes.data || []);
+      setProfessores(profsRes.data || []);
     } catch (err) {
       console.error("Erro ao carregar turmas:", err);
       toast.error("Erro ao carregar turmas");
@@ -115,6 +124,7 @@ export const useSequenciaDisciplinas = () => {
         qtd_dias: calcularQtdDias(p.carga_horaria_total, p.carga_horaria_diaria),
         data_inicio: "",
         data_termino: "",
+        nome_professor: "",
       }));
 
       // If turma has data_inicio, calculate dates inline
@@ -195,6 +205,7 @@ export const useSequenciaDisciplinas = () => {
         qtd_dias: d.dias_uteis || 0,
         data_inicio: d.data_inicio,
         data_termino: d.data_termino,
+        nome_professor: d.nome_professor || "",
       }));
 
       setSequencia(items);
