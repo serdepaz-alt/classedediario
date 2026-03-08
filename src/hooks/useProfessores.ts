@@ -24,9 +24,16 @@ export interface Professor {
   coren: string | null;
   disciplinas_lecionar: string | null;
   turnos_disponiveis: string | null;
+  senha: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
+
+const gerarSenha = (nome: string, dataNascimento?: string): string => {
+  const primeiroNome = nome.trim().split(" ")[0];
+  const ano = dataNascimento ? new Date(dataNascimento + "T12:00:00").getFullYear() : "";
+  return `${primeiroNome}${ano}`;
+};
 
 export interface ProfessorFormData {
   nome: string;
@@ -96,6 +103,7 @@ export const useProfessores = () => {
           coren: formData.coren || null,
           disciplinas_lecionar: formData.disciplinas_lecionar || null,
           turnos_disponiveis: formData.turnos_disponiveis || null,
+          senha: gerarSenha(formData.nome, formData.data_nascimento),
         })
         .select()
         .single();
@@ -136,6 +144,7 @@ export const useProfessores = () => {
           coren: formData.coren || null,
           disciplinas_lecionar: formData.disciplinas_lecionar || null,
           turnos_disponiveis: formData.turnos_disponiveis || null,
+          senha: gerarSenha(formData.nome, formData.data_nascimento),
         })
         .eq("id", id)
         .select()
