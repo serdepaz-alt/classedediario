@@ -94,7 +94,7 @@ export const useGrades = () => {
   }, [professorId, user]);
 
   // Fetch students for a turma
-  const fetchStudents = async (turmaId: string): Promise<{ id: string; nome: string; matricula: string }[]> => {
+  const fetchStudents = useCallback(async (turmaId: string): Promise<{ id: string; nome: string; matricula: string }[]> => {
     const { data } = await supabase
       .from("students")
       .select("id, nome, matricula")
@@ -103,7 +103,7 @@ export const useGrades = () => {
       .order("nome");
 
     return data || [];
-  };
+  }, []);
 
   // Fetch grades for a student + disciplina
   const fetchStudentGrades = async (studentId: string, disciplinaId: string) => {
