@@ -15,6 +15,12 @@ export interface SequenciaItem {
   qtd_dias: number;
   data_inicio: string;
   data_termino: string;
+  nome_professor: string;
+}
+
+interface Professor {
+  id: string;
+  nome: string;
 }
 
 interface Turma {
@@ -42,6 +48,7 @@ export const useSequenciaDisciplinas = () => {
   const queryClient = useQueryClient();
 
   const [turmas, setTurmas] = useState<Turma[]>([]);
+  const [professores, setProfessores] = useState<Professor[]>([]);
   const [selectedTurmaId, setSelectedTurmaId] = useState<string>("");
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [turno, setTurno] = useState<Turno>("Matutino");
@@ -60,13 +67,22 @@ export const useSequenciaDisciplinas = () => {
     if (!user?.id) return;
     setIsLoadingTurmas(true);
     try {
-      const { data, error } = await supabase
-        .from("turmas")
-        .select("id, nome, periodo, curso, data_inicio")
-        .eq("user_id", user.id)
-        .order("nome");
-      if (error) throw error;
-      setTurmas(data || []);
+      const [turmasRes, profsRes] = await Promise.all([
+        supabase
+          .from("turmas")
+          .select("id, nome, periodo, curso, data_inicio")
+          .eq("user_id", user.id)
+          .order("nome"),
+        supabase
+          .from("cad_professores")
+          .select("id, nome")
+          .eq("user_id", user.id)
+          .eq("status", "Ativo")
+          .order("nome"),
+      ]);
+      if (turmasRes.error) throw turmasRes.error;
+      setTurmas(turmasRes.data || []);
+      setProfessores(profsRes.data || []);
     } catch (err) {
       console.error("Erro ao carregar turmas:", err);
       toast.error("Erro ao carregar turmas");
@@ -108,6 +124,7 @@ export const useSequenciaDisciplinas = () => {
         qtd_dias: calcularQtdDias(p.carga_horaria_total, p.carga_horaria_diaria),
         data_inicio: "",
         data_termino: "",
+        nome_professor: "",
       }));
 
       // If turma has data_inicio, calculate dates inline
@@ -188,6 +205,7 @@ export const useSequenciaDisciplinas = () => {
         qtd_dias: d.dias_uteis || 0,
         data_inicio: d.data_inicio,
         data_termino: d.data_termino,
+        nome_professor: d.nome_professor || "",
       }));
 
       setSequencia(items);
@@ -258,6 +276,10 @@ export const useSequenciaDisciplinas = () => {
     [advanceBusinessDays, firstBusinessDay]
   );
 
+  const setProfessor = useCallback((idx: number, nome: string) => {
+    setSequencia((prev) => prev.map((item, i) => i === idx ? { ...item, nome_professor: nome } : item));
+  }, []);
+
   const handleSetDataInicio = useCallback(
     (date: string) => {
       setDataInicio(date);
@@ -323,6 +345,7 @@ export const useSequenciaDisciplinas = () => {
         dias_uteis: item.qtd_dias,
         data_inicio: item.data_inicio,
         data_termino: item.data_termino,
+        nome_professor: item.nome_professor || null,
       }));
 
       const { error: insertError } = await supabase
@@ -365,6 +388,7 @@ export const useSequenciaDisciplinas = () => {
 
   return {
     turmas,
+    professores,
     selectedTurmaId,
     selectedTurma,
     turno,
@@ -380,6 +404,7 @@ export const useSequenciaDisciplinas = () => {
     loadExistingSequencia,
     handleSetDataInicio,
     moveItem,
+    setProfessor,
     validate,
     salvar,
     reset,
