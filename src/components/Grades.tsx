@@ -166,7 +166,13 @@ export const Grades = () => {
   if (viewMode === "entry" && entryParams) {
     return (
       <GradeEntry
-        onBack={() => setViewMode("selector")}
+        onBack={() => {
+          if (selectedTurmaForSelector) {
+            setViewMode("selector");
+          } else {
+            setViewMode("dashboard");
+          }
+        }}
         turmaId={entryParams.turmaId}
         disciplinaId={entryParams.disciplinaId}
         turmaNome={entryParams.turmaNome}
