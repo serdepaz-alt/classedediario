@@ -111,7 +111,12 @@ export const useSequenciaDisciplinas = () => {
         data_termino: "",
       }));
 
-      setSequencia(items);
+      // If turma has data_inicio, auto-calculate dates
+      if (turma.data_inicio) {
+        setSequencia(recalcularDatas(items, turma.data_inicio));
+      } else {
+        setSequencia(items);
+      }
     } catch (err) {
       console.error("Erro ao carregar padrões:", err);
       toast.error("Erro ao carregar padrões do turno");
