@@ -1,0 +1,1 @@
+ALTER TABLE public.cad_professores ADD COLUMN senha text;
