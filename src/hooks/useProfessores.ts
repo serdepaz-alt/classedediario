@@ -54,6 +54,7 @@ export interface ProfessorFormData {
   coren?: string;
   disciplinas_lecionar?: string;
   turnos_disponiveis?: string;
+  senha?: string;
 }
 
 export const useProfessores = () => {
@@ -103,7 +104,7 @@ export const useProfessores = () => {
           coren: formData.coren || null,
           disciplinas_lecionar: formData.disciplinas_lecionar || null,
           turnos_disponiveis: formData.turnos_disponiveis || null,
-          senha: gerarSenha(formData.nome, formData.data_nascimento),
+          senha: formData.senha || gerarSenha(formData.nome, formData.data_nascimento),
         })
         .select()
         .single();
@@ -144,7 +145,7 @@ export const useProfessores = () => {
           coren: formData.coren || null,
           disciplinas_lecionar: formData.disciplinas_lecionar || null,
           turnos_disponiveis: formData.turnos_disponiveis || null,
-          senha: gerarSenha(formData.nome, formData.data_nascimento),
+          senha: formData.senha || gerarSenha(formData.nome, formData.data_nascimento),
         })
         .eq("id", id)
         .select()
