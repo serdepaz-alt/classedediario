@@ -691,7 +691,7 @@ export const Attendance = () => {
     return "Boa noite";
   };
 
-  const professorName = activeAula?.professor?.nome || user?.email?.split("@")[0] || "Professor(a)";
+  const professorName = professorMatch?.nome || activeAula?.professor?.nome || user?.email?.split("@")[0] || "Professor(a)";
   const firstName = professorName.split(" ")[0];
 
   const motivationalPhrases = [
