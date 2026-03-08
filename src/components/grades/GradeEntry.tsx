@@ -225,6 +225,34 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
       toast.success("Notas salvas com sucesso!");
       setHasUnsavedChanges(false);
 
+      // Persist averages to medias_alunos
+      const currentPartialAvg = calculatePartialAverage();
+      const currentFinalAvg = calculateFinalAverage();
+      const currentLockedCount = grades.filter(g => g.is_locked && g.valor !== null).length;
+      const currentTotalCount = grades.filter(g => g.valor !== null).length;
+      const currentAllLocked = grades.length > 0 && grades.every(g => g.is_locked);
+      const currentSituacaoMedia = currentAllLocked
+        ? (currentFinalAvg >= 7.0 ? "Aprovado" : currentFinalAvg >= 5.0 ? "Recuperação" : "Reprovado")
+        : "Em Andamento";
+
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user) {
+        await supabase
+          .from("medias_alunos" as any)
+          .upsert({
+            user_id: authData.user.id,
+            student_id: selectedStudent.id,
+            disciplina_id: disciplinaId,
+            media_parcial: parseFloat(currentPartialAvg.toFixed(2)),
+            media_final: parseFloat(currentFinalAvg.toFixed(2)),
+            bonus: bonusGrade,
+            situacao: currentSituacaoMedia,
+            total_avaliacoes: currentTotalCount,
+            avaliacoes_travadas: currentLockedCount,
+            updated_at: new Date().toISOString(),
+          } as any, { onConflict: "student_id,disciplina_id" } as any);
+      }
+
       // Check if any locked grades need notification
       const lockedGradesWithValues = grades.filter(g => g.is_locked && g.valor !== null);
       if (lockedGradesWithValues.length > 0) {
