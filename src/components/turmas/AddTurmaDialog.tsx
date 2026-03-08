@@ -1,7 +1,17 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { z } from "zod";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +68,7 @@ const turmaSchema = z.object({
   curso: z.string().optional(),
   disciplina: z.string().optional(),
   horario: z.string().optional(),
+  data_inicio: z.date().optional().nullable(),
   status: z.string().default("Ativa"),
 });
 
@@ -75,6 +86,7 @@ interface AddTurmaDialogProps {
     curso: string | null;
     disciplina: string | null;
     horario: string | null;
+    data_inicio: string | null;
     status: string | null;
   } | null;
 }
@@ -104,6 +116,7 @@ export const AddTurmaDialog = ({
       curso: "",
       disciplina: "",
       horario: "",
+      data_inicio: null,
       status: "Ativa",
     },
   });
@@ -125,6 +138,7 @@ export const AddTurmaDialog = ({
           curso: turma.curso || "",
           disciplina: turma.disciplina || "",
           horario: turma.horario || "",
+          data_inicio: turma.data_inicio ? new Date(turma.data_inicio + "T00:00:00") : null,
           status: turma.status || "Ativa",
         });
       } else {
@@ -136,6 +150,7 @@ export const AddTurmaDialog = ({
           curso: "",
           disciplina: "",
           horario: "",
+          data_inicio: null,
           status: "Ativa",
         });
       }
@@ -172,6 +187,7 @@ export const AddTurmaDialog = ({
             curso: data.curso || null,
             disciplina: data.disciplina || null,
             horario: data.horario || null,
+            data_inicio: data.data_inicio ? format(data.data_inicio, "yyyy-MM-dd") : null,
             status: data.status,
           })
           .eq("id", turma.id);
@@ -187,6 +203,7 @@ export const AddTurmaDialog = ({
           curso: data.curso || null,
           disciplina: data.disciplina || null,
           horario: data.horario || null,
+          data_inicio: data.data_inicio ? format(data.data_inicio, "yyyy-MM-dd") : null,
           status: data.status,
         });
 
