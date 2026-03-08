@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Professor } from "@/hooks/useProfessores";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,57 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Pencil, Trash2, Mail, Phone, GraduationCap, Briefcase } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { MoreVertical, Pencil, Trash2, Mail, Phone, GraduationCap, Briefcase, MessageCircle } from "lucide-react";
+
+const cleanPhone = (phone: string) => phone.replace(/\D/g, "");
+
+const PhoneLink = ({ phone }: { phone: string }) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const digits = cleanPhone(phone);
+  const whatsappNumber = digits.startsWith("0") ? "55" + digits.slice(1) : "55" + digits;
+
+  return (
+    <>
+      <span
+        className="cursor-pointer hover:text-primary underline-offset-2 hover:underline transition-colors"
+        onClick={(e) => { e.stopPropagation(); setDialogOpen(true); }}
+      >
+        {phone}
+      </span>
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Contatar {phone}</AlertDialogTitle>
+            <AlertDialogDescription>Como deseja entrar em contato?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <a href={`tel:${digits}`} className="inline-flex items-center gap-2">
+                <Phone className="h-4 w-4" /> Ligar
+              </a>
+            </AlertDialogAction>
+            <AlertDialogAction asChild>
+              <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700">
+                <MessageCircle className="h-4 w-4" /> WhatsApp
+              </a>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
 
 interface ProfessorCardProps {
   professor: Professor;
@@ -86,8 +137,13 @@ export const ProfessorCard = ({ professor, onEdit, onDelete }: ProfessorCardProp
           {professor.telefone && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Phone className="h-4 w-4" />
-              <span>{professor.telefone}</span>
-              {professor.telefone2 && <span className="text-muted-foreground/60">| {professor.telefone2}</span>}
+              <PhoneLink phone={professor.telefone} />
+              {professor.telefone2 && (
+                <>
+                  <span className="text-muted-foreground/60">|</span>
+                  <PhoneLink phone={professor.telefone2} />
+                </>
+              )}
             </div>
           )}
           {professor.especialidade && (
