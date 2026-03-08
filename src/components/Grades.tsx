@@ -209,18 +209,49 @@ export const Grades = () => {
           <p className="text-muted-foreground">Acompanhe o desempenho acadêmico</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
-            className="bg-primary hover:bg-primary/90"
-            onClick={() => setViewMode("selector")}
-            disabled={hasPending}
-          >
-            {hasPending ? (
-              <Lock className="w-4 h-4 mr-2" />
-            ) : (
-              <Plus className="w-4 h-4 mr-2" />
-            )}
-            Lançar Notas
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                className="bg-primary hover:bg-primary/90"
+                disabled={hasPending}
+              >
+                {hasPending ? (
+                  <Lock className="w-4 h-4 mr-2" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                Lançar Notas
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4" />
+                Selecione a Turma
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {activeTurmas.length === 0 ? (
+                <div className="px-2 py-3 text-sm text-muted-foreground text-center">
+                  Nenhuma turma ativa encontrada
+                </div>
+              ) : (
+                activeTurmas.map((turma) => (
+                  <DropdownMenuItem
+                    key={turma.id}
+                    onClick={() => handleTurmaSelect(turma)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{turma.nome}</span>
+                      {turma.curso && (
+                        <span className="text-xs text-muted-foreground">{turma.curso}</span>
+                      )}
+                    </div>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline">
             <Download className="w-4 h-4 mr-2" />
             Exportar
