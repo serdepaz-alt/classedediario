@@ -120,6 +120,7 @@ export const Attendance = () => {
   const [datesWithAttendance, setDatesWithAttendance] = useState<Set<string>>(new Set());
   const [todayAttendanceDone, setTodayAttendanceDone] = useState<Set<string>>(new Set());
   const [activeAula, setActiveAula] = useState<ActiveAula | null>(null);
+  const [todayAulas, setTodayAulas] = useState<ActiveAula[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const classStartTimeRef = useRef<Date | null>(null);
