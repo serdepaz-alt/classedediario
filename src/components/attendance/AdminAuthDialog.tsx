@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -12,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Lock, Eye, EyeOff, LogIn } from "lucide-react";
 
+const ADMIN_EMAIL = "luciano.ribeiro@irmadulceoficial.com.br";
+const ADMIN_PASSWORD = "202600";
+
 interface AdminAuthDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -19,7 +21,6 @@ interface AdminAuthDialogProps {
 }
 
 export const AdminAuthDialog = ({ open, onOpenChange, onSuccess }: AdminAuthDialogProps) => {
-  const { user, signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -34,26 +35,27 @@ export const AdminAuthDialog = ({ open, onOpenChange, onSuccess }: AdminAuthDial
     }
 
     setIsLoading(true);
-    try {
-      // Verify credentials by attempting sign in
-      const { error } = await signIn(email, password);
-      
-      if (error) {
-        toast.error("Credenciais inválidas");
-        return;
-      }
+    await new Promise(resolve => setTimeout(resolve, 500));
 
+    if (email.toLowerCase().trim() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
       toast.success("Autenticação bem-sucedida!");
       onSuccess();
-    } catch (error: any) {
-      toast.error("Erro na autenticação: " + error.message);
-    } finally {
-      setIsLoading(false);
+      setEmail("");
+      setPassword("");
+    } else {
+      toast.error("Credenciais inválidas");
     }
+    setIsLoading(false);
+  };
+
+  const handleClose = () => {
+    setEmail("");
+    setPassword("");
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -107,7 +109,7 @@ export const AdminAuthDialog = ({ open, onOpenChange, onSuccess }: AdminAuthDial
               type="button"
               variant="outline"
               className="flex-1"
-              onClick={() => onOpenChange(false)}
+              onClick={handleClose}
             >
               Cancelar
             </Button>
