@@ -155,16 +155,13 @@ export const ProfessorFormDialog = ({
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="valor_hora"
+                name="especialidade"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor/Hora (R$) *</FormLabel>
+                    <FormLabel>Especialidade</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="50.00"
+                        placeholder="Ex: Matemática, Português, etc."
                         {...field}
                       />
                     </FormControl>
@@ -200,23 +197,6 @@ export const ProfessorFormDialog = ({
                 )}
               />
             </div>
-
-            <FormField
-              control={form.control}
-              name="especialidade"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Especialidade</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Ex: Matemática, Português, etc."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <div className="flex justify-end gap-3 pt-4">
               <Button
