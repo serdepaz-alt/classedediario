@@ -24,7 +24,7 @@ export const ProfessorCard = ({ professor, onEdit, onDelete }: ProfessorCardProp
   };
 
   return (
-    <Card className="group hover:shadow-card transition-smooth">
+    <Card className="group hover:shadow-card transition-smooth cursor-pointer" onClick={() => onEdit(professor)}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
