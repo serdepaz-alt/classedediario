@@ -220,13 +220,13 @@ export const CronogramasTab = () => {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <span className="inline-block bg-muted/60 rounded-md px-3 py-1 text-xs text-muted-foreground mt-1">
                         {[
                           items[0]?.turma_periodo && `Turno: ${items[0].turma_periodo}`,
                           items[0]?.turma_horario && `Horário: ${items[0].turma_horario}`,
                           items[0]?.turma_data_inicio && `Início: ${new Date(items[0].turma_data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}`,
                         ].filter(Boolean).join(" • ")}
-                      </p>
+                      </span>
                     </div>
                     <div className="border rounded-lg overflow-hidden">
                       <Table>
