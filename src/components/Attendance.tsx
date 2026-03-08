@@ -137,6 +137,24 @@ export const Attendance = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Detect professor by matching logged-in user email to cad_professores
+  const [professorMatch, setProfessorMatch] = useState<{ id: string; nome: string } | null>(null);
+
+  useEffect(() => {
+    const findProfessor = async () => {
+      if (!user?.email) return;
+      const { data } = await supabase
+        .from("cad_professores")
+        .select("id, nome")
+        .eq("user_id", user.id)
+        .eq("email", user.email)
+        .eq("status", "Ativo")
+        .maybeSingle();
+      setProfessorMatch(data || null);
+    };
+    findProfessor();
+  }, [user]);
+
   // Detect active aula and fetch all today's aulas from cronograma_mestre
   useEffect(() => {
     const detectActiveAula = async () => {
@@ -144,18 +162,25 @@ export const Attendance = () => {
       const todayStr = format(new Date(), "yyyy-MM-dd");
       const nowTime = format(new Date(), "HH:mm:ss");
 
-      // Fetch ALL today's aulas
-      const { data: allToday } = await supabase
+      // Build query for today's aulas
+      let query = supabase
         .from("cronograma_mestre")
         .select(`
           id, turma_id, disciplina_id, professor_id, data_aula, hora_inicio, hora_fim,
           turma:turmas(id, nome, curso),
-          professor:cad_professores(id, nome),
+          professor:cad_professores(id, nome, email),
           disciplina_cad:cad_disciplinas(id, nome)
         `)
         .eq("user_id", user.id)
         .eq("data_aula", todayStr)
         .order("hora_inicio", { ascending: true });
+
+      // If professor match found, filter only aulas for this professor
+      if (professorMatch) {
+        query = query.eq("professor_id", professorMatch.id);
+      }
+
+      const { data: allToday } = await query;
 
       if (allToday) {
         setTodayAulas(allToday as unknown as ActiveAula[]);
@@ -175,7 +200,7 @@ export const Attendance = () => {
     };
 
     detectActiveAula();
-  }, [user, currentTime]);
+  }, [user, currentTime, professorMatch]);
 
   // Group disciplines by turma, prioritize cronograma-scheduled turmas for today
   const turmaGroups = useMemo((): TurmaGroup[] => {
@@ -666,7 +691,7 @@ export const Attendance = () => {
     return "Boa noite";
   };
 
-  const professorName = activeAula?.professor?.nome || user?.email?.split("@")[0] || "Professor(a)";
+  const professorName = professorMatch?.nome || activeAula?.professor?.nome || user?.email?.split("@")[0] || "Professor(a)";
   const firstName = professorName.split(" ")[0];
 
   const motivationalPhrases = [
