@@ -739,14 +739,23 @@ export const Attendance = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {turmaGroups.map((turma) => (
-              <TurmaAttendanceCard
-                key={turma.turmaId}
-                turma={turma}
-                isSelected={selectedTurmaId === turma.turmaId}
-                onSelect={handleSelectTurma}
-              />
-            ))}
+            {turmaGroups.map((turma) => {
+              // A turma is locked if there are active aulas right now but this turma isn't one of them
+              const hasActiveSlots = activeTurmaIds.size > 0;
+              const isTurmaActive = activeTurmaIds.has(turma.turmaId);
+              const isTurmaScheduledToday = todayTurmaIds.has(turma.turmaId);
+              const isLocked = hasActiveSlots && !isTurmaActive && isTurmaScheduledToday;
+
+              return (
+                <TurmaAttendanceCard
+                  key={turma.turmaId}
+                  turma={turma}
+                  isSelected={selectedTurmaId === turma.turmaId}
+                  onSelect={handleSelectTurma}
+                  isLocked={isLocked}
+                />
+              );
+            })}
           </div>
         )}
       </div>
