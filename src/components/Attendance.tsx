@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -43,11 +45,20 @@ import {
   MapPin,
   Lock,
   Sparkles,
+  LayoutGrid,
+  Table as TableIcon,
+  FileText,
+  BarChart3,
+  History,
 } from "lucide-react";
 import { AddDisciplinaDialog } from "./attendance/AddDisciplinaDialog";
 import { DisciplinaDetailsDialog } from "./attendance/DisciplinaDetailsDialog";
 import { EditDisciplinaDialog } from "./attendance/EditDisciplinaDialog";
 import { TurmaAttendanceCard } from "./attendance/TurmaAttendanceCard";
+import { StudentFrequencyHistory } from "./attendance/StudentFrequencyHistory";
+import { AttendanceFrequencyChart } from "./attendance/AttendanceFrequencyChart";
+import { AttendanceTableView } from "./attendance/AttendanceTableView";
+import { AttendanceSaveSummary } from "./attendance/AttendanceSaveSummary";
 
 interface Disciplina {
   id: string;
@@ -109,12 +120,14 @@ export const Attendance = () => {
   const [selectedTurmaId, setSelectedTurmaId] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [presencas, setPresencas] = useState<Map<string, string>>(new Map());
+  const [justificativas, setJustificativas] = useState<Map<string, string>>(new Map());
   const [showAddDisciplina, setShowAddDisciplina] = useState(false);
   const [showDisciplinaDetails, setShowDisciplinaDetails] = useState(false);
   const [showEditDisciplina, setShowEditDisciplina] = useState(false);
   const [sortOrder, setSortOrder] = useState("name-asc");
   const [isLoading, setIsLoading] = useState(false);
   const [studentsAtRisk, setStudentsAtRisk] = useState<StudentAtRisk[]>([]);
+  const [studentsRiskMap, setStudentsRiskMap] = useState<Map<string, { absences: number; lates: number }>>(new Map());
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [datesWithAttendance, setDatesWithAttendance] = useState<Set<string>>(new Set());
@@ -122,6 +135,19 @@ export const Attendance = () => {
   const [activeAula, setActiveAula] = useState<ActiveAula | null>(null);
   const [todayAulas, setTodayAulas] = useState<ActiveAula[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // New state for enhanced features
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
+  const [ocorrencias, setOcorrencias] = useState("");
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<Student | null>(null);
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false);
+  const [lastSaveStats, setLastSaveStats] = useState<{ present: number; absent: number; late: number; total: number } | null>(null);
+  const [previousDayStats, setPreviousDayStats] = useState<{ present: number; absent: number; late: number; total: number } | null>(null);
+  const [allAttendanceRecords, setAllAttendanceRecords] = useState<{ data: string; status: string }[]>([]);
+  const [notificationsSent, setNotificationsSent] = useState(false);
+  const [studentsWithIssuesCount, setStudentsWithIssuesCount] = useState(0);
 
   const classStartTimeRef = useRef<Date | null>(null);
 
@@ -394,6 +420,9 @@ export const Attendance = () => {
         const initialPresencas = new Map<string, string>();
         data.forEach((s) => initialPresencas.set(s.id, "presente"));
         setPresencas(initialPresencas);
+        setJustificativas(new Map());
+        setSelectedStudents(new Set());
+        setOcorrencias("");
       }
     };
 
@@ -415,15 +444,23 @@ export const Attendance = () => {
       if (!error && data) {
         if (data.length > 0) {
           const presencaMap = new Map<string, string>();
+          const justificativaMap = new Map<string, string>();
           students.forEach((s) => presencaMap.set(s.id, "presente"));
           data.forEach((p) => {
-            if (p.student_id) presencaMap.set(p.student_id, p.status);
+            if (p.student_id) {
+              presencaMap.set(p.student_id, p.status);
+              if (p.justificativa) {
+                justificativaMap.set(p.student_id, p.justificativa);
+              }
+            }
           });
           setPresencas(presencaMap);
+          setJustificativas(justificativaMap);
         } else {
           const newMap = new Map<string, string>();
           students.forEach((s) => newMap.set(s.id, "presente"));
           setPresencas(newMap);
+          setJustificativas(new Map());
         }
       }
     };
@@ -450,6 +487,25 @@ export const Attendance = () => {
     fetchAttendanceDates();
   }, [user, selectedDisciplina]);
 
+  // Fetch all attendance records for chart
+  useEffect(() => {
+    const fetchAllRecords = async () => {
+      if (!user || !selectedDisciplina) return;
+
+      const { data } = await supabase
+        .from("presencas")
+        .select("data, status")
+        .eq("user_id", user.id)
+        .eq("disciplina_id", selectedDisciplina.id);
+
+      if (data) {
+        setAllAttendanceRecords(data);
+      }
+    };
+
+    fetchAllRecords();
+  }, [user, selectedDisciplina]);
+
   // Fetch students at risk
   useEffect(() => {
     const fetchStudentsAtRisk = async () => {
@@ -462,26 +518,31 @@ export const Attendance = () => {
         .eq("disciplina_id", selectedDisciplina.id);
 
       if (data && students.length > 0) {
-        const studentStats = new Map<string, { absences: number; total: number }>();
+        const studentStats = new Map<string, { absences: number; lates: number; total: number }>();
 
         data.forEach((p) => {
           if (p.student_id) {
-            const current = studentStats.get(p.student_id) || { absences: 0, total: 0 };
+            const current = studentStats.get(p.student_id) || { absences: 0, lates: 0, total: 0 };
             current.total++;
-            if (p.status === "ausente" || p.status === "atrasado") current.absences++;
+            if (p.status === "ausente") current.absences++;
+            if (p.status === "atrasado") current.lates++;
             studentStats.set(p.student_id, current);
           }
         });
 
+        const riskMap = new Map<string, { absences: number; lates: number }>();
         const atRisk: StudentAtRisk[] = [];
+        
         studentStats.forEach((stats, studentId) => {
+          riskMap.set(studentId, { absences: stats.absences, lates: stats.lates });
           const student = students.find((s) => s.id === studentId);
-          if (student && stats.absences >= 2) {
+          if (student && (stats.absences >= 2 || stats.lates >= 3)) {
             const percentage = Math.round(((stats.total - stats.absences) / stats.total) * 100);
             atRisk.push({ name: student.nome, percentage, absences: stats.absences });
           }
         });
 
+        setStudentsRiskMap(riskMap);
         setStudentsAtRisk(atRisk.sort((a, b) => a.percentage - b.percentage).slice(0, 5));
       }
     };
@@ -512,6 +573,42 @@ export const Attendance = () => {
     setPresencas(new Map(presencas.set(studentId, status)));
   };
 
+  const setJustificativa = (studentId: string, justificativa: string) => {
+    setJustificativas(new Map(justificativas.set(studentId, justificativa)));
+  };
+
+  const toggleStudentSelection = (studentId: string) => {
+    const newSelection = new Set(selectedStudents);
+    if (newSelection.has(studentId)) {
+      newSelection.delete(studentId);
+    } else {
+      newSelection.add(studentId);
+    }
+    setSelectedStudents(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStudents.size === students.length) {
+      setSelectedStudents(new Set());
+    } else {
+      setSelectedStudents(new Set(students.map((s) => s.id)));
+    }
+  };
+
+  const applyBatchStatus = (status: string) => {
+    if (selectedStudents.size === 0) {
+      toast.warning("Selecione ao menos um aluno");
+      return;
+    }
+    const newPresencas = new Map(presencas);
+    selectedStudents.forEach((id) => {
+      newPresencas.set(id, status);
+    });
+    setPresencas(newPresencas);
+    toast.success(`${selectedStudents.size} aluno(s) marcados como ${status}`);
+    setSelectedStudents(new Set());
+  };
+
   const markAllPresent = () => {
     const newPresencas = new Map<string, string>();
     students.forEach((s) => newPresencas.set(s.id, "presente"));
@@ -533,6 +630,25 @@ export const Attendance = () => {
       const saveTime = new Date().toISOString();
       const startTime = classStartTimeRef.current?.toISOString() || saveTime;
 
+      // Fetch previous day stats for comparison
+      const { data: previousData } = await supabase
+        .from("presencas")
+        .select("status")
+        .eq("user_id", user.id)
+        .eq("disciplina_id", selectedDisciplina.id)
+        .lt("data", dateStr)
+        .order("data", { ascending: false })
+        .limit(students.length);
+
+      if (previousData && previousData.length > 0) {
+        setPreviousDayStats({
+          present: previousData.filter((p) => p.status === "presente").length,
+          absent: previousData.filter((p) => p.status === "ausente").length,
+          late: previousData.filter((p) => p.status === "atrasado").length,
+          total: previousData.length,
+        });
+      }
+
       await supabase
         .from("presencas")
         .delete()
@@ -550,6 +666,7 @@ export const Attendance = () => {
           status,
           horario_inicio: startTime,
           horario_salvamento: saveTime,
+          justificativa: justificativas.get(studentId) || null,
         }));
 
       if (records.length > 0) {
@@ -564,6 +681,15 @@ export const Attendance = () => {
         setTodayAttendanceDone((prev) => new Set([...prev, selectedDisciplina.turma_id!]));
       }
 
+      // Calculate stats for summary
+      const stats = {
+        present: Array.from(presencas.values()).filter((s) => s === "presente").length,
+        absent: Array.from(presencas.values()).filter((s) => s === "ausente").length,
+        late: Array.from(presencas.values()).filter((s) => s === "atrasado").length,
+        total: students.length,
+      };
+      setLastSaveStats(stats);
+
       toast.success("Chamada salva com sucesso!");
 
       // Send notifications for students with issues
@@ -573,6 +699,7 @@ export const Attendance = () => {
         .eq("user_id", user.id)
         .eq("disciplina_id", selectedDisciplina.id);
 
+      let issuesCount = 0;
       if (allPresencas) {
         const studentStats = new Map<string, { absences: number; lates: number }>();
         allPresencas.forEach((p) => {
@@ -586,20 +713,29 @@ export const Attendance = () => {
 
         const studentsWithIssues = students
           .filter((s) => {
-            const stats = studentStats.get(s.id);
-            return stats && stats.absences + stats.lates >= 2;
+            const st = studentStats.get(s.id);
+            return st && st.absences + st.lates >= 2;
           })
           .map((s) => {
-            const stats = studentStats.get(s.id)!;
+            const st = studentStats.get(s.id)!;
+            const totalRecords = allPresencas.filter((p) => p.student_id === s.id).length;
+            const frequenciaPercent = totalRecords > 0
+              ? Math.round(((totalRecords - st.absences) / totalRecords) * 100)
+              : 100;
+            
             return {
               student_id: s.id,
               student_name: s.nome,
               student_email: s.email || null,
-              total_absences: stats.absences,
-              total_lates: stats.lates,
+              total_absences: st.absences,
+              total_lates: st.lates,
               status: presencas.get(s.id) || "pending",
+              frequencia_percent: frequenciaPercent,
             };
           });
+
+        issuesCount = studentsWithIssues.length;
+        setStudentsWithIssuesCount(issuesCount);
 
         const studentsPresent = students
           .filter((s) => presencas.get(s.id) === "presente")
@@ -615,20 +751,71 @@ export const Attendance = () => {
                 admin_email: user.email || "",
                 students_with_issues: studentsWithIssues,
                 students_present: studentsPresent,
+                ocorrencias: ocorrencias || null,
               },
             });
+            setNotificationsSent(true);
           } catch {
             console.log("Notificações não configuradas");
+            setNotificationsSent(false);
           }
         }
       }
 
       classStartTimeRef.current = new Date();
+      setShowSummaryDialog(true);
     } catch (error: any) {
       toast.error("Erro ao salvar chamada: " + error.message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleViewHistory = (student: Student) => {
+    setSelectedStudentForHistory(student);
+    setShowHistoryDialog(true);
+  };
+
+  const handleExportPDF = () => {
+    if (!selectedDisciplina || !selectedDate) return;
+    
+    const dateStr = format(selectedDate, "dd-MM-yyyy");
+    const content = `
+RELATÓRIO DE FREQUÊNCIA
+=======================
+
+Disciplina: ${selectedDisciplina.nome}
+Turma: ${selectedDisciplina.turmas?.nome || "N/A"}
+Data: ${format(selectedDate, "dd/MM/yyyy")}
+Professor: ${selectedDisciplina.nome_professor || "N/A"}
+
+RESUMO
+------
+Presentes: ${lastSaveStats?.present || 0}
+Ausentes: ${lastSaveStats?.absent || 0}
+Atrasados: ${lastSaveStats?.late || 0}
+Total: ${lastSaveStats?.total || 0}
+Frequência: ${lastSaveStats ? Math.round((lastSaveStats.present / lastSaveStats.total) * 100) : 0}%
+
+LISTA DE ALUNOS
+---------------
+${students.map((s) => {
+  const status = presencas.get(s.id) || "presente";
+  const just = justificativas.get(s.id);
+  return `${s.nome} (${s.matricula}): ${status.toUpperCase()}${just ? ` - ${just}` : ""}`;
+}).join("\n")}
+
+${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
+    `.trim();
+
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `frequencia_${selectedDisciplina.nome.replace(/\s+/g, "_")}_${dateStr}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Relatório exportado!");
   };
 
   const todayStats = {
@@ -637,6 +824,10 @@ export const Attendance = () => {
     late: Array.from(presencas.values()).filter((s) => s === "atrasado").length,
     total: students.length || 1,
   };
+
+  const pontualidadePercent = todayStats.present + todayStats.late > 0
+    ? Math.round((todayStats.present / (todayStats.present + todayStats.late)) * 100)
+    : 100;
 
   const markedCount = Array.from(presencas.values()).filter((s) => s !== "pending").length;
   const progressPercent = students.length > 0 ? Math.round((markedCount / students.length) * 100) : 0;
@@ -866,12 +1057,12 @@ export const Attendance = () => {
         })()}
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards with Punctuality KPI */}
       {selectedDisciplina && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card className="p-3 gradient-card shadow-card border-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
+              <div className="w-9 h-9 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
                 <CheckCircle className="w-4 h-4 text-green-600" />
               </div>
               <div>
@@ -882,7 +1073,7 @@ export const Attendance = () => {
           </Card>
           <Card className="p-3 gradient-card shadow-card border-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center">
+              <div className="w-9 h-9 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
                 <XCircle className="w-4 h-4 text-red-600" />
               </div>
               <div>
@@ -893,7 +1084,7 @@ export const Attendance = () => {
           </Card>
           <Card className="p-3 gradient-card shadow-card border-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <div className="w-9 h-9 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
                 <Clock className="w-4 h-4 text-yellow-600" />
               </div>
               <div>
@@ -915,6 +1106,17 @@ export const Attendance = () => {
               </div>
             </div>
           </Card>
+          <Card className="p-3 gradient-card shadow-card border-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <Clock className="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground">{pontualidadePercent}%</p>
+                <p className="text-xs text-muted-foreground">Pontualidade</p>
+              </div>
+            </div>
+          </Card>
         </div>
       )}
 
@@ -922,7 +1124,7 @@ export const Attendance = () => {
       {selectedDisciplina && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Student List */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-4">
             <Card className="gradient-card shadow-card border-0">
               <div className="p-4 border-b">
                 <div className="flex items-center justify-between flex-wrap gap-3">
@@ -933,269 +1135,359 @@ export const Attendance = () => {
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* View mode toggle */}
+                    <div className="flex items-center border rounded-lg p-0.5">
+                      <Button
+                        variant={viewMode === "cards" ? "default" : "ghost"}
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => setViewMode("cards")}
+                      >
+                        <LayoutGrid className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant={viewMode === "table" ? "default" : "ghost"}
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => setViewMode("table")}
+                      >
+                        <TableIcon className="w-4 h-4" />
+                      </Button>
+                    </div>
                     <Select value={sortOrder} onValueChange={setSortOrder}>
                       <SelectTrigger className="w-[110px] h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="name-asc">Nome (A-Z)</SelectItem>
-                        <SelectItem value="name-desc">Nome (Z-A)</SelectItem>
+                        <SelectItem value="name-asc">Nome A-Z</SelectItem>
+                        <SelectItem value="name-desc">Nome Z-A</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Button variant="outline" size="sm" className="h-8" onClick={markAllPresent}>
+                      <CheckCircle className="w-4 h-4 mr-1.5" />
+                      Todos Presentes
+                    </Button>
                   </div>
                 </div>
 
-                <div className="mt-3 space-y-2">
-                  <div className="relative">
+                {/* Search and batch actions */}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar aluno por nome..."
+                      placeholder="Buscar aluno..."
+                      className="pl-9 h-9"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 h-9"
                     />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Progress value={progressPercent} className="h-1.5 flex-1" />
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {markedCount}/{students.length}
-                    </span>
-                  </div>
+                  
+                  {/* Batch actions */}
+                  {selectedStudents.size > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {selectedStudents.size} selecionados
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => applyBatchStatus("presente")}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5 mr-1 text-green-600" />
+                        Presentes
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => applyBatchStatus("ausente")}
+                      >
+                        <XCircle className="w-3.5 h-3.5 mr-1 text-red-600" />
+                        Ausentes
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => applyBatchStatus("atrasado")}
+                      >
+                        <Clock className="w-3.5 h-3.5 mr-1 text-yellow-600" />
+                        Atrasados
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <Progress value={progressPercent} className="h-2 flex-1" />
+                  <span className="text-xs text-muted-foreground">{progressPercent}%</span>
                 </div>
               </div>
 
-              <div className="p-4">
-                <div className="space-y-2">
+              {/* Table View */}
+              {viewMode === "table" ? (
+                <div className="p-4">
+                  <AttendanceTableView
+                    students={sortedStudents}
+                    presencas={presencas}
+                    justificativas={justificativas}
+                    setStatus={setStatus}
+                    setJustificativa={setJustificativa}
+                    selectedStudents={selectedStudents}
+                    toggleStudentSelection={toggleStudentSelection}
+                    toggleSelectAll={toggleSelectAll}
+                    studentsAtRisk={studentsRiskMap}
+                    onViewHistory={handleViewHistory}
+                    searchQuery={searchQuery}
+                  />
+                </div>
+              ) : (
+                /* Card View */
+                <div className="p-4 space-y-2 max-h-[500px] overflow-y-auto">
                   {filteredStudents.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      {searchQuery ? (
-                        <p>Nenhum aluno encontrado para "{searchQuery}".</p>
-                      ) : (
-                        <>
-                          <p>Nenhum estudante encontrado.</p>
-                          <p className="text-sm">Adicione estudantes à turma na aba Estudantes.</p>
-                        </>
-                      )}
-                    </div>
+                    <p className="text-center text-muted-foreground py-8">
+                      Nenhum aluno encontrado
+                    </p>
                   ) : (
                     filteredStudents.map((student) => {
-                      const status = presencas.get(student.id) || "presente";
+                      const currentStatus = presencas.get(student.id) || "presente";
+                      const riskData = studentsRiskMap.get(student.id);
+                      const isAtRisk = riskData && (riskData.absences >= 2 || riskData.lates >= 3);
+
                       return (
                         <div
                           key={student.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-all"
+                          className={`p-3 rounded-lg border transition-all ${
+                            currentStatus === "presente"
+                              ? "bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+                              : currentStatus === "ausente"
+                              ? "bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+                              : "bg-yellow-50/50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800"
+                          }`}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-muted rounded-full flex items-center justify-center">
-                              <span className="text-xs font-semibold text-muted-foreground">
-                                {getInitials(student.nome)}
-                              </span>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedStudents.has(student.id)}
+                                onChange={() => toggleStudentSelection(student.id)}
+                                className="w-4 h-4 rounded border-input"
+                              />
+                              <div
+                                className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center cursor-pointer"
+                                onClick={() => handleViewHistory(student)}
+                              >
+                                <span className="text-sm font-semibold text-primary">
+                                  {getInitials(student.nome)}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-foreground">{student.nome}</p>
+                                  {isAtRisk && (
+                                    <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                                      <AlertTriangle className="w-3 h-3 mr-0.5" />
+                                      Risco
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">{student.matricula}</p>
+                              </div>
                             </div>
-                            <div>
-                              <span className="font-medium text-sm text-foreground">{student.nome}</span>
-                              <p className="text-[10px] text-muted-foreground">{student.matricula}</p>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant={currentStatus === "presente" ? "default" : "outline"}
+                                size="sm"
+                                className={`h-8 ${currentStatus === "presente" ? "bg-green-500 hover:bg-green-600" : ""}`}
+                                onClick={() => setStatus(student.id, "presente")}
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant={currentStatus === "ausente" ? "default" : "outline"}
+                                size="sm"
+                                className={`h-8 ${currentStatus === "ausente" ? "bg-red-500 hover:bg-red-600" : ""}`}
+                                onClick={() => setStatus(student.id, "ausente")}
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant={currentStatus === "atrasado" ? "default" : "outline"}
+                                size="sm"
+                                className={`h-8 ${currentStatus === "atrasado" ? "bg-yellow-500 hover:bg-yellow-600" : ""}`}
+                                onClick={() => setStatus(student.id, "atrasado")}
+                              >
+                                <Clock className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8"
+                                onClick={() => handleViewHistory(student)}
+                              >
+                                <History className="w-4 h-4" />
+                              </Button>
                             </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => setStatus(student.id, "presente")}
-                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
-                                status === "presente"
-                                  ? "bg-green-500 text-white shadow-md"
-                                  : "bg-green-100 text-green-700 hover:bg-green-200"
-                              }`}
-                              title="Presente"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              <span className="hidden sm:inline">P</span>
-                            </button>
-                            <button
-                              onClick={() => setStatus(student.id, "ausente")}
-                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
-                                status === "ausente"
-                                  ? "bg-red-500 text-white shadow-md"
-                                  : "bg-red-100 text-red-700 hover:bg-red-200"
-                              }`}
-                              title="Ausente"
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                              <span className="hidden sm:inline">F</span>
-                            </button>
-                            <button
-                              onClick={() => setStatus(student.id, "atrasado")}
-                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
-                                status === "atrasado"
-                                  ? "bg-yellow-500 text-white shadow-md"
-                                  : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                              }`}
-                              title="Atrasado"
-                            >
-                              <Clock className="w-3.5 h-3.5" />
-                              <span className="hidden sm:inline">A</span>
-                            </button>
                           </div>
                         </div>
                       );
                     })
                   )}
                 </div>
+              )}
 
-                {filteredStudents.length > 0 && (
-                  <div className="flex gap-3 mt-4 pt-4 border-t">
-                    <Button variant="outline" className="flex-1" size="sm" onClick={markAllPresent}>
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Todos Presentes
-                    </Button>
-                    <Button className="flex-1" size="sm" onClick={handleSaveClick} disabled={isLoading}>
-                      {isLoading ? "Salvando..." : "Salvar Chamada"}
-                    </Button>
-                  </div>
-                )}
+              {/* Ocorrências section */}
+              <div className="p-4 border-t">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Ocorrências e Observações do Dia</span>
+                </div>
+                <Textarea
+                  placeholder="Registre aqui observações gerais, conteúdo ministrado, incidentes..."
+                  value={ocorrencias}
+                  onChange={(e) => setOcorrencias(e.target.value)}
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="p-4 border-t flex gap-3">
+                <Button
+                  className="flex-1"
+                  disabled={isLoading || students.length === 0}
+                  onClick={handleSaveClick}
+                >
+                  {isLoading ? "Salvando..." : "Salvar Chamada"}
+                </Button>
+                <Button variant="outline" onClick={handleExportPDF}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Exportar
+                </Button>
               </div>
             </Card>
+
+            {/* Frequency Chart */}
+            {allAttendanceRecords.length > 0 && (
+              <AttendanceFrequencyChart records={allAttendanceRecords} />
+            )}
           </div>
 
-          {/* Right Sidebar */}
+          {/* Sidebar */}
           <div className="space-y-4">
-            {/* Calendar */}
-            <Card className="p-4 gradient-card shadow-card border-0">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-foreground text-sm">Calendário</h3>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary/20" />
-                  Chamada feita
-                </div>
-              </div>
+            <Card className="gradient-card shadow-card border-0 p-4">
+              <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                Calendário
+              </h3>
               <Calendar
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 locale={ptBR}
-                className="rounded-md border-0 pointer-events-auto"
                 modifiers={calendarModifiers}
                 modifiersStyles={calendarModifiersStyles}
+                className="rounded-md border pointer-events-auto"
               />
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Dias com chamada marcados em destaque
+              </p>
             </Card>
 
-            {/* Discipline Info */}
-            {selectedDisciplina && (
-              <Card className="p-4 gradient-card shadow-card border-0">
-                <h3 className="font-semibold text-foreground text-sm mb-3">Disciplina Atual</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Disciplina</span>
-                    <span className="font-medium text-foreground">{selectedDisciplina.nome}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Professor</span>
-                    <span className="font-medium text-foreground">{selectedDisciplina.nome_professor || "—"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Período</span>
-                    <span className="font-medium text-foreground">
-                      {format(new Date(selectedDisciplina.data_inicio), "dd/MM")} - {format(new Date(selectedDisciplina.data_termino), "dd/MM")}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">CH Diária</span>
-                    <span className="font-medium text-foreground">{selectedDisciplina.carga_horaria_diaria}min</span>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-xs"
-                    onClick={() => setShowDisciplinaDetails(true)}
-                  >
-                    Detalhes
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-xs"
-                    onClick={() => setShowEditDisciplina(true)}
-                  >
-                    Editar
-                  </Button>
+            {studentsAtRisk.length > 0 && (
+              <Card className="gradient-card shadow-card border-0 p-4">
+                <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  Alunos em Risco
+                </h3>
+                <div className="space-y-2">
+                  {studentsAtRisk.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                      <span className="text-sm font-medium truncate">{s.name}</span>
+                      <Badge variant="outline" className="text-xs border-amber-300 text-amber-600">
+                        {s.absences} faltas • {s.percentage}%
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
               </Card>
             )}
-
-            {/* Students at Risk */}
-            <Card className="p-4 gradient-card shadow-card border-0">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                <h3 className="font-semibold text-foreground text-sm">Alunos de Risco</h3>
-              </div>
-              {studentsAtRisk.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nenhum aluno em risco.</p>
-              ) : (
-                <ul className="space-y-1.5 text-xs">
-                  {studentsAtRisk.map((student, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <span className="text-yellow-500">•</span>
-                      <span className="text-foreground">
-                        {student.name} ({student.percentage}% - {student.absences}F)
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
           </div>
         </div>
       )}
 
-      {/* Confirm Save Dialog */}
+      {/* Dialogs */}
+      <AddDisciplinaDialog
+        open={showAddDisciplina}
+        onOpenChange={setShowAddDisciplina}
+        onSuccess={refreshDisciplinas}
+      />
+
+      <DisciplinaDetailsDialog
+        open={showDisciplinaDetails}
+        onOpenChange={setShowDisciplinaDetails}
+        disciplina={selectedDisciplina}
+      />
+
+      <EditDisciplinaDialog
+        open={showEditDisciplina}
+        onOpenChange={setShowEditDisciplina}
+        disciplina={selectedDisciplina}
+        onSuccess={refreshDisciplinas}
+      />
+
+      <StudentFrequencyHistory
+        open={showHistoryDialog}
+        onOpenChange={setShowHistoryDialog}
+        student={selectedStudentForHistory}
+        disciplinaId={selectedDisciplina?.id || null}
+        disciplinaNome={selectedDisciplina?.nome}
+      />
+
+      <AttendanceSaveSummary
+        open={showSummaryDialog}
+        onOpenChange={setShowSummaryDialog}
+        stats={lastSaveStats || { present: 0, absent: 0, late: 0, total: 0 }}
+        previousStats={previousDayStats}
+        date={selectedDate || new Date()}
+        disciplinaNome={selectedDisciplina?.nome || ""}
+        turmaNome={selectedTurmaGroup?.turmaNome || ""}
+        studentsWithIssues={studentsWithIssuesCount}
+        notificationsSent={notificationsSent}
+        onExportPDF={handleExportPDF}
+      />
+
+      {/* Confirm Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Chamada</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-4">
-                <p>
-                  Confirma o registro para{" "}
-                  <strong>
-                    {selectedDate && format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}
-                  </strong>
-                  {" — "}
-                  <strong>{selectedDisciplina?.nome}</strong>
-                  {selectedTurmaGroup && <> ({selectedTurmaGroup.turmaNome})</>}?
-                </p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
-                    <p className="text-2xl font-bold text-green-600">{todayStats.present}</p>
-                    <p className="text-xs text-green-700">Presentes</p>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-red-50 border border-red-200">
-                    <p className="text-2xl font-bold text-red-600">{todayStats.absent}</p>
-                    <p className="text-xs text-red-700">Ausentes</p>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-yellow-50 border border-yellow-200">
-                    <p className="text-2xl font-bold text-yellow-600">{todayStats.late}</p>
-                    <p className="text-xs text-yellow-700">Atrasados</p>
-                  </div>
+            <AlertDialogDescription className="space-y-3">
+              <p>Confirma o registro de presença para {selectedDate && format(selectedDate, "dd/MM/yyyy")}?</p>
+              <div className="grid grid-cols-3 gap-3 pt-2">
+                <div className="text-center p-2 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                  <p className="text-lg font-bold text-green-600">{todayStats.present}</p>
+                  <p className="text-xs text-muted-foreground">Presentes</p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Frequência: <strong>{Math.round((todayStats.present / todayStats.total) * 100)}%</strong> ({todayStats.present}/{students.length})
-                </p>
+                <div className="text-center p-2 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                  <p className="text-lg font-bold text-red-600">{todayStats.absent}</p>
+                  <p className="text-xs text-muted-foreground">Ausentes</p>
+                </div>
+                <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
+                  <p className="text-lg font-bold text-yellow-600">{todayStats.late}</p>
+                  <p className="text-xs text-muted-foreground">Atrasados</p>
+                </div>
               </div>
+              <p className="text-center pt-2">
+                <span className="font-semibold">{Math.round((todayStats.present / todayStats.total) * 100)}%</span> de frequência
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Revisar</AlertDialogCancel>
-            <AlertDialogAction onClick={saveAttendance}>Confirmar e Salvar</AlertDialogAction>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={saveAttendance}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Dialogs */}
-      <AddDisciplinaDialog open={showAddDisciplina} onOpenChange={setShowAddDisciplina} onSuccess={refreshDisciplinas} />
-      <DisciplinaDetailsDialog open={showDisciplinaDetails} onOpenChange={setShowDisciplinaDetails} disciplina={selectedDisciplina} />
-      <EditDisciplinaDialog open={showEditDisciplina} onOpenChange={setShowEditDisciplina} disciplina={selectedDisciplina} onSuccess={refreshDisciplinas} />
     </div>
   );
 };
