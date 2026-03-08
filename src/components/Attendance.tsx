@@ -589,6 +589,10 @@ export const Attendance = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs py-1 px-3">
+            <Clock className="w-3.5 h-3.5 mr-1.5" />
+            {format(currentTime, "HH:mm")}
+          </Badge>
           {selectedDisciplina && (
             <Badge variant="secondary" className="text-sm py-1 px-3">
               <BookOpen className="w-3.5 h-3.5 mr-1.5" />
@@ -597,6 +601,63 @@ export const Attendance = () => {
           )}
         </div>
       </div>
+
+      {/* Active Aula Alert Banner */}
+      {activeAula && (
+        <Alert className="border-primary/30 bg-primary/5">
+          <Info className="h-4 w-4 text-primary" />
+          <AlertTitle className="text-primary font-semibold">
+            Chamada em Andamento — {format(currentTime, "dd/MM/yyyy")} às {format(currentTime, "HH:mm")}
+          </AlertTitle>
+          <AlertDescription>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-foreground">
+              {activeAula.turma && (
+                <span className="flex items-center gap-1">
+                  <GraduationCap className="w-3.5 h-3.5 text-muted-foreground" />
+                  <strong>Turma:</strong> {activeAula.turma.nome}
+                  {activeAula.turma.curso && ` (${activeAula.turma.curso})`}
+                </span>
+              )}
+              {activeAula.disciplina_cad && (
+                <span className="flex items-center gap-1">
+                  <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                  <strong>Disciplina:</strong> {activeAula.disciplina_cad.nome}
+                </span>
+              )}
+              {activeAula.professor && (
+                <span className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                  <strong>Professor:</strong> {activeAula.professor.nome}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                <strong>Horário:</strong> {activeAula.hora_inicio.slice(0, 5)} - {activeAula.hora_fim.slice(0, 5)}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Video className="w-3.5 h-3.5" />
+              <span>Dupla checagem disponível: conferência de presença por câmeras pode ser utilizada como verificação complementar.</span>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!activeAula && (
+        <Alert className="border-muted-foreground/20 bg-muted/30">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <AlertTitle className="text-foreground font-semibold">
+            {format(currentTime, "dd/MM/yyyy")} — {format(currentTime, "HH:mm")}
+          </AlertTitle>
+          <AlertDescription className="text-muted-foreground text-sm">
+            Nenhuma aula agendada no cronograma para este horário. Selecione uma turma abaixo para registrar presença manualmente.
+            <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+              <Video className="w-3.5 h-3.5" />
+              <span>Conferência por câmeras disponível como dupla checagem.</span>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Turma Cards - Smart Detection */}
       <div>
