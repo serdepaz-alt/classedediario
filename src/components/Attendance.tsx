@@ -27,6 +27,7 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   Calendar as CalendarIcon,
   Users,
@@ -37,6 +38,9 @@ import {
   Search,
   BookOpen,
   GraduationCap,
+  Video,
+  Info,
+  MapPin,
 } from "lucide-react";
 import { AddDisciplinaDialog } from "./attendance/AddDisciplinaDialog";
 import { DisciplinaDetailsDialog } from "./attendance/DisciplinaDetailsDialog";
