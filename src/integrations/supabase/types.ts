@@ -397,6 +397,66 @@ export type Database = {
           },
         ]
       }
+      medias_alunos: {
+        Row: {
+          avaliacoes_travadas: number | null
+          bonus: number | null
+          created_at: string
+          disciplina_id: string
+          id: string
+          media_final: number | null
+          media_parcial: number | null
+          situacao: string | null
+          student_id: string
+          total_avaliacoes: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avaliacoes_travadas?: number | null
+          bonus?: number | null
+          created_at?: string
+          disciplina_id: string
+          id?: string
+          media_final?: number | null
+          media_parcial?: number | null
+          situacao?: string | null
+          student_id: string
+          total_avaliacoes?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avaliacoes_travadas?: number | null
+          bonus?: number | null
+          created_at?: string
+          disciplina_id?: string
+          id?: string
+          media_final?: number | null
+          media_parcial?: number | null
+          situacao?: string | null
+          student_id?: string
+          total_avaliacoes?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medias_alunos_disciplina_id_fkey"
+            columns: ["disciplina_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medias_alunos_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notas: {
         Row: {
           bonus: number | null
