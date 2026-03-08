@@ -56,7 +56,6 @@ export const ProfessorCard = ({ professor, onEdit, onDelete }: ProfessorCardProp
               <Button
                 variant="ghost"
                 size="icon"
-                className="opacity-0 group-hover:opacity-100 transition-smooth"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
