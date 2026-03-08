@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -94,7 +94,7 @@ export const useGrades = () => {
   }, [professorId, user]);
 
   // Fetch students for a turma
-  const fetchStudents = async (turmaId: string): Promise<{ id: string; nome: string; matricula: string }[]> => {
+  const fetchStudents = useCallback(async (turmaId: string): Promise<{ id: string; nome: string; matricula: string }[]> => {
     const { data } = await supabase
       .from("students")
       .select("id, nome, matricula")
@@ -103,10 +103,10 @@ export const useGrades = () => {
       .order("nome");
 
     return data || [];
-  };
+  }, []);
 
   // Fetch grades for a student + disciplina
-  const fetchStudentGrades = async (studentId: string, disciplinaId: string) => {
+  const fetchStudentGrades = useCallback(async (studentId: string, disciplinaId: string) => {
     const { data } = await supabase
       .from("notas")
       .select("*")
@@ -115,10 +115,10 @@ export const useGrades = () => {
       .order("numero_avaliacao");
 
     return data || [];
-  };
+  }, []);
 
   // Fetch all grades for a disciplina (all students)
-  const fetchAllGradesForDisciplina = async (disciplinaId: string) => {
+  const fetchAllGradesForDisciplina = useCallback(async (disciplinaId: string) => {
     const { data } = await supabase
       .from("notas")
       .select("*, students!notas_student_id_fkey(nome, matricula)")
@@ -126,7 +126,7 @@ export const useGrades = () => {
       .order("numero_avaliacao");
 
     return data || [];
-  };
+  }, []);
 
   // Save a grade
   const saveGrade = async (params: {
