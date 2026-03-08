@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Loader2, CalendarRange, ListOrdered } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Calendar, Loader2, CalendarRange, ListOrdered, ChevronDown, ChevronUp, FileDown, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FeriadosManager } from "./FeriadosManager";
 import { SequenciaDisciplinasDialog } from "./SequenciaDisciplinasDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { format, parseISO, isWithinInterval } from "date-fns";
+import { format, parseISO, isWithinInterval, differenceInBusinessDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface DisciplinaRow {
@@ -24,6 +25,7 @@ interface DisciplinaRow {
   dias_uteis: number | null;
   data_inicio: string;
   data_termino: string;
+  nome_professor: string | null;
   turma_nome?: string;
   turma_periodo?: string | null;
   turma_horario?: string | null;
@@ -41,6 +43,7 @@ export const CronogramasTab = () => {
   const [filtroCurso, setFiltroCurso] = useState("Técnico em Enfermagem");
   const [disciplinas, setDisciplinas] = useState<DisciplinaRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [expandedTurmas, setExpandedTurmas] = useState<Record<string, boolean>>({});
 
   const fetchDisciplinas = useCallback(async () => {
     if (!user?.id) return;
@@ -97,34 +100,40 @@ export const CronogramasTab = () => {
     return acc;
   }, {});
 
-  // For each turma, find current discipline and show 2 before + current + 2 after
   const today = format(new Date(), "yyyy-MM-dd");
 
-  const getVisibleDisciplinas = (items: DisciplinaRow[]) => {
-    // Find current discipline (today is within start-end range)
+  const getVisibleDisciplinas = (items: DisciplinaRow[], turmaId: string) => {
+    // If expanded, show all
+    if (expandedTurmas[turmaId]) {
+      const currentIdx = items.findIndex((d) => {
+        try {
+          return isWithinInterval(new Date(), {
+            start: parseISO(d.data_inicio),
+            end: parseISO(d.data_termino),
+          });
+        } catch { return false; }
+      });
+      return { visible: items, currentIdx, startIdx: 0 };
+    }
+
+    // Find current discipline
     let currentIdx = items.findIndex((d) => {
       try {
         return isWithinInterval(new Date(), {
           start: parseISO(d.data_inicio),
           end: parseISO(d.data_termino),
         });
-      } catch {
-        return false;
-      }
+      } catch { return false; }
     });
 
-    // All future (turma hasn't started yet) → show first 3
     const allFuture = items.every((d) => d.data_inicio > today);
     if (allFuture) {
       return { visible: items.slice(0, 3), currentIdx: -1, startIdx: 0 };
     }
 
-    // If no current found, find next upcoming
     if (currentIdx === -1) {
       currentIdx = items.findIndex((d) => d.data_inicio > today);
     }
-
-    // If still not found, show last 3
     if (currentIdx === -1) {
       currentIdx = Math.max(0, items.length - 2);
     }
@@ -132,6 +141,67 @@ export const CronogramasTab = () => {
     const startIdx = Math.max(0, currentIdx - 1);
     const endIdx = Math.min(items.length, currentIdx + 2);
     return { visible: items.slice(startIdx, endIdx), currentIdx, startIdx };
+  };
+
+  const toggleExpanded = (turmaId: string) => {
+    setExpandedTurmas((prev) => ({ ...prev, [turmaId]: !prev[turmaId] }));
+  };
+
+  const getProgress = (items: DisciplinaRow[]) => {
+    const completed = items.filter((d) => d.data_termino < today).length;
+    return { completed, total: items.length, percent: items.length > 0 ? Math.round((completed / items.length) * 100) : 0 };
+  };
+
+  const handleExportPDF = () => {
+    const printContent = document.getElementById("cronograma-print-area");
+    if (!printContent) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html><head><title>Cronograma</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; }
+        h2 { margin-top: 24px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+        th { background: #f0f0f0; font-weight: bold; }
+        .current { background: #e0f2fe; }
+        .progress-bar { background: #e5e7eb; border-radius: 4px; height: 8px; margin: 4px 0; }
+        .progress-fill { background: #3b82f6; height: 8px; border-radius: 4px; }
+      </style></head><body>
+      <h1>Cronograma - ${filtroCurso} - ${filtroTurno}</h1>
+      <p>Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+    `);
+
+    Object.entries(turmaGroups).forEach(([turmaId, items]) => {
+      const turmaName = items[0]?.turma_nome || "Sem turma";
+      const progress = getProgress(items);
+      printWindow.document.write(`
+        <h2>${turmaName}</h2>
+        <p>Progresso: ${progress.completed}/${progress.total} disciplinas concluídas (${progress.percent}%)</p>
+        <div class="progress-bar"><div class="progress-fill" style="width:${progress.percent}%"></div></div>
+        <table>
+          <tr><th>#</th><th>Disciplina</th><th>Professor</th><th>Carga (h)</th><th>Diária</th><th>Dias</th><th>Início</th><th>Término</th><th>Status</th></tr>
+      `);
+      items.forEach((d, idx) => {
+        const isPast = d.data_termino < today;
+        let isCurrent = false;
+        try { isCurrent = isWithinInterval(new Date(), { start: parseISO(d.data_inicio), end: parseISO(d.data_termino) }); } catch {}
+        const status = isPast ? "Concluída" : isCurrent ? "Atual" : "Futura";
+        printWindow.document.write(`
+          <tr class="${isCurrent ? 'current' : ''}">
+            <td>${idx + 1}</td><td>${d.nome}</td><td>${d.nome_professor || "—"}</td>
+            <td>${d.carga_horaria_total}h</td><td>${d.carga_horaria_diaria}h</td><td>${d.dias_uteis}</td>
+            <td>${formatDateBR(d.data_inicio)}</td><td>${formatDateBR(d.data_termino)}</td><td>${status}</td>
+          </tr>
+        `);
+      });
+      printWindow.document.write("</table>");
+    });
+
+    printWindow.document.write("</body></html>");
+    printWindow.document.close();
+    printWindow.print();
   };
 
   return (
@@ -149,10 +219,16 @@ export const CronogramasTab = () => {
                 Visualize e gerencie os cronogramas de disciplinas por turma
               </CardDescription>
             </div>
-            <Button onClick={() => { setEditTurmaId(null); setSequenciaDialogOpen(true); }} className="gap-2">
-              <ListOrdered className="w-4 h-4" />
-              Cadastro de Sequência de Disciplinas por Turma
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" onClick={handleExportPDF} className="gap-2">
+                <FileDown className="w-4 h-4" />
+                Exportar PDF
+              </Button>
+              <Button onClick={() => { setEditTurmaId(null); setSequenciaDialogOpen(true); }} className="gap-2">
+                <ListOrdered className="w-4 h-4" />
+                Cadastro de Sequência de Disciplinas por Turma
+              </Button>
+            </div>
           </div>
 
           {/* Filters */}
@@ -201,10 +277,12 @@ export const CronogramasTab = () => {
               </p>
             </div>
           ) : (
-            <div className="max-h-[480px] overflow-y-auto space-y-6 pr-2">
+            <div id="cronograma-print-area" className="max-h-[600px] overflow-y-auto space-y-6 pr-2">
               {Object.entries(turmaGroups).map(([turmaId, items]) => {
-                const { visible, currentIdx, startIdx } = getVisibleDisciplinas(items);
+                const { visible, currentIdx, startIdx } = getVisibleDisciplinas(items, turmaId);
                 const turmaName = items[0]?.turma_nome || "Sem turma";
+                const isExpanded = expandedTurmas[turmaId] || false;
+                const progress = getProgress(items);
 
                 return (
                   <div key={turmaId} className="space-y-2">
@@ -214,10 +292,16 @@ export const CronogramasTab = () => {
                         <Badge variant="outline" className="text-xs">
                           {items.length} disciplina(s)
                         </Badge>
-                        {items.length > visible.length && (
-                          <Badge variant="secondary" className="text-xs">
-                            Exibindo {visible.length} de {items.length}
-                          </Badge>
+                        {items.length > 3 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-xs gap-1"
+                            onClick={() => toggleExpanded(turmaId)}
+                          >
+                            {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            {isExpanded ? "Recolher" : `Ver todas (${items.length})`}
+                          </Button>
                         )}
                       </div>
                       <span className="inline-block bg-muted/60 rounded-md px-3 py-1 text-xs text-muted-foreground mt-1">
@@ -227,6 +311,13 @@ export const CronogramasTab = () => {
                           items[0]?.turma_data_inicio && `Início: ${new Date(items[0].turma_data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}`,
                         ].filter(Boolean).join(" • ")}
                       </span>
+                      {/* Progress bar */}
+                      <div className="flex items-center gap-3 mt-2">
+                        <Progress value={progress.percent} className="h-2 flex-1 max-w-xs" />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {progress.completed}/{progress.total} concluídas ({progress.percent}%)
+                        </span>
+                      </div>
                     </div>
                     <div className="border rounded-lg overflow-hidden">
                       <Table>
@@ -234,6 +325,7 @@ export const CronogramasTab = () => {
                           <TableRow className="bg-muted/50">
                             <TableHead className="w-[50px] text-center">#</TableHead>
                             <TableHead>Disciplina</TableHead>
+                            <TableHead className="w-[150px]">Professor</TableHead>
                             <TableHead className="text-center w-[90px]">Carga (h)</TableHead>
                             <TableHead className="text-center w-[70px]">Diária</TableHead>
                             <TableHead className="text-center w-[70px]">Dias</TableHead>
@@ -272,6 +364,16 @@ export const CronogramasTab = () => {
                                     <Badge className="ml-2 text-[10px]" variant="default">
                                       Em andamento
                                     </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {d.nome_professor ? (
+                                    <div className="flex items-center gap-1 text-sm">
+                                      <User className="w-3 h-3 text-muted-foreground" />
+                                      <span className="truncate">{d.nome_professor}</span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground/50 text-xs">—</span>
                                   )}
                                 </TableCell>
                                 <TableCell className="text-center">{d.carga_horaria_total}h</TableCell>
