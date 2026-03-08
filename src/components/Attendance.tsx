@@ -784,41 +784,61 @@ export const Attendance = () => {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <GraduationCap className="w-5 h-5 text-primary" />
-          <h2 className="font-semibold text-foreground">Suas Turmas Hoje</h2>
-          <Badge variant="outline" className="text-xs">
-            {turmaGroups.filter((t) => t.disciplinaAtual).length} ativas
-          </Badge>
+          <h2 className="font-semibold text-foreground">
+            {todayAulas.length > 0 ? "Turmas Agendadas Hoje" : "Suas Turmas"}
+          </h2>
+          {todayAulas.length > 0 && (
+            <Badge variant="outline" className="text-xs">
+              {activeTurmaIds.size > 0
+                ? `${activeTurmaIds.size} no horário atual`
+                : `${todayTurmaIds.size} agendadas`}
+            </Badge>
+          )}
         </div>
 
-        {turmaGroups.length === 0 ? (
-          <Card className="p-8 text-center">
-            <GraduationCap className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-            <p className="text-muted-foreground">Nenhuma turma com disciplinas cadastradas.</p>
-            <Button variant="outline" className="mt-3" onClick={() => setShowAddDisciplina(true)}>
-              Adicionar Disciplina
-            </Button>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {turmaGroups.map((turma) => {
-              // A turma is locked if there are active aulas right now but this turma isn't one of them
-              const hasActiveSlots = activeTurmaIds.size > 0;
-              const isTurmaActive = activeTurmaIds.has(turma.turmaId);
-              const isTurmaScheduledToday = todayTurmaIds.has(turma.turmaId);
-              const isLocked = hasActiveSlots && !isTurmaActive && isTurmaScheduledToday;
+        {(() => {
+          // When cronograma has entries for today, show ONLY those turmas
+          const turmasToShow = todayAulas.length > 0
+            ? turmaGroups.filter((t) => todayTurmaIds.has(t.turmaId))
+            : turmaGroups;
 
-              return (
-                <TurmaAttendanceCard
-                  key={turma.turmaId}
-                  turma={turma}
-                  isSelected={selectedTurmaId === turma.turmaId}
-                  onSelect={handleSelectTurma}
-                  isLocked={isLocked}
-                />
-              );
-            })}
-          </div>
-        )}
+          if (turmasToShow.length === 0) {
+            return (
+              <Card className="p-8 text-center">
+                <GraduationCap className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
+                <p className="text-muted-foreground">
+                  {todayAulas.length > 0
+                    ? "Nenhuma turma do cronograma de hoje possui disciplinas vinculadas."
+                    : "Nenhuma turma com disciplinas cadastradas."}
+                </p>
+                <Button variant="outline" className="mt-3" onClick={() => setShowAddDisciplina(true)}>
+                  Adicionar Disciplina
+                </Button>
+              </Card>
+            );
+          }
+
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {turmasToShow.map((turma) => {
+                // Lock turmas that are scheduled today but NOT in the current time slot
+                const hasActiveSlots = activeTurmaIds.size > 0;
+                const isTurmaActive = activeTurmaIds.has(turma.turmaId);
+                const isLocked = hasActiveSlots && !isTurmaActive;
+
+                return (
+                  <TurmaAttendanceCard
+                    key={turma.turmaId}
+                    turma={turma}
+                    isSelected={selectedTurmaId === turma.turmaId}
+                    onSelect={handleSelectTurma}
+                    isLocked={isLocked}
+                  />
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Stats Cards */}
