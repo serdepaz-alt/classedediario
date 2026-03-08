@@ -350,6 +350,16 @@ export const AddTurmaDialog = ({
                             form.setValue("ano_letivo", date.getFullYear());
                           }
                         }}
+                        disabled={(date) => {
+                          const curso = form.getValues("curso")?.toLowerCase() || "";
+                          const nomenclatura = form.getValues("nomenclatura") || "";
+                          const isTecEnfermagem = curso.includes("técnico em enfermagem") || nomenclatura === "TE";
+                          if (isTecEnfermagem) {
+                            const day = date.getDay();
+                            return day === 0 || day === 6;
+                          }
+                          return false;
+                        }}
                         initialFocus
                         className={cn("p-3 pointer-events-auto")}
                       />
