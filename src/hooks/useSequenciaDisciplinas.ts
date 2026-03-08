@@ -15,6 +15,12 @@ export interface SequenciaItem {
   qtd_dias: number;
   data_inicio: string;
   data_termino: string;
+  nome_professor: string;
+}
+
+interface Professor {
+  id: string;
+  nome: string;
 }
 
 interface Turma {
@@ -42,6 +48,7 @@ export const useSequenciaDisciplinas = () => {
   const queryClient = useQueryClient();
 
   const [turmas, setTurmas] = useState<Turma[]>([]);
+  const [professores, setProfessores] = useState<Professor[]>([]);
   const [selectedTurmaId, setSelectedTurmaId] = useState<string>("");
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [turno, setTurno] = useState<Turno>("Matutino");
