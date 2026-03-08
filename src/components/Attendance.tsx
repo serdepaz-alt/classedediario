@@ -41,6 +41,8 @@ import {
   Video,
   Info,
   MapPin,
+  Lock,
+  Sparkles,
 } from "lucide-react";
 import { AddDisciplinaDialog } from "./attendance/AddDisciplinaDialog";
 import { DisciplinaDetailsDialog } from "./attendance/DisciplinaDetailsDialog";
