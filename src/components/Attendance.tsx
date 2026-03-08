@@ -137,14 +137,15 @@ export const Attendance = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Detect active aula from cronograma_mestre based on current date/time
+  // Detect active aula and fetch all today's aulas from cronograma_mestre
   useEffect(() => {
     const detectActiveAula = async () => {
       if (!user) return;
       const todayStr = format(new Date(), "yyyy-MM-dd");
       const nowTime = format(new Date(), "HH:mm:ss");
 
-      const { data, error } = await supabase
+      // Fetch ALL today's aulas
+      const { data: allToday } = await supabase
         .from("cronograma_mestre")
         .select(`
           id, turma_id, disciplina_id, professor_id, data_aula, hora_inicio, hora_fim,
@@ -154,32 +155,21 @@ export const Attendance = () => {
         `)
         .eq("user_id", user.id)
         .eq("data_aula", todayStr)
-        .lte("hora_inicio", nowTime)
-        .gte("hora_fim", nowTime)
-        .limit(1);
+        .order("hora_inicio", { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        setActiveAula(data[0] as unknown as ActiveAula);
-      } else {
-        // If no aula right now, try to find the next one today
-        const { data: nextData } = await supabase
-          .from("cronograma_mestre")
-          .select(`
-            id, turma_id, disciplina_id, professor_id, data_aula, hora_inicio, hora_fim,
-            turma:turmas(id, nome, curso),
-            professor:cad_professores(id, nome),
-            disciplina_cad:cad_disciplinas(id, nome)
-          `)
-          .eq("user_id", user.id)
-          .eq("data_aula", todayStr)
-          .gte("hora_inicio", nowTime)
-          .order("hora_inicio", { ascending: true })
-          .limit(1);
+      if (allToday) {
+        setTodayAulas(allToday as unknown as ActiveAula[]);
 
-        if (nextData && nextData.length > 0) {
-          setActiveAula(nextData[0] as unknown as ActiveAula);
+        // Find current aula (within time range)
+        const current = allToday.find(
+          (a) => a.hora_inicio <= nowTime && a.hora_fim >= nowTime
+        );
+        if (current) {
+          setActiveAula(current as unknown as ActiveAula);
         } else {
-          setActiveAula(null);
+          // Next upcoming aula today
+          const next = allToday.find((a) => a.hora_inicio >= nowTime);
+          setActiveAula(next ? (next as unknown as ActiveAula) : null);
         }
       }
     };
