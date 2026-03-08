@@ -583,7 +583,39 @@ export const Attendance = () => {
 
   const selectedTurmaGroup = turmaGroups.find((t) => t.turmaId === selectedTurmaId);
 
-  return (
+  // Determine which turma IDs are active right now (in current time slot)
+  const nowTimeStr = format(currentTime, "HH:mm:ss");
+  const activeTurmaIds = new Set(
+    todayAulas
+      .filter((a) => a.hora_inicio <= nowTimeStr && a.hora_fim >= nowTimeStr)
+      .map((a) => a.turma_id)
+      .filter(Boolean)
+  );
+
+  // All turma IDs scheduled today
+  const todayTurmaIds = new Set(
+    todayAulas.map((a) => a.turma_id).filter(Boolean)
+  );
+
+  // Greeting helpers
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour < 12) return "Bom dia";
+    if (hour < 18) return "Boa tarde";
+    return "Boa noite";
+  };
+
+  const professorName = activeAula?.professor?.nome || user?.email?.split("@")[0] || "Professor(a)";
+  const firstName = professorName.split(" ")[0];
+
+  const motivationalPhrases = [
+    "Cada aula é uma semente de transformação. Vamos fazer a diferença hoje! 🌱",
+    "Ensinar é acender uma luz que nunca se apaga. Brilhe hoje! ✨",
+    "Sua dedicação constrói futuros. A turma de hoje tem sorte de ter você! 🎯",
+    "O conhecimento que você compartilha hoje será o alicerce de amanhã. 📚",
+    "Grandes professores inspiram grandes conquistas. Vamos lá! 🚀",
+  ];
+  const dailyPhrase = motivationalPhrases[currentTime.getDate() % motivationalPhrases.length];
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
