@@ -86,6 +86,19 @@ interface TurmaGroup {
   chamadaFeita?: boolean;
 }
 
+interface ActiveAula {
+  id: string;
+  turma_id: string | null;
+  disciplina_id: string | null;
+  professor_id: string | null;
+  data_aula: string;
+  hora_inicio: string;
+  hora_fim: string;
+  turma?: { id: string; nome: string; curso: string | null } | null;
+  professor?: { id: string; nome: string } | null;
+  disciplina_cad?: { id: string; nome: string } | null;
+}
+
 export const Attendance = () => {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -104,6 +117,8 @@ export const Attendance = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [datesWithAttendance, setDatesWithAttendance] = useState<Set<string>>(new Set());
   const [todayAttendanceDone, setTodayAttendanceDone] = useState<Set<string>>(new Set());
+  const [activeAula, setActiveAula] = useState<ActiveAula | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const classStartTimeRef = useRef<Date | null>(null);
 
@@ -112,6 +127,62 @@ export const Attendance = () => {
       classStartTimeRef.current = new Date();
     }
   }, []);
+
+  // Live clock update every minute
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Detect active aula from cronograma_mestre based on current date/time
+  useEffect(() => {
+    const detectActiveAula = async () => {
+      if (!user) return;
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      const nowTime = format(new Date(), "HH:mm:ss");
+
+      const { data, error } = await supabase
+        .from("cronograma_mestre")
+        .select(`
+          id, turma_id, disciplina_id, professor_id, data_aula, hora_inicio, hora_fim,
+          turma:turmas(id, nome, curso),
+          professor:cad_professores(id, nome),
+          disciplina_cad:cad_disciplinas(id, nome)
+        `)
+        .eq("user_id", user.id)
+        .eq("data_aula", todayStr)
+        .lte("hora_inicio", nowTime)
+        .gte("hora_fim", nowTime)
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        setActiveAula(data[0] as unknown as ActiveAula);
+      } else {
+        // If no aula right now, try to find the next one today
+        const { data: nextData } = await supabase
+          .from("cronograma_mestre")
+          .select(`
+            id, turma_id, disciplina_id, professor_id, data_aula, hora_inicio, hora_fim,
+            turma:turmas(id, nome, curso),
+            professor:cad_professores(id, nome),
+            disciplina_cad:cad_disciplinas(id, nome)
+          `)
+          .eq("user_id", user.id)
+          .eq("data_aula", todayStr)
+          .gte("hora_inicio", nowTime)
+          .order("hora_inicio", { ascending: true })
+          .limit(1);
+
+        if (nextData && nextData.length > 0) {
+          setActiveAula(nextData[0] as unknown as ActiveAula);
+        } else {
+          setActiveAula(null);
+        }
+      }
+    };
+
+    detectActiveAula();
+  }, [user, currentTime]);
 
   // Group disciplines by turma and detect current discipline per turma
   const turmaGroups = useMemo((): TurmaGroup[] => {
