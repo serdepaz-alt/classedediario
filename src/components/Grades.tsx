@@ -1,7 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Plus, 
   Search, 
@@ -13,7 +21,11 @@ import {
   AlertTriangle,
   Loader2,
   ChevronDown,
-  GraduationCap
+  GraduationCap,
+  Users,
+  TrendingDown,
+  Medal,
+  FileText,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,12 +44,14 @@ import { useGrades } from "@/hooks/useGrades";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 interface DashboardStudent {
   id: string;
   student: string;
   matricula: string;
   grades: Record<string, number[]>;
+  turmaId?: string;
 }
 
 type ViewMode = "dashboard" | "selector" | "entry";
@@ -52,6 +66,9 @@ export const Grades = () => {
   const { hasPending, pendingCount } = useAceiteCronograma();
   const { user } = useAuth();
   const { professorNome, turmasDisponiveis, loading: loadingProfessor, fetchAllGradesForDisciplina } = useGrades();
+
+  // Filter by turma
+  const [filterTurmaId, setFilterTurmaId] = useState<string>("all");
 
   // Active turmas for dropdown
   const [activeTurmas, setActiveTurmas] = useState<{ id: string; nome: string; curso: string | null }[]>([]);
@@ -103,6 +120,7 @@ export const Grades = () => {
               student: studentData.nome,
               matricula: studentData.matricula,
               grades: {},
+              turmaId: turma.turma_id,
             });
           }
 
@@ -201,29 +219,110 @@ export const Grades = () => {
     );
   }
 
-  // Dashboard
-  const filteredData = dashboardStudents.filter(item =>
+  // Filtered data
+  const filteredByTurma = filterTurmaId === "all"
+    ? dashboardStudents
+    : dashboardStudents.filter(s => s.turmaId === filterTurmaId);
+
+  const filteredData = filteredByTurma.filter(item =>
     item.student.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const classAverage = dashboardStudents.length > 0
-    ? dashboardStudents.reduce((sum, student) => sum + calculateStudentOverallAverage(student.grades), 0) / dashboardStudents.length
+  // KPIs
+  const classAverage = filteredByTurma.length > 0
+    ? filteredByTurma.reduce((sum, student) => sum + calculateStudentOverallAverage(student.grades), 0) / filteredByTurma.length
     : 0;
   
-  const studentsAbove7 = dashboardStudents.filter(student => 
+  const studentsAbove7 = filteredByTurma.filter(student => 
     calculateStudentOverallAverage(student.grades) >= 7.0).length;
   
-  const percentAbove7 = dashboardStudents.length > 0
-    ? Math.round((studentsAbove7 / dashboardStudents.length) * 100)
+  const percentAbove7 = filteredByTurma.length > 0
+    ? Math.round((studentsAbove7 / filteredByTurma.length) * 100)
     : 0;
   
-  const allGradeValues = dashboardStudents.flatMap(student => Object.values(student.grades).flat());
+  const allGradeValues = filteredByTurma.flatMap(student => Object.values(student.grades).flat());
   const highestGrade = allGradeValues.length > 0 ? Math.max(...allGradeValues) : 0;
+
+  // New KPIs: Recovery & Failed
+  const studentsInRecovery = filteredByTurma.filter(s => {
+    const avg = calculateStudentOverallAverage(s.grades);
+    return avg >= 5.0 && avg < 7.0;
+  }).length;
+
+  const studentsFailed = filteredByTurma.filter(s => {
+    const avg = calculateStudentOverallAverage(s.grades);
+    return avg > 0 && avg < 5.0;
+  }).length;
+
+  // Ranking
+  const rankedStudents = useMemo(() => {
+    return [...filteredByTurma]
+      .map(s => ({
+        ...s,
+        average: calculateStudentOverallAverage(s.grades),
+      }))
+      .filter(s => s.average > 0)
+      .sort((a, b) => b.average - a.average)
+      .map((s, i) => ({ ...s, rank: i + 1 }));
+  }, [filteredByTurma]);
+
+  const getRank = (studentId: string) => {
+    const found = rankedStudents.find(s => s.id === studentId);
+    return found ? found.rank : null;
+  };
+
+  // Export PDF
+  const handleExportPDF = () => {
+    const turmaName = filterTurmaId === "all"
+      ? "Todas as Turmas"
+      : activeTurmas.find(t => t.id === filterTurmaId)?.nome || "Turma";
+
+    const content = `
+BOLETIM ESCOLAR
+===============
+
+Turma: ${turmaName}
+Data: ${new Date().toLocaleDateString("pt-BR")}
+
+RESUMO
+------
+Média Geral: ${classAverage.toFixed(1)}
+Acima de 7.0: ${percentAbove7}%
+Em Recuperação: ${studentsInRecovery}
+Reprovados: ${studentsFailed}
+Maior Nota: ${highestGrade.toFixed(1)}
+
+RANKING DOS ALUNOS
+------------------
+${rankedStudents.map((s, i) => `${i + 1}º - ${s.student} (${s.matricula}): Média ${s.average.toFixed(1)}`).join("\n")}
+
+DETALHAMENTO POR DISCIPLINA
+----------------------------
+${filteredByTurma.map(s => {
+  const avg = calculateStudentOverallAverage(s.grades);
+  const status = avg >= 7.0 ? "APROVADO" : avg >= 5.0 ? "RECUPERAÇÃO" : avg > 0 ? "REPROVADO" : "SEM NOTAS";
+  const detalhes = subjects.map(sub => {
+    const grades = s.grades[sub] || [];
+    return grades.length > 0 ? `  ${sub}: ${grades.map(g => g.toFixed(1)).join(", ")} (Média: ${calculateAverage(grades).toFixed(1)})` : `  ${sub}: —`;
+  }).join("\n");
+  return `\n${s.student} (${s.matricula}) — ${status} — Média: ${avg.toFixed(1)}\n${detalhes}`;
+}).join("\n")}
+    `.trim();
+
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `boletim_${turmaName.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Boletim exportado com sucesso!");
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Gestão de Notas</h1>
           <p className="text-muted-foreground">Acompanhe o desempenho acadêmico</p>
@@ -272,7 +371,7 @@ export const Grades = () => {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportPDF}>
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>
@@ -299,40 +398,86 @@ export const Grades = () => {
         </Card>
       )}
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Turma Filter */}
+      <div className="flex items-center gap-3">
+        <Select value={filterTurmaId} onValueChange={setFilterTurmaId}>
+          <SelectTrigger className="w-[250px]">
+            <SelectValue placeholder="Filtrar por turma" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as Turmas</SelectItem>
+            {activeTurmas.map(t => (
+              <SelectItem key={t.id} value={t.id}>
+                {t.nome} {t.curso ? `(${t.curso})` : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {filterTurmaId !== "all" && (
+          <Badge variant="outline" className="text-xs">
+            {filteredByTurma.length} alunos
+          </Badge>
+        )}
+      </div>
+
+      {/* Stats Overview - 5 KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="p-4 gradient-card shadow-card border-0">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Award className="w-6 h-6 text-primary" />
+            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+              <Award className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-3xl font-bold text-foreground">{classAverage.toFixed(1)}</p>
-              <p className="text-sm text-muted-foreground">Média Geral</p>
+              <p className="text-2xl font-bold text-foreground">{classAverage.toFixed(1)}</p>
+              <p className="text-xs text-muted-foreground">Média Geral</p>
             </div>
           </div>
         </Card>
 
         <Card className="p-4 gradient-card shadow-card border-0">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-success" />
+            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="text-3xl font-bold text-foreground">{percentAbove7}%</p>
-              <p className="text-sm text-muted-foreground">Acima de 7.0</p>
+              <p className="text-2xl font-bold text-foreground">{percentAbove7}%</p>
+              <p className="text-xs text-muted-foreground">Acima de 7.0</p>
             </div>
           </div>
         </Card>
 
         <Card className="p-4 gradient-card shadow-card border-0">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center">
-              <Trophy className="w-6 h-6 text-warning" />
+            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-yellow-600" />
             </div>
             <div>
-              <p className="text-3xl font-bold text-foreground">{highestGrade.toFixed(1)}</p>
-              <p className="text-sm text-muted-foreground">Maior Nota</p>
+              <p className="text-2xl font-bold text-foreground">{studentsInRecovery}</p>
+              <p className="text-xs text-muted-foreground">Recuperação</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 gradient-card shadow-card border-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+              <TrendingDown className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{studentsFailed}</p>
+              <p className="text-xs text-muted-foreground">Reprovados</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 gradient-card shadow-card border-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{highestGrade.toFixed(1)}</p>
+              <p className="text-xs text-muted-foreground">Maior Nota</p>
             </div>
           </div>
         </Card>
@@ -365,68 +510,116 @@ export const Grades = () => {
           {/* Main Content */}
           <div className="flex gap-6">
             <Card className={`gradient-card shadow-card border-0 overflow-hidden flex-1 transition-all duration-300 ${selectedStudent ? 'max-w-[calc(100%-380px)]' : ''}`}>
-              <div className="p-4 border-b">
+              <div className="p-4 border-b flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-foreground">Boletim</h3>
+                <Badge variant="outline" className="text-xs">
+                  <Users className="w-3 h-3 mr-1" />
+                  {filteredData.length} alunos
+                </Badge>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b bg-muted/30">
+                      <th className="text-center p-4 font-semibold text-foreground w-12">#</th>
                       <th className="text-left p-4 font-semibold text-foreground">Estudante</th>
                       {subjects.map(subject => (
                         <th key={subject} className="text-center p-4 font-semibold text-foreground min-w-[140px]">
                           {subject}
                         </th>
                       ))}
+                      <th className="text-center p-4 font-semibold text-foreground w-[80px]">Média</th>
+                      <th className="text-center p-4 font-semibold text-foreground w-[100px]">Situação</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredData.map((item) => (
-                      <tr 
-                        key={item.id} 
-                        className={`border-b cursor-pointer transition-all duration-200 ${
-                          selectedStudent?.id === item.id 
-                            ? 'bg-primary/10' 
-                            : 'hover:bg-muted/20'
-                        }`}
-                        onClick={() => setSelectedStudent(selectedStudent?.id === item.id ? null : item)}
-                      >
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
-                              getGradeColor(calculateStudentOverallAverage(item.grades)) === 'success' ? 'bg-success' :
-                              getGradeColor(calculateStudentOverallAverage(item.grades)) === 'warning' ? 'bg-warning' : 'bg-destructive'
-                            }`}>
-                              {item.student.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                    {filteredData.map((item) => {
+                      const avg = calculateStudentOverallAverage(item.grades);
+                      const rank = getRank(item.id);
+                      const status = avg >= 7.0 ? "Aprovado" : avg >= 5.0 ? "Recuperação" : avg > 0 ? "Reprovado" : "—";
+
+                      return (
+                        <tr 
+                          key={item.id} 
+                          className={`border-b cursor-pointer transition-all duration-200 ${
+                            selectedStudent?.id === item.id 
+                              ? 'bg-primary/10' 
+                              : 'hover:bg-muted/20'
+                          }`}
+                          onClick={() => setSelectedStudent(selectedStudent?.id === item.id ? null : item)}
+                        >
+                          <td className="p-4 text-center">
+                            {rank && rank <= 3 ? (
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center mx-auto text-xs font-bold ${
+                                rank === 1 ? "bg-amber-100 text-amber-700" :
+                                rank === 2 ? "bg-gray-100 text-gray-700" :
+                                "bg-orange-100 text-orange-700"
+                              }`}>
+                                {rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">{rank || "—"}</span>
+                            )}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
+                                getGradeColor(avg) === 'success' ? 'bg-green-500' :
+                                getGradeColor(avg) === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}>
+                                {item.student.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                              </div>
+                              <div>
+                                <span className="font-medium text-foreground">{item.student}</span>
+                                <p className="text-xs text-muted-foreground">{item.matricula}</p>
+                              </div>
                             </div>
-                            <span className="font-medium text-foreground">{item.student}</span>
-                          </div>
-                        </td>
-                        
-                        {subjects.map(subject => {
-                          const subjectGrades = item.grades[subject] || [];
-                          if (subjectGrades.length === 0) {
+                          </td>
+                          
+                          {subjects.map(subject => {
+                            const subjectGrades = item.grades[subject] || [];
+                            if (subjectGrades.length === 0) {
+                              return (
+                                <td key={subject} className="p-4 text-center text-muted-foreground text-xs">
+                                  —
+                                </td>
+                              );
+                            }
+                            const average = calculateAverage(subjectGrades);
+                            const color = getGradeColor(average);
+                            
                             return (
-                              <td key={subject} className="p-4 text-center text-muted-foreground text-xs">
-                                —
+                              <td key={subject} className="p-4">
+                                <GradeBarChart 
+                                  grades={subjectGrades} 
+                                  color={color}
+                                />
                               </td>
                             );
-                          }
-                          const average = calculateAverage(subjectGrades);
-                          const color = getGradeColor(average);
-                          
-                          return (
-                            <td key={subject} className="p-4">
-                              <GradeBarChart 
-                                grades={subjectGrades} 
-                                color={color}
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
+                          })}
+
+                          <td className="p-4 text-center">
+                            <span className={`text-lg font-bold ${
+                              avg >= 7.0 ? "text-green-600" : avg >= 5.0 ? "text-yellow-600" : avg > 0 ? "text-red-600" : "text-muted-foreground"
+                            }`}>
+                              {avg > 0 ? avg.toFixed(1) : "—"}
+                            </span>
+                          </td>
+
+                          <td className="p-4 text-center">
+                            {status !== "—" && (
+                              <Badge
+                                variant={status === "Aprovado" ? "default" : status === "Recuperação" ? "secondary" : "destructive"}
+                                className="text-xs"
+                              >
+                                {status}
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -437,6 +630,7 @@ export const Grades = () => {
                 student={selectedStudent}
                 subjects={subjects}
                 classAverage={classAverage}
+                allStudents={filteredByTurma}
                 onClose={() => setSelectedStudent(null)}
                 calculateAverage={calculateAverage}
                 calculateStudentOverallAverage={calculateStudentOverallAverage}
