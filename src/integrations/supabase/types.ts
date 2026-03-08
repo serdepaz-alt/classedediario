@@ -646,6 +646,7 @@ export type Database = {
           created_at: string | null
           curso: string | null
           disciplina: string | null
+          horario: string | null
           id: string
           nome: string
           periodo: string | null
@@ -658,6 +659,7 @@ export type Database = {
           created_at?: string | null
           curso?: string | null
           disciplina?: string | null
+          horario?: string | null
           id?: string
           nome: string
           periodo?: string | null
@@ -670,6 +672,7 @@ export type Database = {
           created_at?: string | null
           curso?: string | null
           disciplina?: string | null
+          horario?: string | null
           id?: string
           nome?: string
           periodo?: string | null
