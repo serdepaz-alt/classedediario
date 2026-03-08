@@ -85,9 +85,8 @@ export const useSequenciaDisciplinas = () => {
     setTurno(mappedTurno);
 
     // Auto-set data de início from turma's data_inicio
-    if (turma.data_inicio) {
-      setDataInicio(turma.data_inicio);
-    }
+    const turmaDataInicio = turma.data_inicio || "";
+    setDataInicio(turmaDataInicio);
 
     setIsLoadingPadroes(true);
 
@@ -111,14 +110,47 @@ export const useSequenciaDisciplinas = () => {
         data_termino: "",
       }));
 
-      setSequencia(items);
+      // If turma has data_inicio, calculate dates inline
+      if (turmaDataInicio && items.length > 0) {
+        let currentStart = parseISO(turmaDataInicio);
+        // Skip to first business day
+        while (isWeekend(currentStart) || holidayDates.includes(format(currentStart, "yyyy-MM-dd"))) {
+          currentStart = addDays(currentStart, 1);
+        }
+        const calculated = items.map((item, idx) => {
+          const inicio = currentStart;
+          let end = inicio;
+          let remaining = item.qtd_dias - 1;
+          while (remaining > 0) {
+            end = addDays(end, 1);
+            const ds = format(end, "yyyy-MM-dd");
+            if (!isWeekend(end) && !holidayDates.includes(ds)) remaining--;
+          }
+          // Next start
+          let next = addDays(end, 1);
+          while (isWeekend(next) || holidayDates.includes(format(next, "yyyy-MM-dd"))) {
+            next = addDays(next, 1);
+          }
+          const updated = {
+            ...item,
+            ordem: idx + 1,
+            data_inicio: format(inicio, "yyyy-MM-dd"),
+            data_termino: format(end, "yyyy-MM-dd"),
+          };
+          currentStart = next;
+          return updated;
+        });
+        setSequencia(calculated);
+      } else {
+        setSequencia(items);
+      }
     } catch (err) {
       console.error("Erro ao carregar padrões:", err);
       toast.error("Erro ao carregar padrões do turno");
     } finally {
       setIsLoadingPadroes(false);
     }
-  }, [turmas, user?.id]);
+  }, [turmas, user?.id, holidayDates]);
 
   // Load existing disciplinas from the database for editing
   const loadExistingSequencia = useCallback(async (turmaId: string) => {
