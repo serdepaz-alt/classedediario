@@ -189,7 +189,7 @@ export const CronogramasTab = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="max-h-[480px] overflow-y-auto space-y-6 pr-2">
               {Object.entries(turmaGroups).map(([turmaId, items]) => {
                 const { visible, currentIdx, startIdx } = getVisibleDisciplinas(items);
                 const turmaName = items[0]?.turma_nome || "Sem turma";
