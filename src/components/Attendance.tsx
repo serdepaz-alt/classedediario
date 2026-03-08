@@ -22,26 +22,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format, isBefore, isAfter, isToday, startOfDay } from "date-fns";
+import { format, isBefore, isAfter, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { 
-  Calendar as CalendarIcon, 
-  Users, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Calendar as CalendarIcon,
+  Users,
+  CheckCircle,
+  XCircle,
   Clock,
-  Plus,
   AlertTriangle,
-  BarChart3,
   Search,
+  BookOpen,
+  GraduationCap,
 } from "lucide-react";
 import { AddDisciplinaDialog } from "./attendance/AddDisciplinaDialog";
 import { DisciplinaDetailsDialog } from "./attendance/DisciplinaDetailsDialog";
 import { EditDisciplinaDialog } from "./attendance/EditDisciplinaDialog";
-import { DisciplinaCard } from "./attendance/DisciplinaCard";
+import { TurmaAttendanceCard } from "./attendance/TurmaAttendanceCard";
 
 interface Disciplina {
   id: string;
@@ -56,9 +56,7 @@ interface Disciplina {
   dias_subtraidos: number | null;
   nome_professor: string | null;
   turma_id: string | null;
-  turmas?: {
-    nome: string;
-  } | null;
+  turmas?: { nome: string } | null;
 }
 
 interface Student {
@@ -68,17 +66,20 @@ interface Student {
   email?: string | null;
 }
 
-interface Presenca {
-  id: string;
-  student_id: string;
-  status: string;
-  justificativa?: string;
-}
-
 interface StudentAtRisk {
   name: string;
   percentage: number;
   absences: number;
+}
+
+interface TurmaGroup {
+  turmaId: string;
+  turmaNome: string;
+  turno: string;
+  curso: string;
+  disciplinas: Disciplina[];
+  disciplinaAtual: Disciplina | null;
+  chamadaFeita?: boolean;
 }
 
 export const Attendance = () => {
@@ -86,6 +87,7 @@ export const Attendance = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [selectedDisciplina, setSelectedDisciplina] = useState<Disciplina | null>(null);
+  const [selectedTurmaId, setSelectedTurmaId] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [presencas, setPresencas] = useState<Map<string, string>>(new Map());
   const [showAddDisciplina, setShowAddDisciplina] = useState(false);
@@ -97,78 +99,115 @@ export const Attendance = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [datesWithAttendance, setDatesWithAttendance] = useState<Set<string>>(new Set());
+  const [todayAttendanceDone, setTodayAttendanceDone] = useState<Set<string>>(new Set());
 
-  // Collapsible states
-  const [pastExpanded, setPastExpanded] = useState(false);
-  const [currentExpanded, setCurrentExpanded] = useState(true);
-  const [futureExpanded, setFutureExpanded] = useState(false);
-
-  // Track class start time (when teacher opens the page)
   const classStartTimeRef = useRef<Date | null>(null);
 
-  // Set class start time on initial load
   useEffect(() => {
     if (!classStartTimeRef.current) {
       classStartTimeRef.current = new Date();
     }
   }, []);
 
-  // Classify disciplines
-  const { pastDisciplinas, currentDisciplinas, futureDisciplinas } = useMemo(() => {
+  // Group disciplines by turma and detect current discipline per turma
+  const turmaGroups = useMemo((): TurmaGroup[] => {
     const today = startOfDay(new Date());
-    
-    const past: Disciplina[] = [];
-    const current: Disciplina[] = [];
-    const future: Disciplina[] = [];
+    const grouped = new Map<string, TurmaGroup>();
 
     disciplinas.forEach((d) => {
+      if (!d.turma_id) return;
+      const key = d.turma_id;
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          turmaId: d.turma_id,
+          turmaNome: d.turmas?.nome || "Turma",
+          turno: d.turno,
+          curso: d.curso,
+          disciplinas: [],
+          disciplinaAtual: null,
+          chamadaFeita: todayAttendanceDone.has(d.turma_id),
+        });
+      }
+
+      const group = grouped.get(key)!;
+      group.disciplinas.push(d);
+
+      // Check if this discipline is current (date range covers today)
       const startDate = startOfDay(new Date(d.data_inicio));
       const endDate = startOfDay(new Date(d.data_termino));
-
-      if (isAfter(startDate, today)) {
-        future.push(d);
-      } else if (isBefore(endDate, today)) {
-        past.push(d);
-      } else {
-        current.push(d);
+      if (!isAfter(startDate, today) && !isBefore(endDate, today)) {
+        group.disciplinaAtual = d;
       }
     });
 
-    return { pastDisciplinas: past, currentDisciplinas: current, futureDisciplinas: future };
-  }, [disciplinas]);
+    // Sort: turmas with active discipline first, then by name
+    return Array.from(grouped.values()).sort((a, b) => {
+      if (a.disciplinaAtual && !b.disciplinaAtual) return -1;
+      if (!a.disciplinaAtual && b.disciplinaAtual) return 1;
+      return a.turmaNome.localeCompare(b.turmaNome);
+    });
+  }, [disciplinas, todayAttendanceDone]);
+
+  // Auto-select turma with active discipline on load
+  useEffect(() => {
+    if (turmaGroups.length > 0 && !selectedTurmaId) {
+      const active = turmaGroups.find((t) => t.disciplinaAtual);
+      if (active) {
+        setSelectedTurmaId(active.turmaId);
+        setSelectedDisciplina(active.disciplinaAtual);
+      }
+    }
+  }, [turmaGroups, selectedTurmaId]);
 
   // Fetch disciplinas
   useEffect(() => {
     const fetchDisciplinas = async () => {
       if (!user) return;
-      
+
       const { data, error } = await supabase
         .from("disciplinas")
-        .select(`
-          *,
-          turmas (nome)
-        `)
+        .select("*, turmas (nome)")
         .eq("user_id", user.id);
 
       if (!error && data) {
         setDisciplinas(data);
-        // Auto-select first current discipline
-        const today = startOfDay(new Date());
-        const currentDisc = data.find((d) => {
-          const startDate = startOfDay(new Date(d.data_inicio));
-          const endDate = startOfDay(new Date(d.data_termino));
-          return !isAfter(startDate, today) && !isBefore(endDate, today);
-        });
-        if (currentDisc && !selectedDisciplina) {
-          setSelectedDisciplina(currentDisc);
-        }
       }
     };
 
     fetchDisciplinas();
   }, [user]);
 
-  // Fetch students when disciplina changes — mark all as "presente" by default
+  // Check which turmas already have attendance today
+  useEffect(() => {
+    const checkTodayAttendance = async () => {
+      if (!user || !selectedDate) return;
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
+
+      const { data } = await supabase
+        .from("presencas")
+        .select("disciplina_id")
+        .eq("user_id", user.id)
+        .eq("data", dateStr);
+
+      if (data && data.length > 0) {
+        const discIds = new Set(data.map((p) => p.disciplina_id).filter(Boolean));
+        const turmasDone = new Set<string>();
+        disciplinas.forEach((d) => {
+          if (d.turma_id && discIds.has(d.id)) {
+            turmasDone.add(d.turma_id);
+          }
+        });
+        setTodayAttendanceDone(turmasDone);
+      } else {
+        setTodayAttendanceDone(new Set());
+      }
+    };
+
+    checkTodayAttendance();
+  }, [user, selectedDate, disciplinas]);
+
+  // Fetch students when disciplina changes
   useEffect(() => {
     const fetchStudents = async () => {
       if (!user || !selectedDisciplina || !selectedDisciplina.turma_id) {
@@ -181,13 +220,13 @@ export const Attendance = () => {
         .select("id, nome, matricula, email")
         .eq("user_id", user.id)
         .eq("turma_id", selectedDisciplina.turma_id)
+        .eq("status", "Ativo")
         .order("nome", { ascending: true });
 
       if (!error && data) {
         setStudents(data);
-        // ✅ Initialize all as PRESENT by default (chamada rápida)
         const initialPresencas = new Map<string, string>();
-        data.forEach(s => initialPresencas.set(s.id, "presente"));
+        data.forEach((s) => initialPresencas.set(s.id, "presente"));
         setPresencas(initialPresencas);
       }
     };
@@ -209,21 +248,15 @@ export const Attendance = () => {
 
       if (!error && data) {
         if (data.length > 0) {
-          // If there's existing data, use it
           const presencaMap = new Map<string, string>();
-          // Start with all present
-          students.forEach(s => presencaMap.set(s.id, "presente"));
-          // Override with saved data
-          data.forEach(p => {
-            if (p.student_id) {
-              presencaMap.set(p.student_id, p.status);
-            }
+          students.forEach((s) => presencaMap.set(s.id, "presente"));
+          data.forEach((p) => {
+            if (p.student_id) presencaMap.set(p.student_id, p.status);
           });
           setPresencas(presencaMap);
         } else {
-          // No saved data — all present by default
           const newMap = new Map<string, string>();
-          students.forEach(s => newMap.set(s.id, "presente"));
+          students.forEach((s) => newMap.set(s.id, "presente"));
           setPresencas(newMap);
         }
       }
@@ -232,20 +265,19 @@ export const Attendance = () => {
     fetchPresencas();
   }, [user, selectedDisciplina, selectedDate, students]);
 
-  // Fetch dates with attendance for calendar indicator
+  // Fetch dates with attendance for calendar
   useEffect(() => {
     const fetchAttendanceDates = async () => {
       if (!user || !selectedDisciplina) return;
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("presencas")
         .select("data")
         .eq("user_id", user.id)
         .eq("disciplina_id", selectedDisciplina.id);
 
-      if (!error && data) {
-        const dates = new Set(data.map(p => p.data));
-        setDatesWithAttendance(dates);
+      if (data) {
+        setDatesWithAttendance(new Set(data.map((p) => p.data)));
       }
     };
 
@@ -257,36 +289,30 @@ export const Attendance = () => {
     const fetchStudentsAtRisk = async () => {
       if (!user || !selectedDisciplina) return;
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("presencas")
         .select("student_id, status")
         .eq("user_id", user.id)
         .eq("disciplina_id", selectedDisciplina.id);
 
-      if (!error && data && students.length > 0) {
+      if (data && students.length > 0) {
         const studentStats = new Map<string, { absences: number; total: number }>();
-        
-        data.forEach(p => {
+
+        data.forEach((p) => {
           if (p.student_id) {
             const current = studentStats.get(p.student_id) || { absences: 0, total: 0 };
             current.total++;
-            if (p.status === "ausente" || p.status === "atrasado") {
-              current.absences++;
-            }
+            if (p.status === "ausente" || p.status === "atrasado") current.absences++;
             studentStats.set(p.student_id, current);
           }
         });
 
         const atRisk: StudentAtRisk[] = [];
         studentStats.forEach((stats, studentId) => {
-          const student = students.find(s => s.id === studentId);
+          const student = students.find((s) => s.id === studentId);
           if (student && stats.absences >= 2) {
             const percentage = Math.round(((stats.total - stats.absences) / stats.total) * 100);
-            atRisk.push({
-              name: student.nome,
-              percentage,
-              absences: stats.absences,
-            });
+            atRisk.push({ name: student.nome, percentage, absences: stats.absences });
           }
         });
 
@@ -299,20 +325,20 @@ export const Attendance = () => {
 
   const refreshDisciplinas = async () => {
     if (!user) return;
-    
-    const { data } = await supabase
-      .from("disciplinas")
-      .select("*, turmas (nome)")
-      .eq("user_id", user.id);
-
+    const { data } = await supabase.from("disciplinas").select("*, turmas (nome)").eq("user_id", user.id);
     if (data) {
       setDisciplinas(data);
       if (selectedDisciplina) {
-        const updated = data.find(d => d.id === selectedDisciplina.id);
-        if (updated) {
-          setSelectedDisciplina(updated);
-        }
+        const updated = data.find((d) => d.id === selectedDisciplina.id);
+        if (updated) setSelectedDisciplina(updated);
       }
+    }
+  };
+
+  const handleSelectTurma = (turma: TurmaGroup) => {
+    setSelectedTurmaId(turma.turmaId);
+    if (turma.disciplinaAtual) {
+      setSelectedDisciplina(turma.disciplinaAtual);
     }
   };
 
@@ -322,7 +348,7 @@ export const Attendance = () => {
 
   const markAllPresent = () => {
     const newPresencas = new Map<string, string>();
-    students.forEach(s => newPresencas.set(s.id, "presente"));
+    students.forEach((s) => newPresencas.set(s.id, "presente"));
     setPresencas(newPresencas);
     toast.success("Todos marcados como presentes");
   };
@@ -340,8 +366,7 @@ export const Attendance = () => {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
       const saveTime = new Date().toISOString();
       const startTime = classStartTimeRef.current?.toISOString() || saveTime;
-      
-      // Delete existing records for this date/disciplina
+
       await supabase
         .from("presencas")
         .delete()
@@ -349,7 +374,6 @@ export const Attendance = () => {
         .eq("disciplina_id", selectedDisciplina.id)
         .eq("data", dateStr);
 
-      // Insert new records with timestamps
       const records = Array.from(presencas.entries())
         .filter(([_, status]) => status !== "pending")
         .map(([studentId, status]) => ({
@@ -367,12 +391,16 @@ export const Attendance = () => {
         if (error) throw error;
       }
 
-      // Update calendar indicator
-      setDatesWithAttendance(prev => new Set([...prev, dateStr]));
+      setDatesWithAttendance((prev) => new Set([...prev, dateStr]));
+
+      // Mark turma as done for today
+      if (selectedDisciplina.turma_id) {
+        setTodayAttendanceDone((prev) => new Set([...prev, selectedDisciplina.turma_id!]));
+      }
 
       toast.success("Chamada salva com sucesso!");
 
-      // Get accumulated absences/lates for each student
+      // Send notifications for students with issues
       const { data: allPresencas } = await supabase
         .from("presencas")
         .select("student_id, status")
@@ -381,8 +409,7 @@ export const Attendance = () => {
 
       if (allPresencas) {
         const studentStats = new Map<string, { absences: number; lates: number }>();
-        
-        allPresencas.forEach(p => {
+        allPresencas.forEach((p) => {
           if (p.student_id) {
             const current = studentStats.get(p.student_id) || { absences: 0, lates: 0 };
             if (p.status === "ausente") current.absences++;
@@ -392,34 +419,29 @@ export const Attendance = () => {
         });
 
         const studentsWithIssues = students
-          .filter(s => {
+          .filter((s) => {
             const stats = studentStats.get(s.id);
-            return stats && (stats.absences + stats.lates >= 2);
+            return stats && stats.absences + stats.lates >= 2;
           })
-          .map(s => {
+          .map((s) => {
             const stats = studentStats.get(s.id)!;
-            const currentStatus = presencas.get(s.id) || "pending";
             return {
               student_id: s.id,
               student_name: s.nome,
               student_email: s.email || null,
               total_absences: stats.absences,
               total_lates: stats.lates,
-              status: currentStatus,
+              status: presencas.get(s.id) || "pending",
             };
           });
 
         const studentsPresent = students
-          .filter(s => presencas.get(s.id) === "presente")
-          .map(s => ({
-            student_id: s.id,
-            student_name: s.nome,
-            student_email: s.email || null,
-          }));
+          .filter((s) => presencas.get(s.id) === "presente")
+          .map((s) => ({ student_id: s.id, student_name: s.nome, student_email: s.email || null }));
 
         if (studentsWithIssues.length > 0 || studentsPresent.length > 0) {
           try {
-            const response = await supabase.functions.invoke("send-attendance-notifications", {
+            await supabase.functions.invoke("send-attendance-notifications", {
               body: {
                 disciplina_id: selectedDisciplina.id,
                 disciplina_nome: selectedDisciplina.nome,
@@ -429,20 +451,13 @@ export const Attendance = () => {
                 students_present: studentsPresent,
               },
             });
-            
-            if (response.error) {
-              console.log("Notificações não enviadas:", response.error.message);
-            } else {
-              console.log("Notificações enviadas com sucesso");
-            }
-          } catch (error) {
-            console.log("Edge function não configurada ou erro ao enviar notificações");
+          } catch {
+            console.log("Notificações não configuradas");
           }
         }
       }
 
       classStartTimeRef.current = new Date();
-
     } catch (error: any) {
       toast.error("Erro ao salvar chamada: " + error.message);
     } finally {
@@ -451,13 +466,13 @@ export const Attendance = () => {
   };
 
   const todayStats = {
-    present: Array.from(presencas.values()).filter(s => s === "presente").length,
-    absent: Array.from(presencas.values()).filter(s => s === "ausente").length,
-    late: Array.from(presencas.values()).filter(s => s === "atrasado").length,
+    present: Array.from(presencas.values()).filter((s) => s === "presente").length,
+    absent: Array.from(presencas.values()).filter((s) => s === "ausente").length,
+    late: Array.from(presencas.values()).filter((s) => s === "atrasado").length,
     total: students.length || 1,
   };
 
-  const markedCount = Array.from(presencas.values()).filter(s => s !== "pending").length;
+  const markedCount = Array.from(presencas.values()).filter((s) => s !== "pending").length;
   const progressPercent = students.length > 0 ? Math.round((markedCount / students.length) * 100) : 0;
 
   const sortedStudents = [...students].sort((a, b) => {
@@ -466,20 +481,16 @@ export const Attendance = () => {
     return 0;
   });
 
-  const filteredStudents = sortedStudents.filter(s =>
+  const filteredStudents = sortedStudents.filter((s) =>
     s.nome.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getInitials = (name: string) => {
-    return name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
+    return name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
   };
 
-  // Calendar day modifiers for attendance indicator
   const calendarModifiers = {
-    hasAttendance: (date: Date) => {
-      const dateStr = format(date, "yyyy-MM-dd");
-      return datesWithAttendance.has(dateStr);
-    },
+    hasAttendance: (date: Date) => datesWithAttendance.has(format(date, "yyyy-MM-dd")),
   };
 
   const calendarModifiersStyles = {
@@ -490,146 +501,129 @@ export const Attendance = () => {
     },
   };
 
+  const selectedTurmaGroup = turmaGroups.find((t) => t.turmaId === selectedTurmaId);
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Controle de Presença</h1>
-          <p className="text-muted-foreground">Gerencie a frequência dos estudantes</p>
+          <p className="text-muted-foreground">
+            {selectedDate && format(selectedDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => setShowAddDisciplina(true)}>
-            <Plus className="w-4 h-4 mr-1" />
-            Adicionar Disciplina
-          </Button>
-          <Button variant="outline" size="sm">
-            <BarChart3 className="w-4 h-4 mr-1" />
-            Análise de Presença
-          </Button>
-          <Button onClick={markAllPresent}>
-            Marcar Todos
-          </Button>
+        <div className="flex items-center gap-2">
+          {selectedDisciplina && (
+            <Badge variant="secondary" className="text-sm py-1 px-3">
+              <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+              {selectedDisciplina.nome}
+            </Badge>
+          )}
         </div>
       </div>
 
-      {/* Discipline Cards - 3 Collapsible Sections */}
-      <div className="space-y-4">
-        <DisciplinaCard
-          title="Disciplinas Anteriores"
-          disciplinas={pastDisciplinas}
-          isExpanded={pastExpanded}
-          onToggle={() => setPastExpanded(!pastExpanded)}
-          onSelectDisciplina={(d) => {
-            setSelectedDisciplina(d);
-            setPastExpanded(false);
-            setCurrentExpanded(true);
-          }}
-          variant="past"
-        />
+      {/* Turma Cards - Smart Detection */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <GraduationCap className="w-5 h-5 text-primary" />
+          <h2 className="font-semibold text-foreground">Suas Turmas Hoje</h2>
+          <Badge variant="outline" className="text-xs">
+            {turmaGroups.filter((t) => t.disciplinaAtual).length} ativas
+          </Badge>
+        </div>
 
-        <DisciplinaCard
-          title="Disciplina Atual"
-          disciplinas={currentDisciplinas}
-          isExpanded={currentExpanded}
-          onToggle={() => setCurrentExpanded(!currentExpanded)}
-          currentDisciplina={selectedDisciplina}
-          onSelectDisciplina={setSelectedDisciplina}
-          onDetailsClick={(d) => {
-            setSelectedDisciplina(d);
-            setShowDisciplinaDetails(true);
-          }}
-          onEditClick={(d) => {
-            setSelectedDisciplina(d);
-            setShowEditDisciplina(true);
-          }}
-          variant="current"
-        />
-
-        <DisciplinaCard
-          title="Disciplinas Futuras"
-          disciplinas={futureDisciplinas}
-          isExpanded={futureExpanded}
-          onToggle={() => setFutureExpanded(!futureExpanded)}
-          onSelectDisciplina={(d) => {
-            setSelectedDisciplina(d);
-            setFutureExpanded(false);
-            setCurrentExpanded(true);
-          }}
-          variant="future"
-        />
+        {turmaGroups.length === 0 ? (
+          <Card className="p-8 text-center">
+            <GraduationCap className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
+            <p className="text-muted-foreground">Nenhuma turma com disciplinas cadastradas.</p>
+            <Button variant="outline" className="mt-3" onClick={() => setShowAddDisciplina(true)}>
+              Adicionar Disciplina
+            </Button>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {turmaGroups.map((turma) => (
+              <TurmaAttendanceCard
+                key={turma.turmaId}
+                turma={turma}
+                isSelected={selectedTurmaId === turma.turmaId}
+                onSelect={handleSelectTurma}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-green-600" />
+      {selectedDisciplina && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card className="p-3 gradient-card shadow-card border-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground">{todayStats.present}</p>
+                <p className="text-xs text-muted-foreground">Presentes</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{todayStats.present}</p>
-              <p className="text-sm text-muted-foreground">Presentes</p>
+          </Card>
+          <Card className="p-3 gradient-card shadow-card border-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center">
+                <XCircle className="w-4 h-4 text-red-600" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground">{todayStats.absent}</p>
+                <p className="text-xs text-muted-foreground">Ausentes</p>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+          <Card className="p-3 gradient-card shadow-card border-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Clock className="w-4 h-4 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground">{todayStats.late}</p>
+                <p className="text-xs text-muted-foreground">Atrasados</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-3 gradient-card shadow-card border-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center">
+                <Users className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground">
+                  {Math.round((todayStats.present / todayStats.total) * 100)}%
+                </p>
+                <p className="text-xs text-muted-foreground">Frequência</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <XCircle className="w-5 h-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{todayStats.absent}</p>
-              <p className="text-sm text-muted-foreground">Ausente</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-5 h-5 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{todayStats.late}</p>
-              <p className="text-sm text-muted-foreground">Atrasados</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-              <Users className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">
-                {Math.round((todayStats.present / todayStats.total) * 100)}%
-              </p>
-              <p className="text-sm text-muted-foreground">Taxa de Presença</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content Area */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Main Content */}
+      {selectedDisciplina && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Student List */}
-          <Card className="gradient-card shadow-card border-0">
-            <div className="p-6 border-b">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <h3 className="text-lg font-semibold text-foreground">Lista de Chamada</h3>
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CalendarIcon className="w-4 h-4" />
-                    {selectedDate && format(selectedDate, "dd 'de' MMMM 'de' yyyy (EEEE)", { locale: ptBR })}
+          <div className="lg:col-span-2">
+            <Card className="gradient-card shadow-card border-0">
+              <div className="p-4 border-b">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-foreground">Lista de Chamada</h3>
+                    <Badge variant="outline" className="text-xs">
+                      {selectedTurmaGroup?.turmaNome}
+                    </Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Ordenar:</span>
                     <Select value={sortOrder} onValueChange={setSortOrder}>
-                      <SelectTrigger className="w-[120px]">
+                      <SelectTrigger className="w-[110px] h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -639,179 +633,210 @@ export const Attendance = () => {
                     </Select>
                   </div>
                 </div>
-              </div>
 
-              {/* Search + Progress Bar */}
-              <div className="mt-4 space-y-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar aluno por nome..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <Progress value={progressPercent} className="h-2 flex-1" />
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {markedCount}/{students.length} marcados
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <div className="space-y-3">
-                {filteredStudents.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    {searchQuery ? (
-                      <p>Nenhum aluno encontrado para "{searchQuery}".</p>
-                    ) : (
-                      <>
-                        <p>Nenhum estudante encontrado.</p>
-                        <p className="text-sm">
-                          {selectedDisciplina?.turma_id 
-                            ? "Adicione estudantes à turma na aba Estudantes."
-                            : "Edite a disciplina para vincular uma turma."}
-                        </p>
-                      </>
-                    )}
+                <div className="mt-3 space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar aluno por nome..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 h-9"
+                    />
                   </div>
-                ) : (
-                  filteredStudents.map((student) => {
-                    const status = presencas.get(student.id) || "presente";
-                    
-                    return (
-                      <div
-                        key={student.id}
-                        className="flex items-center justify-between p-4 rounded-lg bg-background/50 hover:bg-background/80 transition-all"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                            <span className="text-sm font-semibold text-muted-foreground">
-                              {getInitials(student.nome)}
-                            </span>
+                  <div className="flex items-center gap-3">
+                    <Progress value={progressPercent} className="h-1.5 flex-1" />
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {markedCount}/{students.length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4">
+                <div className="space-y-2">
+                  {filteredStudents.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      {searchQuery ? (
+                        <p>Nenhum aluno encontrado para "{searchQuery}".</p>
+                      ) : (
+                        <>
+                          <p>Nenhum estudante encontrado.</p>
+                          <p className="text-sm">Adicione estudantes à turma na aba Estudantes.</p>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    filteredStudents.map((student) => {
+                      const status = presencas.get(student.id) || "presente";
+                      return (
+                        <div
+                          key={student.id}
+                          className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-all"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-muted rounded-full flex items-center justify-center">
+                              <span className="text-xs font-semibold text-muted-foreground">
+                                {getInitials(student.nome)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-sm text-foreground">{student.nome}</span>
+                              <p className="text-[10px] text-muted-foreground">{student.matricula}</p>
+                            </div>
                           </div>
-                          <span className="font-medium text-foreground">{student.nome}</span>
-                        </div>
-                        
-                        {/* 3 Status Icons Side by Side */}
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setStatus(student.id, "presente")}
-                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                              status === "presente"
-                                ? "bg-green-500 text-white shadow-md"
-                                : "bg-green-100 text-green-700 hover:bg-green-200"
-                            }`}
-                            title="Presente"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            <span className="hidden sm:inline">P</span>
-                          </button>
 
-                          <button
-                            onClick={() => setStatus(student.id, "ausente")}
-                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                              status === "ausente"
-                                ? "bg-red-500 text-white shadow-md"
-                                : "bg-red-100 text-red-700 hover:bg-red-200"
-                            }`}
-                            title="Ausente"
-                          >
-                            <XCircle className="w-4 h-4" />
-                            <span className="hidden sm:inline">F</span>
-                          </button>
-
-                          <button
-                            onClick={() => setStatus(student.id, "atrasado")}
-                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                              status === "atrasado"
-                                ? "bg-yellow-500 text-white shadow-md"
-                                : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                            }`}
-                            title="Atrasado"
-                          >
-                            <Clock className="w-4 h-4" />
-                            <span className="hidden sm:inline">A</span>
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => setStatus(student.id, "presente")}
+                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+                                status === "presente"
+                                  ? "bg-green-500 text-white shadow-md"
+                                  : "bg-green-100 text-green-700 hover:bg-green-200"
+                              }`}
+                              title="Presente"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">P</span>
+                            </button>
+                            <button
+                              onClick={() => setStatus(student.id, "ausente")}
+                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+                                status === "ausente"
+                                  ? "bg-red-500 text-white shadow-md"
+                                  : "bg-red-100 text-red-700 hover:bg-red-200"
+                              }`}
+                              title="Ausente"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">F</span>
+                            </button>
+                            <button
+                              onClick={() => setStatus(student.id, "atrasado")}
+                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+                                status === "atrasado"
+                                  ? "bg-yellow-500 text-white shadow-md"
+                                  : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                              }`}
+                              title="Atrasado"
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">A</span>
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })
+                  )}
+                </div>
+
+                {filteredStudents.length > 0 && (
+                  <div className="flex gap-3 mt-4 pt-4 border-t">
+                    <Button variant="outline" className="flex-1" size="sm" onClick={markAllPresent}>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Todos Presentes
+                    </Button>
+                    <Button className="flex-1" size="sm" onClick={handleSaveClick} disabled={isLoading}>
+                      {isLoading ? "Salvando..." : "Salvar Chamada"}
+                    </Button>
+                  </div>
                 )}
               </div>
-
-              <div className="flex gap-3 mt-6 pt-6 border-t">
-                <Button variant="outline" className="flex-1" onClick={markAllPresent}>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Marcar Todos Presentes
-                </Button>
-                <Button className="flex-1" onClick={handleSaveClick} disabled={isLoading}>
-                  {isLoading ? "Salvando..." : "Salvar Chamada"}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="space-y-6">
-          {/* Date Display */}
-          <div className="text-center p-4 bg-muted rounded-lg">
-            <p className="text-lg font-semibold">
-              {selectedDate && format(selectedDate, "MMM yyyy", { locale: ptBR })}
-            </p>
+            </Card>
           </div>
 
-          {/* Calendar with attendance indicators */}
-          <Card className="p-4 gradient-card shadow-card border-0">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">Calendário</h3>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div className="w-3 h-3 rounded-full bg-primary/20" />
-                <span>Chamada feita</span>
+          {/* Right Sidebar */}
+          <div className="space-y-4">
+            {/* Calendar */}
+            <Card className="p-4 gradient-card shadow-card border-0">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-foreground text-sm">Calendário</h3>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary/20" />
+                  Chamada feita
+                </div>
               </div>
-            </div>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              locale={ptBR}
-              className="rounded-md border-0 pointer-events-auto"
-              modifiers={calendarModifiers}
-              modifiersStyles={calendarModifiersStyles}
-            />
-          </Card>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                locale={ptBR}
+                className="rounded-md border-0 pointer-events-auto"
+                modifiers={calendarModifiers}
+                modifiersStyles={calendarModifiersStyles}
+              />
+            </Card>
 
-          {/* Students at Risk */}
-          <Card className="p-4 gradient-card shadow-card border-0">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle className="w-5 h-5 text-yellow-500" />
-              <h3 className="text-lg font-semibold text-foreground">Alunos de Risco</h3>
-            </div>
-            {studentsAtRisk.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nenhum aluno em situação de risco.
-              </p>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                {studentsAtRisk.map((student, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <span className="text-yellow-500">•</span>
-                    <span>{student.name} ({student.percentage}% - {student.absences} Faltas/Atrasos)</span>
-                  </li>
-                ))}
-              </ul>
+            {/* Discipline Info */}
+            {selectedDisciplina && (
+              <Card className="p-4 gradient-card shadow-card border-0">
+                <h3 className="font-semibold text-foreground text-sm mb-3">Disciplina Atual</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Disciplina</span>
+                    <span className="font-medium text-foreground">{selectedDisciplina.nome}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Professor</span>
+                    <span className="font-medium text-foreground">{selectedDisciplina.nome_professor || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Período</span>
+                    <span className="font-medium text-foreground">
+                      {format(new Date(selectedDisciplina.data_inicio), "dd/MM")} - {format(new Date(selectedDisciplina.data_termino), "dd/MM")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">CH Diária</span>
+                    <span className="font-medium text-foreground">{selectedDisciplina.carga_horaria_diaria}min</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs"
+                    onClick={() => setShowDisciplinaDetails(true)}
+                  >
+                    Detalhes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs"
+                    onClick={() => setShowEditDisciplina(true)}
+                  >
+                    Editar
+                  </Button>
+                </div>
+              </Card>
             )}
-            <Button variant="link" className="p-0 h-auto mt-3 text-primary">
-              [Ver Relatório Completo]
-            </Button>
-          </Card>
+
+            {/* Students at Risk */}
+            <Card className="p-4 gradient-card shadow-card border-0">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                <h3 className="font-semibold text-foreground text-sm">Alunos de Risco</h3>
+              </div>
+              {studentsAtRisk.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhum aluno em risco.</p>
+              ) : (
+                <ul className="space-y-1.5 text-xs">
+                  {studentsAtRisk.map((student, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <span className="text-yellow-500">•</span>
+                      <span className="text-foreground">
+                        {student.name} ({student.percentage}% - {student.absences}F)
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Confirm Save Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
@@ -821,11 +846,13 @@ export const Attendance = () => {
             <AlertDialogDescription asChild>
               <div className="space-y-4">
                 <p>
-                  Confirma o registro de chamada para{" "}
+                  Confirma o registro para{" "}
                   <strong>
-                    {selectedDate && format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    {selectedDate && format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}
                   </strong>
-                  ?
+                  {" — "}
+                  <strong>{selectedDisciplina?.nome}</strong>
+                  {selectedTurmaGroup && <> ({selectedTurmaGroup.turmaNome})</>}?
                 </p>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
@@ -842,39 +869,22 @@ export const Attendance = () => {
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Taxa de presença: <strong>{Math.round((todayStats.present / todayStats.total) * 100)}%</strong> ({todayStats.present}/{students.length} alunos)
+                  Frequência: <strong>{Math.round((todayStats.present / todayStats.total) * 100)}%</strong> ({todayStats.present}/{students.length})
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Revisar</AlertDialogCancel>
-            <AlertDialogAction onClick={saveAttendance}>
-              Confirmar e Salvar
-            </AlertDialogAction>
+            <AlertDialogAction onClick={saveAttendance}>Confirmar e Salvar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Dialogs */}
-      <AddDisciplinaDialog
-        open={showAddDisciplina}
-        onOpenChange={setShowAddDisciplina}
-        onSuccess={refreshDisciplinas}
-      />
-
-      <DisciplinaDetailsDialog
-        open={showDisciplinaDetails}
-        onOpenChange={setShowDisciplinaDetails}
-        disciplina={selectedDisciplina}
-      />
-
-      <EditDisciplinaDialog
-        open={showEditDisciplina}
-        onOpenChange={setShowEditDisciplina}
-        disciplina={selectedDisciplina}
-        onSuccess={refreshDisciplinas}
-      />
+      <AddDisciplinaDialog open={showAddDisciplina} onOpenChange={setShowAddDisciplina} onSuccess={refreshDisciplinas} />
+      <DisciplinaDetailsDialog open={showDisciplinaDetails} onOpenChange={setShowDisciplinaDetails} disciplina={selectedDisciplina} />
+      <EditDisciplinaDialog open={showEditDisciplina} onOpenChange={setShowEditDisciplina} disciplina={selectedDisciplina} onSuccess={refreshDisciplinas} />
     </div>
   );
 };
