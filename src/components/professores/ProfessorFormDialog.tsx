@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,7 +26,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Professor, ProfessorFormData } from "@/hooks/useProfessores";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 
 const professorSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100),
@@ -390,15 +395,63 @@ export const ProfessorFormDialog = ({
               <FormField
                 control={form.control}
                 name="disciplinas_lecionar"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Disciplinas que pretende lecionar</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Anatomia, Farmacologia..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const selected = field.value ? field.value.split(", ").filter(Boolean) : [];
+                  const toggleDisciplina = (nome: string) => {
+                    const updated = selected.includes(nome)
+                      ? selected.filter((s) => s !== nome)
+                      : [...selected, nome];
+                    field.onChange(updated.join(", "));
+                  };
+                  return (
+                    <FormItem>
+                      <FormLabel>Disciplinas que pretende lecionar</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-full justify-between h-auto min-h-10 font-normal"
+                            >
+                              {selected.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {selected.map((s) => (
+                                    <Badge key={s} variant="secondary" className="text-xs">
+                                      {s}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">Selecione...</span>
+                              )}
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[280px] p-2 max-h-[250px] overflow-y-auto" align="start">
+                          {disciplinasList.length === 0 ? (
+                            <p className="text-sm text-muted-foreground p-2">Nenhum padrão cadastrado</p>
+                          ) : (
+                            disciplinasList.map((d) => (
+                              <label
+                                key={d}
+                                className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm"
+                              >
+                                <Checkbox
+                                  checked={selected.includes(d)}
+                                  onCheckedChange={() => toggleDisciplina(d)}
+                                />
+                                {d}
+                              </label>
+                            ))
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
               <FormField
                 control={form.control}
