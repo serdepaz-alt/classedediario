@@ -1,13 +1,15 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MoreHorizontal, Calendar, GraduationCap } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { MoreHorizontal, Calendar, GraduationCap, Users, BookOpen } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { TurmaStats } from "@/hooks/useTurmaStats";
 
 interface TurmaCardProps {
   turma: {
@@ -21,10 +23,7 @@ interface TurmaCardProps {
     data_inicio: string | null;
     status: string | null;
   };
-  stats?: {
-    mediaGeral: number;
-    frequencia: number;
-  };
+  stats?: TurmaStats;
   onViewDetails: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -32,7 +31,7 @@ interface TurmaCardProps {
 
 export const TurmaCard = ({
   turma,
-  stats = { mediaGeral: 0, frequencia: 0 },
+  stats,
   onViewDetails,
   onEdit,
   onDelete,
@@ -45,31 +44,16 @@ export const TurmaCard = ({
         return "bg-red-500/10 text-red-600 border-red-500/20";
       case "Aguardando":
         return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20";
+      case "Concluída":
+        return "bg-blue-500/10 text-blue-600 border-blue-500/20";
       default:
         return "bg-muted text-muted-foreground";
     }
   };
 
-  const formatDate = (year: number, month?: number) => {
-    if (month) {
-      const monthNames = [
-        "Jan",
-        "Fev",
-        "Mar",
-        "Abr",
-        "Mai",
-        "Jun",
-        "Jul",
-        "Ago",
-        "Set",
-        "Out",
-        "Nov",
-        "Dez",
-      ];
-      return `${monthNames[month - 1]}/${year}`;
-    }
-    return `${year}`;
-  };
+  const mediaGeral = stats?.mediaGeral ?? 0;
+  const frequencia = stats?.frequencia ?? 0;
+  const totalAlunos = stats?.totalAlunos ?? 0;
 
   return (
     <Card className="bg-card border hover:shadow-md transition-shadow">
@@ -94,59 +78,74 @@ export const TurmaCard = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background z-50">
+              <DropdownMenuItem onClick={onViewDetails}>Ver Detalhes</DropdownMenuItem>
               <DropdownMenuItem onClick={onEdit}>Editar</DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={onDelete}
-                className="text-destructive"
-              >
+              <DropdownMenuItem onClick={onDelete} className="text-destructive">
                 Excluir
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        {/* Status Badge */}
-        <div className="mb-3">
+        {/* Status + Alunos */}
+        <div className="flex items-center gap-2 mb-3">
           <Badge className={getStatusColor(turma.status)}>
             {turma.status || "Ativa"}
           </Badge>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Users className="w-3 h-3" />
+            <span>{totalAlunos} aluno(s)</span>
+          </div>
         </div>
 
-        {/* Discipline Info */}
-        {turma.disciplina && (
-          <p className="text-sm text-foreground mb-1">
-            Disciplina: {turma.disciplina}
-          </p>
-        )}
-        <p className="text-sm text-muted-foreground mb-1">
-          Turno: {turma.periodo || "Não definido"}
-        </p>
-        {turma.horario && (
-          <p className="text-sm text-muted-foreground mb-1">
-            Horário: {turma.horario}
-          </p>
-        )}
-        {turma.data_inicio && (
-          <p className="text-sm text-muted-foreground mb-1">
-            Início: {new Date(turma.data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}
-          </p>
-        )}
-        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
-          <Calendar className="w-3.5 h-3.5" />
-          <span>Ano: {turma.ano_letivo}</span>
+        {/* Info */}
+        <div className="space-y-1 text-sm text-muted-foreground mb-3">
+          <p>Turno: {turma.periodo || "Não definido"}</p>
+          {turma.horario && <p>Horário: {turma.horario}</p>}
+          {turma.data_inicio && (
+            <p>Início: {new Date(turma.data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+          )}
+          <div className="flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Ano: {turma.ano_letivo}</span>
+          </div>
         </div>
+
+        {/* Disciplina Atual */}
+        {stats?.disciplinaAtual && (
+          <div className="bg-primary/5 border border-primary/10 rounded-md px-3 py-1.5 mb-3">
+            <div className="flex items-center gap-1.5 text-xs">
+              <BookOpen className="w-3 h-3 text-primary" />
+              <span className="text-muted-foreground">Em andamento:</span>
+              <span className="font-medium text-foreground truncate">{stats.disciplinaAtual}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Progresso do cronograma */}
+        {stats && stats.totalDisciplinas > 0 && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-muted-foreground">Cronograma</span>
+              <span className="text-muted-foreground">
+                {stats.disciplinasConcluidas}/{stats.totalDisciplinas} ({stats.progressoPercent}%)
+              </span>
+            </div>
+            <Progress value={stats.progressoPercent} className="h-1.5" />
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="text-center">
             <p className="text-xl font-bold text-primary">
-              {stats.mediaGeral.toFixed(1)}
+              {mediaGeral.toFixed(1)}
             </p>
             <p className="text-xs text-muted-foreground">Média Geral</p>
           </div>
           <div className="text-center">
             <p className="text-xl font-bold text-green-600">
-              {stats.frequencia}%
+              {frequencia}%
             </p>
             <p className="text-xs text-muted-foreground">Frequência</p>
           </div>
