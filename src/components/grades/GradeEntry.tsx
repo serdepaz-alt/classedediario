@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Search, 
   Lock, 
@@ -13,7 +15,12 @@ import {
   Save,
   Plus,
   ArrowLeft,
-  Loader2
+  Loader2,
+  Edit2,
+  Users,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -26,12 +33,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useGrades } from "@/hooks/useGrades";
 import { supabase } from "@/integrations/supabase/client";
 
 interface GradeRow {
-  id?: string; // DB id if exists
+  id?: string;
   numero_avaliacao: number;
   nome_avaliacao: string;
   peso: number;
@@ -45,6 +59,7 @@ interface StudentItem {
   id: string;
   nome: string;
   matricula: string;
+  gradeStatus?: "complete" | "partial" | "none" | "risk";
 }
 
 interface GradeEntryProps {
@@ -53,6 +68,12 @@ interface GradeEntryProps {
   disciplinaId: string;
   turmaNome: string;
   disciplinaNome: string;
+}
+
+interface BatchGradeRow {
+  studentId: string;
+  studentName: string;
+  valor: number | null;
 }
 
 export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplinaNome }: GradeEntryProps) => {
@@ -68,17 +89,63 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [loadingGrades, setLoadingGrades] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [entryMode, setEntryMode] = useState<"individual" | "batch">("individual");
 
-  // Load students
+  // Batch mode state
+  const [batchEvaluationNum, setBatchEvaluationNum] = useState(1);
+  const [batchEvaluationName, setBatchEvaluationName] = useState("AVALIAÇÃO 1");
+  const [batchPeso, setBatchPeso] = useState(1);
+  const [batchGrades, setBatchGrades] = useState<BatchGradeRow[]>([]);
+  const [savingBatch, setSavingBatch] = useState(false);
+
+  // Save summary dialog
+  const [showSaveSummary, setShowSaveSummary] = useState(false);
+  const [saveSummaryData, setSaveSummaryData] = useState<{
+    studentName: string;
+    average: number;
+    grades: GradeRow[];
+    distribution: { range: string; count: number }[];
+  } | null>(null);
+
+  // Edit evaluation name dialog
+  const [editingEvalIndex, setEditingEvalIndex] = useState<number | null>(null);
+  const [editEvalName, setEditEvalName] = useState("");
+  const [editEvalPeso, setEditEvalPeso] = useState(1);
+
+  // Load students with status
   useEffect(() => {
     const load = async () => {
       setLoadingStudents(true);
       const data = await fetchStudents(turmaId);
-      setStudents(data);
+      
+      // Fetch grade status for each student
+      const studentsWithStatus: StudentItem[] = [];
+      for (const s of data) {
+        const gradeData = await fetchStudentGrades(s.id, disciplinaId);
+        let gradeStatus: "complete" | "partial" | "none" | "risk" = "none";
+        
+        if (gradeData.length > 0) {
+          const allLocked = gradeData.every(g => g.is_locked);
+          const hasValues = gradeData.some(g => g.valor !== null);
+          const avg = gradeData.filter(g => g.valor !== null).length > 0
+            ? gradeData.filter(g => g.valor !== null).reduce((sum, g) => sum + (g.valor || 0), 0) / gradeData.filter(g => g.valor !== null).length
+            : 0;
+
+          if (allLocked && hasValues) {
+            gradeStatus = avg < 5.0 ? "risk" : "complete";
+          } else if (hasValues) {
+            gradeStatus = avg < 5.0 ? "risk" : "partial";
+          }
+        }
+
+        studentsWithStatus.push({ ...s, gradeStatus });
+      }
+
+      setStudents(studentsWithStatus);
       setLoadingStudents(false);
     };
     load();
-  }, [turmaId]);
+  }, [turmaId, disciplinaId]);
 
   const filteredStudents = students.filter(s =>
     s.nome.toLowerCase().includes(searchTerm.toLowerCase())
@@ -102,10 +169,8 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
         bonus: n.bonus || 0,
         notificacao_status: n.notificacao_status,
       })));
-      // Use bonus from first record
       setBonusGrade(data[0]?.bonus || 0);
     } else {
-      // Default 3 evaluations
       setGrades([
         { numero_avaliacao: 1, nome_avaliacao: "AVALIAÇÃO 1", peso: 1, valor: null, is_locked: false, bonus: 0, notificacao_status: "Não Enviado" },
         { numero_avaliacao: 2, nome_avaliacao: "AVALIAÇÃO 2", peso: 1, valor: null, is_locked: false, bonus: 0, notificacao_status: "Não Enviado" },
@@ -118,30 +183,32 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
   }, [disciplinaId, fetchStudentGrades]);
 
   useEffect(() => {
-    if (selectedStudent?.id) {
+    if (selectedStudent?.id && entryMode === "individual") {
       loadGrades(selectedStudent.id);
     }
-  }, [selectedStudent?.id, loadGrades]);
+  }, [selectedStudent?.id, loadGrades, entryMode]);
+
+  // Initialize batch grades when switching to batch mode
+  useEffect(() => {
+    if (entryMode === "batch") {
+      setBatchGrades(students.map(s => ({ studentId: s.id, studentName: s.nome, valor: null })));
+    }
+  }, [entryMode, students]);
 
   // Calculate partial average (only locked grades count)
   const calculatePartialAverage = () => {
     const lockedGrades = grades.filter(g => g.is_locked && g.valor !== null);
     if (lockedGrades.length === 0) return 0;
-    
     const totalWeight = lockedGrades.reduce((sum, g) => sum + g.peso, 0);
     const weightedSum = lockedGrades.reduce((sum, g) => sum + (g.valor || 0) * g.peso, 0);
-    
     return (weightedSum + bonusGrade) / totalWeight;
   };
 
-  // Calculate final average (ALL grades with values)
   const calculateFinalAverage = () => {
     const allWithValues = grades.filter(g => g.valor !== null);
     if (allWithValues.length === 0) return 0;
-    
     const totalWeight = allWithValues.reduce((sum, g) => sum + g.peso, 0);
     const weightedSum = allWithValues.reduce((sum, g) => sum + (g.valor || 0) * g.peso, 0);
-    
     return (weightedSum + bonusGrade) / totalWeight;
   };
 
@@ -192,6 +259,22 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
     setHasUnsavedChanges(true);
   };
 
+  const handleEditEvaluation = (index: number) => {
+    setEditingEvalIndex(index);
+    setEditEvalName(grades[index].nome_avaliacao);
+    setEditEvalPeso(grades[index].peso);
+  };
+
+  const saveEvaluationEdit = () => {
+    if (editingEvalIndex !== null) {
+      setGrades(prev => prev.map((g, i) => 
+        i === editingEvalIndex ? { ...g, nome_avaliacao: editEvalName, peso: editEvalPeso } : g
+      ));
+      setHasUnsavedChanges(true);
+      setEditingEvalIndex(null);
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedStudent) return;
     setSaving(true);
@@ -216,7 +299,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           return;
         }
 
-        // Update local id if it was a new insert
         if (result?.data && !grade.id) {
           grade.id = result.data.id;
         }
@@ -226,8 +308,8 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
       setHasUnsavedChanges(false);
 
       // Persist averages to medias_alunos
-      const currentPartialAvg = calculatePartialAverage();
       const currentFinalAvg = calculateFinalAverage();
+      const currentPartialAvg = calculatePartialAverage();
       const currentLockedCount = grades.filter(g => g.is_locked && g.valor !== null).length;
       const currentTotalCount = grades.filter(g => g.valor !== null).length;
       const currentAllLocked = grades.length > 0 && grades.every(g => g.is_locked);
@@ -253,10 +335,25 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           } as any, { onConflict: "student_id,disciplina_id" } as any);
       }
 
-      // Check if any locked grades need notification
+      // Calculate distribution for summary
+      const gradeValues = grades.filter(g => g.valor !== null).map(g => g.valor!);
+      const distribution = [
+        { range: "9-10", count: gradeValues.filter(v => v >= 9).length },
+        { range: "7-8.9", count: gradeValues.filter(v => v >= 7 && v < 9).length },
+        { range: "5-6.9", count: gradeValues.filter(v => v >= 5 && v < 7).length },
+        { range: "0-4.9", count: gradeValues.filter(v => v < 5).length },
+      ];
+
+      setSaveSummaryData({
+        studentName: selectedStudent.nome,
+        average: currentFinalAvg,
+        grades: [...grades],
+        distribution,
+      });
+
+      // Send grade notification
       const lockedGradesWithValues = grades.filter(g => g.is_locked && g.valor !== null);
       if (lockedGradesWithValues.length > 0) {
-        // Get student email
         const { data: studentData } = await supabase
           .from("students")
           .select("email")
@@ -264,15 +361,8 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           .single();
 
         if (studentData?.email) {
-          // Send grade notification
-          const currentFinalAverage = calculateFinalAverage();
-          const currentAllLocked = grades.length > 0 && grades.every(g => g.is_locked);
-          const currentSituacao = currentAllLocked 
-            ? (currentFinalAverage >= 7.0 ? "Aprovado" : currentFinalAverage >= 5.0 ? "Recuperação" : "Reprovado")
-            : null;
-
           try {
-            const { error: fnError } = await supabase.functions.invoke("send-grade-notifications", {
+            await supabase.functions.invoke("send-grade-notifications", {
               body: {
                 student_id: selectedStudent.id,
                 student_name: selectedStudent.nome,
@@ -286,27 +376,62 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                   peso: g.peso,
                   is_locked: g.is_locked,
                 })),
-                media_final: currentFinalAverage,
+                media_final: currentFinalAvg,
                 bonus: bonusGrade,
-                situacao: currentSituacao,
+                situacao: currentSituacaoMedia,
               },
             });
-
-            if (!fnError) {
-              toast.success("Email de notas enviado para o aluno!");
-            }
           } catch (emailErr) {
             console.error("Erro ao enviar email:", emailErr);
           }
         }
       }
 
-      // Reload to get fresh ids
+      // Update student status
+      const avg = currentFinalAvg;
+      setStudents(prev => prev.map(s => 
+        s.id === selectedStudent.id
+          ? { ...s, gradeStatus: currentAllLocked ? (avg < 5.0 ? "risk" : "complete") : (currentTotalCount > 0 ? (avg < 5.0 ? "risk" : "partial") : "none") as any }
+          : s
+      ));
+
+      setShowSaveSummary(true);
       await loadGrades(selectedStudent.id);
     } catch (err) {
       toast.error("Erro inesperado ao salvar notas.");
     }
     setSaving(false);
+  };
+
+  // Batch save
+  const handleBatchSave = async () => {
+    setSavingBatch(true);
+    let savedCount = 0;
+
+    try {
+      for (const bg of batchGrades) {
+        if (bg.valor === null) continue;
+
+        const result = await saveGrade({
+          studentId: bg.studentId,
+          disciplinaId,
+          numeroAvaliacao: batchEvaluationNum,
+          nomeAvaliacao: batchEvaluationName,
+          peso: batchPeso,
+          valor: bg.valor,
+          isLocked: false,
+          bonus: 0,
+        });
+
+        if (!result?.error) savedCount++;
+      }
+
+      toast.success(`${savedCount} nota(s) lançadas em lote com sucesso!`);
+    } catch (err) {
+      toast.error("Erro ao salvar notas em lote.");
+    }
+
+    setSavingBatch(false);
   };
 
   const handleNavigate = (direction: "prev" | "next") => {
@@ -362,6 +487,19 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
     setHasUnsavedChanges(false);
   };
 
+  const getStatusIcon = (status?: string) => {
+    switch (status) {
+      case "complete":
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case "partial":
+        return <Clock className="w-4 h-4 text-yellow-500" />;
+      case "risk":
+        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      default:
+        return <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30" />;
+    }
+  };
+
   if (loadingStudents) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -373,7 +511,7 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft className="w-5 h-5" />
@@ -386,13 +524,88 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
             </div>
           </div>
         </div>
+        <Tabs value={entryMode} onValueChange={(v) => setEntryMode(v as any)}>
+          <TabsList>
+            <TabsTrigger value="individual">Individual</TabsTrigger>
+            <TabsTrigger value="batch">
+              <Users className="w-4 h-4 mr-1" />
+              Em Lote
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {students.length === 0 ? (
         <Card className="p-8 text-center border-dashed">
           <p className="text-muted-foreground">Nenhum aluno ativo encontrado nesta turma.</p>
         </Card>
+      ) : entryMode === "batch" ? (
+        /* Batch Mode */
+        <Card className="gradient-card shadow-card border-0 p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Lançamento em Lote</h3>
+          
+          <div className="flex items-center gap-4 mb-6 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Avaliação:</span>
+              <Input
+                value={batchEvaluationName}
+                onChange={(e) => setBatchEvaluationName(e.target.value)}
+                className="w-48"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Nº:</span>
+              <Input
+                type="number"
+                value={batchEvaluationNum}
+                onChange={(e) => setBatchEvaluationNum(parseInt(e.target.value) || 1)}
+                className="w-16"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Peso:</span>
+              <Input
+                type="number"
+                value={batchPeso}
+                onChange={(e) => setBatchPeso(parseInt(e.target.value) || 1)}
+                className="w-16"
+              />
+            </div>
+          </div>
+
+          <ScrollArea className="h-[400px]">
+            <div className="space-y-2">
+              {batchGrades.map((bg, idx) => (
+                <div key={bg.studentId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
+                  <span className="text-sm text-muted-foreground w-6">{idx + 1}</span>
+                  <span className="flex-1 font-medium text-sm">{bg.studentName}</span>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="10"
+                    placeholder="Nota"
+                    value={bg.valor ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value === "" ? null : parseFloat(e.target.value);
+                      setBatchGrades(prev => prev.map((g, i) => i === idx ? { ...g, valor: val } : g));
+                    }}
+                    className="w-20"
+                  />
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+
+          <div className="mt-4 flex justify-end">
+            <Button onClick={handleBatchSave} disabled={savingBatch}>
+              {savingBatch ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Salvar Lote ({batchGrades.filter(g => g.valor !== null).length} notas)
+            </Button>
+          </div>
+        </Card>
       ) : (
+        /* Individual Mode */
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Student Selection */}
           <Card className="gradient-card shadow-card border-0 p-6">
@@ -435,9 +648,12 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                         Mat: {student.matricula}
                       </span>
                     </div>
-                    {index === selectedStudentIndex && (
-                      <ChevronRight className="w-4 h-4 shrink-0" />
-                    )}
+                    <div className="flex items-center gap-1">
+                      {index !== selectedStudentIndex && getStatusIcon(student.gradeStatus)}
+                      {index === selectedStudentIndex && (
+                        <ChevronRight className="w-4 h-4 shrink-0" />
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -474,15 +690,23 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                       <div>
                         <h4 className="font-semibold text-foreground mb-1">NOTAS INTERMEDIÁRIAS (AVALIAÇÕES)</h4>
                         <p className="text-xs text-muted-foreground mb-4">
-                          *Use o cadeado para definir se a nota compõe a média final.*
+                          *Use o cadeado para definir se a nota compõe a média final. Clique no lápis para renomear.*
                         </p>
                       </div>
 
                       {grades.map((grade, index) => (
-                        <div key={index} className="flex items-center gap-3 flex-wrap">
-                          <div className="flex items-center gap-2 min-w-[140px]">
-                            <span className="text-sm font-medium">{grade.nome_avaliacao}</span>
-                            <span className="text-xs text-muted-foreground">(Peso {grade.peso})</span>
+                        <div key={index} className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-1 min-w-[140px]">
+                            <span className="text-sm font-medium truncate">{grade.nome_avaliacao}</span>
+                            <span className="text-xs text-muted-foreground">(P{grade.peso})</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => handleEditEvaluation(index)}
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
                           </div>
                           
                           <Input
@@ -495,7 +719,7 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                             onChange={(e) => handleGradeChange(index, e.target.value)}
                             className={`w-20 ${grade.is_locked ? 'opacity-60 cursor-not-allowed' : ''}`}
                             readOnly={grade.is_locked}
-                            onClick={() => grade.is_locked && toast.info("Nota travada. Para alterar, solicite a modificação ao setor administrativo.")}
+                            onClick={() => grade.is_locked && toast.info("Nota travada.")}
                           />
                           
                           <Button
@@ -505,21 +729,15 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                             className={`gap-1 ${grade.is_locked ? 'text-primary' : 'text-muted-foreground'}`}
                           >
                             {grade.is_locked ? (
-                              <>
-                                <Lock className="w-4 h-4" />
-                                <span className="text-xs">Travado</span>
-                              </>
+                              <><Lock className="w-4 h-4" /><span className="text-xs">Travado</span></>
                             ) : (
-                              <>
-                                <Unlock className="w-4 h-4" />
-                                <span className="text-xs">Destravado</span>
-                              </>
+                              <><Unlock className="w-4 h-4" /><span className="text-xs">Aberto</span></>
                             )}
                           </Button>
 
                           <div className="flex items-center gap-1 ml-auto">
                             {grade.notificacao_status === "Enviado" ? (
-                              <Check className="w-4 h-4 text-success" />
+                              <Check className="w-4 h-4 text-green-500" />
                             ) : (
                               <Send className="w-4 h-4 text-muted-foreground" />
                             )}
@@ -557,13 +775,13 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                         <p className="text-lg">
                           <span className="font-bold">Média Parcial: {partialAverage.toFixed(1)}</span>
                           <span className="text-sm text-muted-foreground ml-2">
-                            ({lockedGradesCount} avaliação{lockedGradesCount !== 1 ? "ões" : ""} travada{lockedGradesCount !== 1 ? "s" : ""})
+                            ({lockedGradesCount} travada{lockedGradesCount !== 1 ? "s" : ""})
                           </span>
                         </p>
                         <div className={`p-3 rounded-lg ${
-                          finalStatus === "Aprovado" ? "bg-success/10 border border-success/30" :
-                          finalStatus === "Recuperação" ? "bg-warning/10 border border-warning/30" :
-                          finalStatus === "Reprovado" ? "bg-destructive/10 border border-destructive/30" :
+                          finalStatus === "Aprovado" ? "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800" :
+                          finalStatus === "Recuperação" ? "bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800" :
+                          finalStatus === "Reprovado" ? "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800" :
                           "bg-muted/30 border border-border"
                         }`}>
                           <p className="text-xl font-bold">
@@ -571,9 +789,9 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                           </p>
                           {finalStatus && (
                             <span className={`text-sm font-semibold ${
-                              finalStatus === "Aprovado" ? "text-success" :
-                              finalStatus === "Recuperação" ? "text-warning" :
-                              "text-destructive"
+                              finalStatus === "Aprovado" ? "text-green-600" :
+                              finalStatus === "Recuperação" ? "text-yellow-600" :
+                              "text-red-600"
                             }`}>
                               Situação: {finalStatus}
                             </span>
@@ -620,6 +838,96 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           </Card>
         </div>
       )}
+
+      {/* Edit Evaluation Dialog */}
+      <Dialog open={editingEvalIndex !== null} onOpenChange={(open) => !open && setEditingEvalIndex(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar Avaliação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Nome da Avaliação</label>
+              <Input
+                value={editEvalName}
+                onChange={(e) => setEditEvalName(e.target.value)}
+                placeholder="Ex: Prova Prática, Trabalho Final..."
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Peso</label>
+              <Input
+                type="number"
+                min="1"
+                max="10"
+                value={editEvalPeso}
+                onChange={(e) => setEditEvalPeso(parseInt(e.target.value) || 1)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingEvalIndex(null)}>Cancelar</Button>
+            <Button onClick={saveEvaluationEdit}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Summary Dialog */}
+      <Dialog open={showSaveSummary} onOpenChange={setShowSaveSummary}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              Notas Salvas com Sucesso!
+            </DialogTitle>
+          </DialogHeader>
+          {saveSummaryData && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="font-semibold">{saveSummaryData.studentName}</p>
+                <p className="text-sm text-muted-foreground">{disciplinaNome} • {turmaNome}</p>
+              </div>
+              
+              <div className="text-center">
+                <p className="text-4xl font-bold text-primary">{saveSummaryData.average.toFixed(1)}</p>
+                <p className="text-sm text-muted-foreground">Média Final</p>
+                <Badge className={`mt-2 ${
+                  saveSummaryData.average >= 7.0 ? "bg-green-500" :
+                  saveSummaryData.average >= 5.0 ? "bg-yellow-500" : "bg-red-500"
+                }`}>
+                  {saveSummaryData.average >= 7.0 ? "Aprovado" : saveSummaryData.average >= 5.0 ? "Recuperação" : "Reprovado"}
+                </Badge>
+              </div>
+
+              {/* Distribution */}
+              <div>
+                <p className="text-sm font-medium mb-2">Distribuição das Notas</p>
+                <div className="space-y-1">
+                  {saveSummaryData.distribution.map(d => (
+                    <div key={d.range} className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground w-12">{d.range}</span>
+                      <div className="flex-1 h-4 bg-muted rounded-sm overflow-hidden">
+                        <div 
+                          className={`h-full transition-all ${
+                            d.range === "9-10" ? "bg-green-500" :
+                            d.range === "7-8.9" ? "bg-blue-500" :
+                            d.range === "5-6.9" ? "bg-yellow-500" : "bg-red-500"
+                          }`}
+                          style={{ width: `${saveSummaryData.grades.length > 0 ? (d.count / saveSummaryData.grades.length) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium w-4">{d.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setShowSaveSummary(false)}>Concluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Unsaved Changes Dialog */}
       <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
