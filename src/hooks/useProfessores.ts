@@ -54,6 +54,7 @@ export interface ProfessorFormData {
   coren?: string;
   disciplinas_lecionar?: string;
   turnos_disponiveis?: string;
+  senha?: string;
 }
 
 export const useProfessores = () => {

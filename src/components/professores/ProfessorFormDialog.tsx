@@ -52,6 +52,7 @@ const professorSchema = z.object({
   coren: z.string().max(30).optional().or(z.literal("")),
   disciplinas_lecionar: z.string().optional().or(z.literal("")),
   turnos_disponiveis: z.string().optional().or(z.literal("")),
+  senha: z.string().optional().or(z.literal("")),
 });
 
 interface ProfessorFormDialogProps {
@@ -90,6 +91,7 @@ const defaultValues: ProfessorFormData = {
   coren: "",
   disciplinas_lecionar: "",
   turnos_disponiveis: "",
+  senha: "",
 };
 
 export const ProfessorFormDialog = ({
@@ -147,6 +149,7 @@ export const ProfessorFormDialog = ({
         coren: professor.coren || "",
         disciplinas_lecionar: professor.disciplinas_lecionar || "",
         turnos_disponiveis: professor.turnos_disponiveis || "",
+        senha: professor.senha || "",
       });
     } else {
       form.reset(defaultValues);
@@ -496,6 +499,21 @@ export const ProfessorFormDialog = ({
                 )}
               />
             </div>
+
+            {/* Senha */}
+            <FormField
+              control={form.control}
+              name="senha"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Senha de Acesso</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Senha padrão: PrimeiroNome+Ano" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="flex justify-end gap-3 pt-4">
               <Button
