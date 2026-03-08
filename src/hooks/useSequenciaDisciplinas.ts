@@ -276,6 +276,10 @@ export const useSequenciaDisciplinas = () => {
     [advanceBusinessDays, firstBusinessDay]
   );
 
+  const setProfessor = useCallback((idx: number, nome: string) => {
+    setSequencia((prev) => prev.map((item, i) => i === idx ? { ...item, nome_professor: nome } : item));
+  }, []);
+
   const handleSetDataInicio = useCallback(
     (date: string) => {
       setDataInicio(date);
@@ -341,6 +345,7 @@ export const useSequenciaDisciplinas = () => {
         dias_uteis: item.qtd_dias,
         data_inicio: item.data_inicio,
         data_termino: item.data_termino,
+        nome_professor: item.nome_professor || null,
       }));
 
       const { error: insertError } = await supabase
@@ -383,6 +388,7 @@ export const useSequenciaDisciplinas = () => {
 
   return {
     turmas,
+    professores,
     selectedTurmaId,
     selectedTurma,
     turno,
@@ -398,6 +404,7 @@ export const useSequenciaDisciplinas = () => {
     loadExistingSequencia,
     handleSetDataInicio,
     moveItem,
+    setProfessor,
     validate,
     salvar,
     reset,
