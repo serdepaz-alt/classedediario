@@ -137,6 +137,10 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
   const lockedGradesCount = grades.filter(g => g.is_locked && g.valor !== null).length;
 
   const handleGradeChange = (index: number, value: string) => {
+    if (grades[index]?.is_locked) {
+      toast.info("Nota travada. Para alterar, solicite a modificação ao setor administrativo.");
+      return;
+    }
     const numValue = value === "" ? null : parseFloat(value);
     setGrades(prev => prev.map((g, i) => 
       i === index ? { ...g, valor: numValue, notificacao_status: "Não Enviado" } : g
@@ -145,8 +149,13 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
   };
 
   const handleToggleLock = (index: number) => {
+    const grade = grades[index];
+    if (grade?.is_locked) {
+      toast.info("Nota já travada. Para destravá-la, solicite a modificação ao setor administrativo.");
+      return;
+    }
     setGrades(prev => prev.map((g, i) => 
-      i === index ? { ...g, is_locked: !g.is_locked } : g
+      i === index ? { ...g, is_locked: true } : g
     ));
     setHasUnsavedChanges(true);
   };
