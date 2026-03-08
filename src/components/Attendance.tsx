@@ -3,6 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -10,6 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format, isBefore, isAfter, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,6 +94,9 @@ export const Attendance = () => {
   const [sortOrder, setSortOrder] = useState("name-asc");
   const [isLoading, setIsLoading] = useState(false);
   const [studentsAtRisk, setStudentsAtRisk] = useState<StudentAtRisk[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [datesWithAttendance, setDatesWithAttendance] = useState<Set<string>>(new Set());
 
   // Collapsible states
   const [pastExpanded, setPastExpanded] = useState(false);
@@ -153,7 +168,7 @@ export const Attendance = () => {
     fetchDisciplinas();
   }, [user]);
 
-  // Fetch students when disciplina changes
+  // Fetch students when disciplina changes — mark all as "presente" by default
   useEffect(() => {
     const fetchStudents = async () => {
       if (!user || !selectedDisciplina || !selectedDisciplina.turma_id) {
@@ -170,9 +185,9 @@ export const Attendance = () => {
 
       if (!error && data) {
         setStudents(data);
-        // Initialize all as pending
+        // ✅ Initialize all as PRESENT by default (chamada rápida)
         const initialPresencas = new Map<string, string>();
-        data.forEach(s => initialPresencas.set(s.id, "pending"));
+        data.forEach(s => initialPresencas.set(s.id, "presente"));
         setPresencas(initialPresencas);
       }
     };
@@ -193,24 +208,49 @@ export const Attendance = () => {
         .eq("data", format(selectedDate, "yyyy-MM-dd"));
 
       if (!error && data) {
-        const presencaMap = new Map<string, string>();
-        data.forEach(p => {
-          if (p.student_id) {
-            presencaMap.set(p.student_id, p.status);
-          }
-        });
-        setPresencas(prev => {
-          const newMap = new Map(prev);
-          presencaMap.forEach((status, studentId) => {
-            newMap.set(studentId, status);
+        if (data.length > 0) {
+          // If there's existing data, use it
+          const presencaMap = new Map<string, string>();
+          // Start with all present
+          students.forEach(s => presencaMap.set(s.id, "presente"));
+          // Override with saved data
+          data.forEach(p => {
+            if (p.student_id) {
+              presencaMap.set(p.student_id, p.status);
+            }
           });
-          return newMap;
-        });
+          setPresencas(presencaMap);
+        } else {
+          // No saved data — all present by default
+          const newMap = new Map<string, string>();
+          students.forEach(s => newMap.set(s.id, "presente"));
+          setPresencas(newMap);
+        }
       }
     };
 
     fetchPresencas();
-  }, [user, selectedDisciplina, selectedDate]);
+  }, [user, selectedDisciplina, selectedDate, students]);
+
+  // Fetch dates with attendance for calendar indicator
+  useEffect(() => {
+    const fetchAttendanceDates = async () => {
+      if (!user || !selectedDisciplina) return;
+
+      const { data, error } = await supabase
+        .from("presencas")
+        .select("data")
+        .eq("user_id", user.id)
+        .eq("disciplina_id", selectedDisciplina.id);
+
+      if (!error && data) {
+        const dates = new Set(data.map(p => p.data));
+        setDatesWithAttendance(dates);
+      }
+    };
+
+    fetchAttendanceDates();
+  }, [user, selectedDisciplina]);
 
   // Fetch students at risk
   useEffect(() => {
@@ -267,7 +307,6 @@ export const Attendance = () => {
 
     if (data) {
       setDisciplinas(data);
-      // Re-select the edited disciplina
       if (selectedDisciplina) {
         const updated = data.find(d => d.id === selectedDisciplina.id);
         if (updated) {
@@ -288,10 +327,15 @@ export const Attendance = () => {
     toast.success("Todos marcados como presentes");
   };
 
+  const handleSaveClick = () => {
+    setShowConfirmDialog(true);
+  };
+
   const saveAttendance = async () => {
     if (!user || !selectedDisciplina || !selectedDate) return;
 
     setIsLoading(true);
+    setShowConfirmDialog(false);
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
       const saveTime = new Date().toISOString();
@@ -323,6 +367,9 @@ export const Attendance = () => {
         if (error) throw error;
       }
 
+      // Update calendar indicator
+      setDatesWithAttendance(prev => new Set([...prev, dateStr]));
+
       toast.success("Chamada salva com sucesso!");
 
       // Get accumulated absences/lates for each student
@@ -344,7 +391,6 @@ export const Attendance = () => {
           }
         });
 
-        // Identify students with issues (2+ absences or lates)
         const studentsWithIssues = students
           .filter(s => {
             const stats = studentStats.get(s.id);
@@ -363,7 +409,6 @@ export const Attendance = () => {
             };
           });
 
-        // Identify present students for recognition
         const studentsPresent = students
           .filter(s => presencas.get(s.id) === "presente")
           .map(s => ({
@@ -372,7 +417,6 @@ export const Attendance = () => {
             student_email: s.email || null,
           }));
 
-        // Send notifications via edge function (if RESEND_API_KEY is configured)
         if (studentsWithIssues.length > 0 || studentsPresent.length > 0) {
           try {
             const response = await supabase.functions.invoke("send-attendance-notifications", {
@@ -397,7 +441,6 @@ export const Attendance = () => {
         }
       }
 
-      // Reset start time for next session
       classStartTimeRef.current = new Date();
 
     } catch (error: any) {
@@ -414,14 +457,37 @@ export const Attendance = () => {
     total: students.length || 1,
   };
 
+  const markedCount = Array.from(presencas.values()).filter(s => s !== "pending").length;
+  const progressPercent = students.length > 0 ? Math.round((markedCount / students.length) * 100) : 0;
+
   const sortedStudents = [...students].sort((a, b) => {
     if (sortOrder === "name-asc") return a.nome.localeCompare(b.nome);
     if (sortOrder === "name-desc") return b.nome.localeCompare(a.nome);
     return 0;
   });
 
+  const filteredStudents = sortedStudents.filter(s =>
+    s.nome.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const getInitials = (name: string) => {
     return name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
+  };
+
+  // Calendar day modifiers for attendance indicator
+  const calendarModifiers = {
+    hasAttendance: (date: Date) => {
+      const dateStr = format(date, "yyyy-MM-dd");
+      return datesWithAttendance.has(dateStr);
+    },
+  };
+
+  const calendarModifiersStyles = {
+    hasAttendance: {
+      backgroundColor: "hsl(var(--primary) / 0.15)",
+      borderRadius: "50%",
+      fontWeight: "bold" as const,
+    },
   };
 
   return (
@@ -449,7 +515,6 @@ export const Attendance = () => {
 
       {/* Discipline Cards - 3 Collapsible Sections */}
       <div className="space-y-4">
-        {/* Past Disciplines */}
         <DisciplinaCard
           title="Disciplinas Anteriores"
           disciplinas={pastDisciplinas}
@@ -463,7 +528,6 @@ export const Attendance = () => {
           variant="past"
         />
 
-        {/* Current Discipline */}
         <DisciplinaCard
           title="Disciplina Atual"
           disciplinas={currentDisciplinas}
@@ -482,7 +546,6 @@ export const Attendance = () => {
           variant="current"
         />
 
-        {/* Future Disciplines */}
         <DisciplinaCard
           title="Disciplinas Futuras"
           disciplinas={futureDisciplinas}
@@ -574,29 +637,51 @@ export const Attendance = () => {
                         <SelectItem value="name-desc">Nome (Z-A)</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button variant="ghost" size="icon">
-                      <Search className="w-4 h-4" />
-                    </Button>
                   </div>
+                </div>
+              </div>
+
+              {/* Search + Progress Bar */}
+              <div className="mt-4 space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar aluno por nome..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Progress value={progressPercent} className="h-2 flex-1" />
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {markedCount}/{students.length} marcados
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="p-6">
               <div className="space-y-3">
-                {sortedStudents.length === 0 ? (
+                {filteredStudents.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>Nenhum estudante encontrado.</p>
-                    <p className="text-sm">
-                      {selectedDisciplina?.turma_id 
-                        ? "Adicione estudantes à turma na aba Estudantes."
-                        : "Edite a disciplina para vincular uma turma."}
-                    </p>
+                    {searchQuery ? (
+                      <p>Nenhum aluno encontrado para "{searchQuery}".</p>
+                    ) : (
+                      <>
+                        <p>Nenhum estudante encontrado.</p>
+                        <p className="text-sm">
+                          {selectedDisciplina?.turma_id 
+                            ? "Adicione estudantes à turma na aba Estudantes."
+                            : "Edite a disciplina para vincular uma turma."}
+                        </p>
+                      </>
+                    )}
                   </div>
                 ) : (
-                  sortedStudents.map((student) => {
-                    const status = presencas.get(student.id) || "pending";
+                  filteredStudents.map((student) => {
+                    const status = presencas.get(student.id) || "presente";
                     
                     return (
                       <div
@@ -614,7 +699,6 @@ export const Attendance = () => {
                         
                         {/* 3 Status Icons Side by Side */}
                         <div className="flex items-center gap-2">
-                          {/* Present Button */}
                           <button
                             onClick={() => setStatus(student.id, "presente")}
                             className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
@@ -628,7 +712,6 @@ export const Attendance = () => {
                             <span className="hidden sm:inline">P</span>
                           </button>
 
-                          {/* Absent Button */}
                           <button
                             onClick={() => setStatus(student.id, "ausente")}
                             className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
@@ -642,7 +725,6 @@ export const Attendance = () => {
                             <span className="hidden sm:inline">F</span>
                           </button>
 
-                          {/* Late Button */}
                           <button
                             onClick={() => setStatus(student.id, "atrasado")}
                             className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
@@ -667,7 +749,7 @@ export const Attendance = () => {
                   <CheckCircle className="w-4 h-4 mr-2" />
                   Marcar Todos Presentes
                 </Button>
-                <Button className="flex-1" onClick={saveAttendance} disabled={isLoading}>
+                <Button className="flex-1" onClick={handleSaveClick} disabled={isLoading}>
                   {isLoading ? "Salvando..." : "Salvar Chamada"}
                 </Button>
               </div>
@@ -684,15 +766,23 @@ export const Attendance = () => {
             </p>
           </div>
 
-          {/* Calendar */}
+          {/* Calendar with attendance indicators */}
           <Card className="p-4 gradient-card shadow-card border-0">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Calendário</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-foreground">Calendário</h3>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="w-3 h-3 rounded-full bg-primary/20" />
+                <span>Chamada feita</span>
+              </div>
+            </div>
             <Calendar
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
               locale={ptBR}
               className="rounded-md border-0 pointer-events-auto"
+              modifiers={calendarModifiers}
+              modifiersStyles={calendarModifiersStyles}
             />
           </Card>
 
@@ -722,6 +812,49 @@ export const Attendance = () => {
           </Card>
         </div>
       </div>
+
+      {/* Confirm Save Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Chamada</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>
+                  Confirma o registro de chamada para{" "}
+                  <strong>
+                    {selectedDate && format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  </strong>
+                  ?
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
+                    <p className="text-2xl font-bold text-green-600">{todayStats.present}</p>
+                    <p className="text-xs text-green-700">Presentes</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-red-50 border border-red-200">
+                    <p className="text-2xl font-bold text-red-600">{todayStats.absent}</p>
+                    <p className="text-xs text-red-700">Ausentes</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                    <p className="text-2xl font-bold text-yellow-600">{todayStats.late}</p>
+                    <p className="text-xs text-yellow-700">Atrasados</p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Taxa de presença: <strong>{Math.round((todayStats.present / todayStats.total) * 100)}%</strong> ({todayStats.present}/{students.length} alunos)
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Revisar</AlertDialogCancel>
+            <AlertDialogAction onClick={saveAttendance}>
+              Confirmar e Salvar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Dialogs */}
       <AddDisciplinaDialog
