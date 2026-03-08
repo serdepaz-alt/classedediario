@@ -22,6 +22,7 @@ interface Turma {
   nome: string;
   periodo: string | null;
   curso: string | null;
+  data_inicio: string | null;
 }
 
 // Maps turma.periodo to padroes_disciplinas.turno
@@ -61,7 +62,7 @@ export const useSequenciaDisciplinas = () => {
     try {
       const { data, error } = await supabase
         .from("turmas")
-        .select("id, nome, periodo, curso")
+        .select("id, nome, periodo, curso, data_inicio")
         .eq("user_id", user.id)
         .order("nome");
       if (error) throw error;
@@ -82,6 +83,12 @@ export const useSequenciaDisciplinas = () => {
     setSelectedTurmaId(turmaId);
     const mappedTurno = mapPeriodoToTurno(turma.periodo);
     setTurno(mappedTurno);
+
+    // Auto-set data de início from turma's data_inicio
+    if (turma.data_inicio) {
+      setDataInicio(turma.data_inicio);
+    }
+
     setIsLoadingPadroes(true);
 
     try {
