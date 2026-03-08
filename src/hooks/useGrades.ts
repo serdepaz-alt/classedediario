@@ -118,7 +118,7 @@ export const useGrades = () => {
   }, []);
 
   // Fetch all grades for a disciplina (all students)
-  const fetchAllGradesForDisciplina = async (disciplinaId: string) => {
+  const fetchAllGradesForDisciplina = useCallback(async (disciplinaId: string) => {
     const { data } = await supabase
       .from("notas")
       .select("*, students!notas_student_id_fkey(nome, matricula)")
@@ -126,7 +126,7 @@ export const useGrades = () => {
       .order("numero_avaliacao");
 
     return data || [];
-  };
+  }, []);
 
   // Save a grade
   const saveGrade = async (params: {
