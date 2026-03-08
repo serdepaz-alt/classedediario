@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ContrachequePDF } from "@/components/payroll/ContrachequePDF";
 import { Calculator, AlertTriangle, TrendingUp, Users, Clock, DollarSign, FileText } from "lucide-react";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -79,7 +80,10 @@ export const PayrollEngineView = () => {
           <Card key={profId}>
             <CardHeader className="pb-2 flex-row items-center justify-between">
               <CardTitle className="text-base">{items[0].professor_nome}</CardTitle>
-              <Badge variant="outline" className="text-sm font-mono">{fmt(profTotal)}</Badge>
+              <div className="flex items-center gap-2">
+                <ContrachequePDF professorNome={items[0].professor_nome} professorId={profId} mesReferencia={mesRef} items={items} />
+                <Badge variant="outline" className="text-sm font-mono">{fmt(profTotal)}</Badge>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
