@@ -18,10 +18,12 @@ interface AdminPasswordDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const ADMIN_EMAIL = "luciano.ribeiro@irmadulceoficial.com.br";
 const ADMIN_PASSWORD = "202600";
 
 export const AdminPasswordDialog = ({ open, onOpenChange }: AdminPasswordDialogProps) => {
   const navigate = useNavigate();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,30 +33,30 @@ export const AdminPasswordDialog = ({ open, onOpenChange }: AdminPasswordDialogP
     e.preventDefault();
     setError("");
     
-    if (!password) {
-      setError("Digite a senha de administrador");
+    if (!email || !password) {
+      setError("Preencha todos os campos");
       return;
     }
 
     setIsLoading(true);
-    
-    // Simular delay para UX
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (password === ADMIN_PASSWORD) {
+    if (email.toLowerCase().trim() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
       toast.success("Acesso administrativo liberado!");
       onOpenChange(false);
+      setEmail("");
       setPassword("");
       navigate("/admin");
     } else {
-      setError("Senha incorreta. Tente novamente.");
-      toast.error("Senha incorreta");
+      setError("Credenciais incorretas");
+      toast.error("Credenciais inválidas");
     }
     
     setIsLoading(false);
   };
 
   const handleClose = () => {
+    setEmail("");
     setPassword("");
     setError("");
     onOpenChange(false);
@@ -69,27 +71,41 @@ export const AdminPasswordDialog = ({ open, onOpenChange }: AdminPasswordDialogP
             Acesso Administrativo
           </DialogTitle>
           <DialogDescription>
-            Digite a senha para acessar o módulo administrativo
+            Digite as credenciais para acessar o módulo administrativo
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="admin-password">Senha de Administrador</Label>
+            <Label htmlFor="admin-email">Login de Administrador</Label>
+            <Input
+              id="admin-email"
+              type="email"
+              placeholder="Email do administrador"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError("");
+              }}
+              autoComplete="email"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="admin-password">Senha</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="admin-password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Digite a senha"
+                placeholder="Senha"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setError("");
                 }}
                 className="pl-10 pr-10"
-                autoComplete="off"
-                autoFocus
+                autoComplete="current-password"
               />
               <Button
                 type="button"
@@ -98,25 +114,14 @@ export const AdminPasswordDialog = ({ open, onOpenChange }: AdminPasswordDialogP
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={handleClose}
-            >
+            <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
               Cancelar
             </Button>
             <Button type="submit" className="flex-1" disabled={isLoading}>
