@@ -49,6 +49,7 @@ interface Props {
 export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId }: Props) => {
   const {
     turmas,
+    professores,
     selectedTurmaId,
     selectedTurma,
     turno,
@@ -64,6 +65,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
     loadExistingSequencia,
     handleSetDataInicio,
     moveItem,
+    setProfessor,
     salvar,
     reset,
   } = useSequenciaDisciplinas();
@@ -205,6 +207,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-[60px] text-center">Ordem</TableHead>
                     <TableHead>Disciplina</TableHead>
+                    <TableHead className="w-[160px]">Professor</TableHead>
                     <TableHead className="text-center w-[100px]">Carga (h)</TableHead>
                     <TableHead className="text-center w-[80px]">Diária</TableHead>
                     <TableHead className="text-center w-[80px]">Dias</TableHead>
@@ -220,6 +223,24 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                         {item.ordem}
                       </TableCell>
                       <TableCell className="font-medium">{item.nome}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={item.nome_professor || "sem-professor"}
+                          onValueChange={(val) => setProfessor(idx, val === "sem-professor" ? "" : val)}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Selecionar" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background z-50">
+                            <SelectItem value="sem-professor">— Sem professor —</SelectItem>
+                            {professores.map((p) => (
+                              <SelectItem key={p.id} value={p.nome}>
+                                {p.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell className="text-center">{item.carga_horaria_total}h</TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-1">
