@@ -123,7 +123,7 @@ export const useSequenciaDisciplinas = () => {
     } finally {
       setIsLoadingPadroes(false);
     }
-  }, [turmas, user?.id]);
+  }, [turmas, user?.id, recalcularDatas]);
 
   // Load existing disciplinas from the database for editing
   const loadExistingSequencia = useCallback(async (turmaId: string) => {
