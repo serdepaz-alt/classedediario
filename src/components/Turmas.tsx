@@ -230,6 +230,15 @@ export const Turmas = () => {
         ))}
       </div>
 
+      {/* Legenda de Nomenclaturas */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span><strong>TE</strong> – Técnico em Enfermagem (Ex: TE V01)</span>
+        <span><strong>UTI</strong> – UTI (Ex: UI21)</span>
+        <span><strong>HE</strong> – Hemodiálise (Ex: HD33)</span>
+        <span><strong>EM</strong> – Emergência (Ex: EM45)</span>
+        <span><strong>CI</strong> – Cuidador de Idosos (Ex: CI22)</span>
+      </div>
+
       {/* Turmas Grid */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
