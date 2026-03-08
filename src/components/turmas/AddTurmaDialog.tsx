@@ -292,22 +292,24 @@ export const AddTurmaDialog = ({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="disciplina"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Disciplina Principal</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Ex: Enfermagem em Clínica Médica"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!isEditing && (
+              <FormField
+                control={form.control}
+                name="disciplina"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Disciplina Principal</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: Enfermagem em Clínica Médica"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
