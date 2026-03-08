@@ -398,7 +398,9 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                             placeholder="Nota"
                             value={grade.valor ?? ""}
                             onChange={(e) => handleGradeChange(index, e.target.value)}
-                            className="w-20"
+                            className={`w-20 ${grade.is_locked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            readOnly={grade.is_locked}
+                            onClick={() => grade.is_locked && toast.info("Nota travada. Para alterar, solicite a modificação ao setor administrativo.")}
                           />
                           
                           <Button
