@@ -127,12 +127,16 @@ export const AddTurmaDialog = ({
     try {
       if (turma) {
         const { error } = await supabase
-          .from("turmas")
-          .update({
-            disciplina: data.disciplina || null,
-            status: data.status,
-          })
-          .eq("id", turma.id);
+130:           .from("turmas")
+131:           .update({
+132:             nome: data.nome,
+133:             ano_letivo: data.ano_letivo,
+134:             periodo: data.periodo,
+135:             curso: data.curso || null,
+136:             disciplina: data.disciplina || null,
+137:             status: data.status,
+138:           })
+139:           .eq("id", turma.id);
 
         if (error) throw error;
         toast.success("Turma atualizada com sucesso!");
@@ -184,8 +188,6 @@ export const AddTurmaDialog = ({
                     <Input 
                       placeholder="Ex: TE M03" 
                       {...field} 
-                      disabled={isEditing}
-                      className={isEditing ? "bg-muted cursor-not-allowed" : ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -236,8 +238,6 @@ export const AddTurmaDialog = ({
                       <Input 
                         type="number" 
                         {...field} 
-                        disabled={isEditing}
-                        className={isEditing ? "bg-muted cursor-not-allowed" : ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -252,32 +252,22 @@ export const AddTurmaDialog = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Turno</FormLabel>
-                    {isEditing ? (
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
                       <FormControl>
-                        <Input 
-                          value={field.value} 
-                          disabled 
-                          className="bg-muted cursor-not-allowed"
-                        />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o turno" />
+                        </SelectTrigger>
                       </FormControl>
-                    ) : (
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o turno" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-background z-50">
-                          <SelectItem value="Manhã">Manhã</SelectItem>
-                          <SelectItem value="Tarde">Tarde</SelectItem>
-                          <SelectItem value="Noite">Noite</SelectItem>
-                          <SelectItem value="Sábado">Sábado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
+                      <SelectContent className="bg-background z-50">
+                        <SelectItem value="Manhã">Manhã</SelectItem>
+                        <SelectItem value="Tarde">Tarde</SelectItem>
+                        <SelectItem value="Noite">Noite</SelectItem>
+                        <SelectItem value="Sábado">Sábado</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -295,8 +285,6 @@ export const AddTurmaDialog = ({
                     <Input
                       placeholder="Ex: Técnico em Enfermagem"
                       {...field}
-                      disabled={isEditing}
-                      className={isEditing ? "bg-muted cursor-not-allowed" : ""}
                     />
                   </FormControl>
                   <FormMessage />
