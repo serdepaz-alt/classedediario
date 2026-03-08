@@ -27,6 +27,7 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   Calendar as CalendarIcon,
   Users,
@@ -37,6 +38,9 @@ import {
   Search,
   BookOpen,
   GraduationCap,
+  Video,
+  Info,
+  MapPin,
 } from "lucide-react";
 import { AddDisciplinaDialog } from "./attendance/AddDisciplinaDialog";
 import { DisciplinaDetailsDialog } from "./attendance/DisciplinaDetailsDialog";
@@ -82,6 +86,19 @@ interface TurmaGroup {
   chamadaFeita?: boolean;
 }
 
+interface ActiveAula {
+  id: string;
+  turma_id: string | null;
+  disciplina_id: string | null;
+  professor_id: string | null;
+  data_aula: string;
+  hora_inicio: string;
+  hora_fim: string;
+  turma?: { id: string; nome: string; curso: string | null } | null;
+  professor?: { id: string; nome: string } | null;
+  disciplina_cad?: { id: string; nome: string } | null;
+}
+
 export const Attendance = () => {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -100,6 +117,8 @@ export const Attendance = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [datesWithAttendance, setDatesWithAttendance] = useState<Set<string>>(new Set());
   const [todayAttendanceDone, setTodayAttendanceDone] = useState<Set<string>>(new Set());
+  const [activeAula, setActiveAula] = useState<ActiveAula | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const classStartTimeRef = useRef<Date | null>(null);
 
@@ -108,6 +127,62 @@ export const Attendance = () => {
       classStartTimeRef.current = new Date();
     }
   }, []);
+
+  // Live clock update every minute
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Detect active aula from cronograma_mestre based on current date/time
+  useEffect(() => {
+    const detectActiveAula = async () => {
+      if (!user) return;
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      const nowTime = format(new Date(), "HH:mm:ss");
+
+      const { data, error } = await supabase
+        .from("cronograma_mestre")
+        .select(`
+          id, turma_id, disciplina_id, professor_id, data_aula, hora_inicio, hora_fim,
+          turma:turmas(id, nome, curso),
+          professor:cad_professores(id, nome),
+          disciplina_cad:cad_disciplinas(id, nome)
+        `)
+        .eq("user_id", user.id)
+        .eq("data_aula", todayStr)
+        .lte("hora_inicio", nowTime)
+        .gte("hora_fim", nowTime)
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        setActiveAula(data[0] as unknown as ActiveAula);
+      } else {
+        // If no aula right now, try to find the next one today
+        const { data: nextData } = await supabase
+          .from("cronograma_mestre")
+          .select(`
+            id, turma_id, disciplina_id, professor_id, data_aula, hora_inicio, hora_fim,
+            turma:turmas(id, nome, curso),
+            professor:cad_professores(id, nome),
+            disciplina_cad:cad_disciplinas(id, nome)
+          `)
+          .eq("user_id", user.id)
+          .eq("data_aula", todayStr)
+          .gte("hora_inicio", nowTime)
+          .order("hora_inicio", { ascending: true })
+          .limit(1);
+
+        if (nextData && nextData.length > 0) {
+          setActiveAula(nextData[0] as unknown as ActiveAula);
+        } else {
+          setActiveAula(null);
+        }
+      }
+    };
+
+    detectActiveAula();
+  }, [user, currentTime]);
 
   // Group disciplines by turma and detect current discipline per turma
   const turmaGroups = useMemo((): TurmaGroup[] => {
@@ -149,16 +224,28 @@ export const Attendance = () => {
     });
   }, [disciplinas, todayAttendanceDone]);
 
-  // Auto-select turma with active discipline on load
+  // Auto-select turma from active aula detection or fallback to discipline-based
   useEffect(() => {
     if (turmaGroups.length > 0 && !selectedTurmaId) {
+      // Priority: match from cronograma_mestre active aula
+      if (activeAula?.turma_id) {
+        const matchingTurma = turmaGroups.find((t) => t.turmaId === activeAula.turma_id);
+        if (matchingTurma) {
+          setSelectedTurmaId(matchingTurma.turmaId);
+          if (matchingTurma.disciplinaAtual) {
+            setSelectedDisciplina(matchingTurma.disciplinaAtual);
+          }
+          return;
+        }
+      }
+      // Fallback: first turma with active discipline
       const active = turmaGroups.find((t) => t.disciplinaAtual);
       if (active) {
         setSelectedTurmaId(active.turmaId);
         setSelectedDisciplina(active.disciplinaAtual);
       }
     }
-  }, [turmaGroups, selectedTurmaId]);
+  }, [turmaGroups, selectedTurmaId, activeAula]);
 
   // Fetch disciplinas
   useEffect(() => {
@@ -514,6 +601,10 @@ export const Attendance = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs py-1 px-3">
+            <Clock className="w-3.5 h-3.5 mr-1.5" />
+            {format(currentTime, "HH:mm")}
+          </Badge>
           {selectedDisciplina && (
             <Badge variant="secondary" className="text-sm py-1 px-3">
               <BookOpen className="w-3.5 h-3.5 mr-1.5" />
@@ -522,6 +613,63 @@ export const Attendance = () => {
           )}
         </div>
       </div>
+
+      {/* Active Aula Alert Banner */}
+      {activeAula && (
+        <Alert className="border-primary/30 bg-primary/5">
+          <Info className="h-4 w-4 text-primary" />
+          <AlertTitle className="text-primary font-semibold">
+            Chamada em Andamento — {format(currentTime, "dd/MM/yyyy")} às {format(currentTime, "HH:mm")}
+          </AlertTitle>
+          <AlertDescription>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-foreground">
+              {activeAula.turma && (
+                <span className="flex items-center gap-1">
+                  <GraduationCap className="w-3.5 h-3.5 text-muted-foreground" />
+                  <strong>Turma:</strong> {activeAula.turma.nome}
+                  {activeAula.turma.curso && ` (${activeAula.turma.curso})`}
+                </span>
+              )}
+              {activeAula.disciplina_cad && (
+                <span className="flex items-center gap-1">
+                  <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                  <strong>Disciplina:</strong> {activeAula.disciplina_cad.nome}
+                </span>
+              )}
+              {activeAula.professor && (
+                <span className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                  <strong>Professor:</strong> {activeAula.professor.nome}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                <strong>Horário:</strong> {activeAula.hora_inicio.slice(0, 5)} - {activeAula.hora_fim.slice(0, 5)}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Video className="w-3.5 h-3.5" />
+              <span>Dupla checagem disponível: conferência de presença por câmeras pode ser utilizada como verificação complementar.</span>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!activeAula && (
+        <Alert className="border-muted-foreground/20 bg-muted/30">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <AlertTitle className="text-foreground font-semibold">
+            {format(currentTime, "dd/MM/yyyy")} — {format(currentTime, "HH:mm")}
+          </AlertTitle>
+          <AlertDescription className="text-muted-foreground text-sm">
+            Nenhuma aula agendada no cronograma para este horário. Selecione uma turma abaixo para registrar presença manualmente.
+            <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+              <Video className="w-3.5 h-3.5" />
+              <span>Conferência por câmeras disponível como dupla checagem.</span>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Turma Cards - Smart Detection */}
       <div>
