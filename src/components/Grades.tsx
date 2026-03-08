@@ -48,6 +48,7 @@ export const Grades = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("dashboard");
   const [entryParams, setEntryParams] = useState<{ turmaId: string; disciplinaId: string; turmaNome: string; disciplinaNome: string } | null>(null);
   const [selectedTurmaForSelector, setSelectedTurmaForSelector] = useState<{ id: string; nome: string } | null>(null);
+  const [turmaDisciplinas, setTurmaDisciplinas] = useState<{ turma_id: string; turma_nome: string; disciplina_id: string; disciplina_nome: string }[]>([]);
   const { hasPending, pendingCount } = useAceiteCronograma();
   const { user } = useAuth();
   const { professorNome, turmasDisponiveis, loading: loadingProfessor, fetchAllGradesForDisciplina } = useGrades();
