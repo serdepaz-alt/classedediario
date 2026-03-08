@@ -129,6 +129,10 @@ export const AddTurmaDialog = ({
         const { error } = await supabase
           .from("turmas")
           .update({
+            nome: data.nome,
+            ano_letivo: data.ano_letivo,
+            periodo: data.periodo,
+            curso: data.curso || null,
             disciplina: data.disciplina || null,
             status: data.status,
           })
@@ -184,8 +188,6 @@ export const AddTurmaDialog = ({
                     <Input 
                       placeholder="Ex: TE M03" 
                       {...field} 
-                      disabled={isEditing}
-                      className={isEditing ? "bg-muted cursor-not-allowed" : ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -236,8 +238,6 @@ export const AddTurmaDialog = ({
                       <Input 
                         type="number" 
                         {...field} 
-                        disabled={isEditing}
-                        className={isEditing ? "bg-muted cursor-not-allowed" : ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -252,32 +252,22 @@ export const AddTurmaDialog = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Turno</FormLabel>
-                    {isEditing ? (
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
                       <FormControl>
-                        <Input 
-                          value={field.value} 
-                          disabled 
-                          className="bg-muted cursor-not-allowed"
-                        />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o turno" />
+                        </SelectTrigger>
                       </FormControl>
-                    ) : (
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o turno" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-background z-50">
-                          <SelectItem value="Manhã">Manhã</SelectItem>
-                          <SelectItem value="Tarde">Tarde</SelectItem>
-                          <SelectItem value="Noite">Noite</SelectItem>
-                          <SelectItem value="Sábado">Sábado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
+                      <SelectContent className="bg-background z-50">
+                        <SelectItem value="Manhã">Manhã</SelectItem>
+                        <SelectItem value="Tarde">Tarde</SelectItem>
+                        <SelectItem value="Noite">Noite</SelectItem>
+                        <SelectItem value="Sábado">Sábado</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -295,8 +285,6 @@ export const AddTurmaDialog = ({
                     <Input
                       placeholder="Ex: Técnico em Enfermagem"
                       {...field}
-                      disabled={isEditing}
-                      className={isEditing ? "bg-muted cursor-not-allowed" : ""}
                     />
                   </FormControl>
                   <FormMessage />
