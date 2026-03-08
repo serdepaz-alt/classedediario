@@ -411,6 +411,8 @@ export const CronogramasTab = () => {
         </CardContent>
       </Card>
 
+      <FeriadosManager />
+
       <SequenciaDisciplinasDialog
         open={sequenciaDialogOpen}
         onOpenChange={handleSequenciaSaved}
