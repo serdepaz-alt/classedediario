@@ -25,6 +25,9 @@ interface DisciplinaRow {
   data_inicio: string;
   data_termino: string;
   turma_nome?: string;
+  turma_periodo?: string | null;
+  turma_horario?: string | null;
+  turma_data_inicio?: string | null;
 }
 
 const TURNOS = ["Matutino", "Vespertino", "Noturno", "Intermediário"];
@@ -45,7 +48,7 @@ export const CronogramasTab = () => {
     try {
       const { data, error } = await supabase
         .from("disciplinas")
-        .select("*, turmas!disciplinas_turma_id_fkey(nome)")
+        .select("*, turmas!disciplinas_turma_id_fkey(nome, periodo, horario, data_inicio)")
         .eq("user_id", user.id)
         .eq("turno", filtroTurno)
         .eq("curso", filtroCurso)
@@ -56,6 +59,9 @@ export const CronogramasTab = () => {
       const rows: DisciplinaRow[] = (data || []).map((d: any) => ({
         ...d,
         turma_nome: d.turmas?.nome || "—",
+        turma_periodo: d.turmas?.periodo || null,
+        turma_horario: d.turmas?.horario || null,
+        turma_data_inicio: d.turmas?.data_inicio || null,
       }));
       setDisciplinas(rows);
     } catch (err) {
@@ -202,16 +208,25 @@ export const CronogramasTab = () => {
 
                 return (
                   <div key={turmaId} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-foreground">{turmaName}</h3>
-                      <Badge variant="outline" className="text-xs">
-                        {items.length} disciplina(s)
-                      </Badge>
-                      {items.length > visible.length && (
-                        <Badge variant="secondary" className="text-xs">
-                          Exibindo {visible.length} de {items.length}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-foreground">{turmaName}</h3>
+                        <Badge variant="outline" className="text-xs">
+                          {items.length} disciplina(s)
                         </Badge>
-                      )}
+                        {items.length > visible.length && (
+                          <Badge variant="secondary" className="text-xs">
+                            Exibindo {visible.length} de {items.length}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {[
+                          items[0]?.turma_periodo && `Turno: ${items[0].turma_periodo}`,
+                          items[0]?.turma_horario && `Horário: ${items[0].turma_horario}`,
+                          items[0]?.turma_data_inicio && `Início: ${new Date(items[0].turma_data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}`,
+                        ].filter(Boolean).join(" • ")}
+                      </p>
                     </div>
                     <div className="border rounded-lg overflow-hidden">
                       <Table>
