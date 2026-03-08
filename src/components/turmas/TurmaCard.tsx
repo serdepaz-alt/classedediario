@@ -17,6 +17,7 @@ interface TurmaCardProps {
     periodo: string | null;
     curso: string | null;
     disciplina: string | null;
+    horario: string | null;
     status: string | null;
   };
   stats?: {
