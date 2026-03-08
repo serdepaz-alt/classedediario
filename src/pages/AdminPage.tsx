@@ -20,7 +20,7 @@ const AdminPage = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="padroes" className="w-full">
+        <Tabs defaultValue="cronogramas" className="w-full">
           <TabsList className="grid w-full grid-cols-2 max-w-md">
             <TabsTrigger value="padroes" className="flex items-center gap-2">
               <BookOpen className="w-4 h-4" />
