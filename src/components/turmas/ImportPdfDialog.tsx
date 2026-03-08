@@ -7,12 +7,14 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Loader2, CheckCircle, Users } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle, Users, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { extractTextFromPdf } from "@/lib/pdfExtractor";
+import { Badge } from "@/components/ui/badge";
 
 interface ParsedStudent {
   matricula: string;
@@ -59,6 +61,7 @@ export const ImportPdfDialog = ({
     turma: ParsedTurma;
     students: ParsedStudent[];
   } | null>(null);
+  const [expandedStudent, setExpandedStudent] = useState<number | null>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -92,37 +95,22 @@ export const ImportPdfDialog = ({
     }
   };
 
-  const readFileAsText = async (file: File): Promise<string> => {
-    // Convert PDF to text using pdf.js-like approach
-    // For now, we'll read as ArrayBuffer and send to the edge function
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        // Convert to base64 for transmission
-        const base64 = btoa(
-          new Uint8Array(reader.result as ArrayBuffer).reduce(
-            (data, byte) => data + String.fromCharCode(byte),
-            ''
-          )
-        );
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(file);
-    });
-  };
-
   const handleParsePdf = async () => {
     if (!selectedFile) return;
 
     setIsLoading(true);
     try {
-      // For simplicity, we'll use a text extraction approach
-      // The edge function will use AI to parse the structured data
-      const text = await selectedFile.text();
-      
+      // Extract text properly using pdf.js
+      const extractedText = await extractTextFromPdf(selectedFile);
+
+      if (!extractedText || extractedText.trim().length < 50) {
+        throw new Error("Não foi possível extrair texto do PDF. O arquivo pode estar em formato de imagem.");
+      }
+
+      console.log("Extracted PDF text length:", extractedText.length);
+
       const { data, error } = await supabase.functions.invoke("parse-enrollment-pdf", {
-        body: { pdfContent: text },
+        body: { pdfContent: extractedText },
       });
 
       if (error) throw error;
@@ -147,7 +135,6 @@ export const ImportPdfDialog = ({
 
     setStep("importing");
     try {
-      // Map turno from PDF to database format
       const turnoMap: Record<string, string> = {
         "Matutino": "Manhã",
         "Vespertino": "Tarde",
@@ -155,17 +142,17 @@ export const ImportPdfDialog = ({
         "Sábado": "Sábado",
       };
 
-      // Create turma
       const { data: turmaData, error: turmaError } = await supabase
         .from("turmas")
         .insert({
           user_id: user.id,
           nome: parsedData.turma.nome,
-          ano_letivo: parsedData.turma.data_inicio 
-            ? parseInt(parsedData.turma.data_inicio.split("-")[0]) 
+          ano_letivo: parsedData.turma.data_inicio
+            ? parseInt(parsedData.turma.data_inicio.split("-")[0])
             : new Date().getFullYear(),
           periodo: turnoMap[parsedData.turma.turno || ""] || parsedData.turma.turno,
           curso: parsedData.turma.curso,
+          data_inicio: parsedData.turma.data_inicio,
           status: "Ativa",
         })
         .select()
@@ -173,7 +160,6 @@ export const ImportPdfDialog = ({
 
       if (turmaError) throw turmaError;
 
-      // Import students
       const studentsToInsert = parsedData.students.map((student) => ({
         user_id: user.id,
         turma_id: turmaData.id,
@@ -202,7 +188,7 @@ export const ImportPdfDialog = ({
 
       setStep("success");
       toast.success(`Turma ${parsedData.turma.nome} criada com ${parsedData.students.length} alunos!`);
-      
+
       setTimeout(() => {
         resetDialog();
         onSuccess?.();
@@ -218,12 +204,32 @@ export const ImportPdfDialog = ({
     setSelectedFile(null);
     setParsedData(null);
     setStep("upload");
+    setExpandedStudent(null);
     onOpenChange(false);
   };
 
+  const formatDate = (date: string | null) => {
+    if (!date) return "—";
+    try {
+      return new Date(date + "T00:00:00").toLocaleDateString("pt-BR");
+    } catch {
+      return date;
+    }
+  };
+
+  const StudentDetailRow = ({ label, value }: { label: string; value: string | null }) => {
+    if (!value) return null;
+    return (
+      <div className="flex justify-between text-xs py-0.5">
+        <span className="text-muted-foreground">{label}:</span>
+        <span className="font-medium text-right max-w-[60%] truncate">{value}</span>
+      </div>
+    );
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(open) => !isLoading && onOpenChange(open)}>
-      <DialogContent className="sm:max-w-[600px]">
+    <Dialog open={open} onOpenChange={(o) => !isLoading && onOpenChange(o)}>
+      <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle>
             {step === "upload" && "Importar Livro de Matrícula"}
@@ -257,7 +263,6 @@ export const ImportPdfDialog = ({
                 onChange={handleFileChange}
                 className="hidden"
               />
-
               {selectedFile ? (
                 <div className="space-y-2">
                   <FileText className="w-12 h-12 mx-auto text-primary" />
@@ -278,19 +283,15 @@ export const ImportPdfDialog = ({
                 </div>
               )}
             </div>
-
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button 
-                onClick={handleParsePdf} 
-                disabled={!selectedFile || isLoading}
-              >
+              <Button onClick={handleParsePdf} disabled={!selectedFile || isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processando...
+                    Extraindo dados...
                   </>
                 ) : (
                   "Processar PDF"
@@ -302,46 +303,70 @@ export const ImportPdfDialog = ({
 
         {step === "preview" && parsedData && (
           <div className="space-y-4">
+            {/* Turma info */}
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-              <h3 className="font-semibold text-lg">{parsedData.turma.nome}</h3>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg">{parsedData.turma.nome}</h3>
+                <Badge variant="secondary">{parsedData.students.length} alunos</Badge>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-sm">
                 <div>
                   <span className="text-muted-foreground">Turno:</span>{" "}
-                  {parsedData.turma.turno || "Não informado"}
+                  {parsedData.turma.turno || "—"}
                 </div>
                 <div>
                   <span className="text-muted-foreground">Curso:</span>{" "}
-                  {parsedData.turma.curso || "Não informado"}
+                  {parsedData.turma.curso || "—"}
                 </div>
                 <div>
                   <span className="text-muted-foreground">Início:</span>{" "}
-                  {parsedData.turma.data_inicio 
-                    ? new Date(parsedData.turma.data_inicio).toLocaleDateString("pt-BR")
-                    : "Não informado"}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Alunos:</span>{" "}
-                  {parsedData.students.length}
+                  {formatDate(parsedData.turma.data_inicio)}
                 </div>
               </div>
             </div>
 
+            {/* Students list with expandable details */}
             <div>
               <h4 className="font-medium mb-2 flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                Lista de Alunos
+                Alunos Extraídos
               </h4>
-              <ScrollArea className="h-[200px] border rounded-lg">
+              <ScrollArea className="h-[280px] border rounded-lg">
                 <div className="p-2 space-y-1">
                   {parsedData.students.map((student, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-2 rounded bg-muted/30 text-sm"
-                    >
-                      <span className="font-medium">{student.nome}</span>
-                      <span className="text-muted-foreground text-xs">
-                        {student.matricula}
-                      </span>
+                    <div key={index} className="rounded border bg-card">
+                      <button
+                        className="w-full flex items-center justify-between p-2.5 text-sm hover:bg-muted/50 transition-colors"
+                        onClick={() => setExpandedStudent(expandedStudent === index ? null : index)}
+                      >
+                        <div className="flex items-center gap-2 text-left">
+                          <span className="text-xs text-muted-foreground w-5">{index + 1}.</span>
+                          <span className="font-medium">{student.nome}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground text-xs">{student.matricula}</span>
+                          {expandedStudent === index ? (
+                            <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                          )}
+                        </div>
+                      </button>
+                      {expandedStudent === index && (
+                        <div className="px-4 pb-3 pt-1 border-t bg-muted/20 space-y-0.5">
+                          <StudentDetailRow label="CPF" value={student.cpf} />
+                          <StudentDetailRow label="RG" value={student.rg} />
+                          <StudentDetailRow label="Nascimento" value={formatDate(student.data_nascimento)} />
+                          <StudentDetailRow label="Local" value={[student.local_nascimento, student.estado_nascimento].filter(Boolean).join(", ")} />
+                          <StudentDetailRow label="Pai" value={student.nome_pai} />
+                          <StudentDetailRow label="Mãe" value={student.nome_mae} />
+                          <StudentDetailRow label="Telefone" value={student.telefone} />
+                          <StudentDetailRow label="Email" value={student.email} />
+                          <StudentDetailRow label="Título" value={student.titulo_eleitoral} />
+                          <StudentDetailRow label="Endereço" value={student.endereco} />
+                          <StudentDetailRow label="Matrícula em" value={formatDate(student.data_matricula)} />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
