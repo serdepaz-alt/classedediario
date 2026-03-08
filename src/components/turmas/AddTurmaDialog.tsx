@@ -28,6 +28,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
 
 const NOMENCLATURAS_CURSO = [
   { sigla: "TE", nome: "Técnico em Enfermagem" },
@@ -40,6 +41,15 @@ const NOMENCLATURAS_CURSO = [
   { sigla: "CC", nome: "CME e CC" },
 ];
 
+const HORARIOS_PADRAO = [
+  "Matutino 7h às 10h",
+  "Matutino 10h às 13h",
+  "Vespertino 14h às 17h",
+  "Vespertino 17h às 19h",
+  "Noturno 19h às 21h",
+  "3x na semana 8h às 13h",
+];
+
 const turmaSchema = z.object({
   nome: z.string().min(1, "Nome da turma é obrigatório"),
   nomenclatura: z.string().optional(),
@@ -47,6 +57,7 @@ const turmaSchema = z.object({
   periodo: z.string().min(1, "Período é obrigatório"),
   curso: z.string().optional(),
   disciplina: z.string().optional(),
+  horario: z.string().optional(),
   status: z.string().default("Ativa"),
 });
 
@@ -63,6 +74,7 @@ interface AddTurmaDialogProps {
     periodo: string | null;
     curso: string | null;
     disciplina: string | null;
+    horario: string | null;
     status: string | null;
   } | null;
 }
@@ -75,7 +87,12 @@ export const AddTurmaDialog = ({
 }: AddTurmaDialogProps) => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [customHorarios, setCustomHorarios] = useState<string[]>([]);
+  const [newHorario, setNewHorario] = useState("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
   const isEditing = !!turma;
+
+  const allHorarios = [...HORARIOS_PADRAO, ...customHorarios];
 
   const form = useForm<TurmaFormData>({
     resolver: zodResolver(turmaSchema),
@@ -86,14 +103,20 @@ export const AddTurmaDialog = ({
       periodo: "",
       curso: "",
       disciplina: "",
+      horario: "",
       status: "Ativa",
     },
   });
 
-  // Reset form when dialog opens/closes or turma changes
   useEffect(() => {
     if (open) {
       if (turma) {
+        // If the turma has a horario not in the defaults, add it as custom
+        if (turma.horario && !HORARIOS_PADRAO.includes(turma.horario)) {
+          setCustomHorarios((prev) =>
+            prev.includes(turma.horario!) ? prev : [...prev, turma.horario!]
+          );
+        }
         form.reset({
           nome: turma.nome || "",
           nomenclatura: "",
@@ -101,6 +124,7 @@ export const AddTurmaDialog = ({
           periodo: turma.periodo || "",
           curso: turma.curso || "",
           disciplina: turma.disciplina || "",
+          horario: turma.horario || "",
           status: turma.status || "Ativa",
         });
       } else {
@@ -111,11 +135,24 @@ export const AddTurmaDialog = ({
           periodo: "",
           curso: "",
           disciplina: "",
+          horario: "",
           status: "Ativa",
         });
       }
+      setShowCustomInput(false);
+      setNewHorario("");
     }
   }, [open, turma, form]);
+
+  const handleAddCustomHorario = () => {
+    const trimmed = newHorario.trim();
+    if (trimmed && !allHorarios.includes(trimmed)) {
+      setCustomHorarios((prev) => [...prev, trimmed]);
+      form.setValue("horario", trimmed);
+      setNewHorario("");
+      setShowCustomInput(false);
+    }
+  };
 
   const onSubmit = async (data: TurmaFormData) => {
     if (!user) {
@@ -134,6 +171,7 @@ export const AddTurmaDialog = ({
             periodo: data.periodo,
             curso: data.curso || null,
             disciplina: data.disciplina || null,
+            horario: data.horario || null,
             status: data.status,
           })
           .eq("id", turma.id);
@@ -148,6 +186,7 @@ export const AddTurmaDialog = ({
           periodo: data.periodo,
           curso: data.curso || null,
           disciplina: data.disciplina || null,
+          horario: data.horario || null,
           status: data.status,
         });
 
@@ -177,7 +216,6 @@ export const AddTurmaDialog = ({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Nome da Turma - Read-only when editing */}
             <FormField
               control={form.control}
               name="nome"
@@ -185,17 +223,13 @@ export const AddTurmaDialog = ({
                 <FormItem>
                   <FormLabel>Nome da Turma</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Ex: TE M03" 
-                      {...field} 
-                    />
+                    <Input placeholder="Ex: TE M03" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Nomenclatura do Curso - Only shown when creating */}
             {!isEditing && (
               <FormField
                 control={form.control}
@@ -203,10 +237,7 @@ export const AddTurmaDialog = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nomenclatura do Curso</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione a nomenclatura" />
@@ -227,7 +258,6 @@ export const AddTurmaDialog = ({
             )}
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Ano Letivo - Read-only when editing */}
               <FormField
                 control={form.control}
                 name="ano_letivo"
@@ -235,27 +265,20 @@ export const AddTurmaDialog = ({
                   <FormItem>
                     <FormLabel>Ano Letivo</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                      />
+                      <Input type="number" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {/* Turno - Read-only when editing */}
               <FormField
                 control={form.control}
                 name="periodo"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Turno</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o turno" />
@@ -274,7 +297,78 @@ export const AddTurmaDialog = ({
               />
             </div>
 
-            {/* Curso - Read-only when editing */}
+            {/* Horário */}
+            <FormField
+              control={form.control}
+              name="horario"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Horário</FormLabel>
+                  <div className="space-y-2">
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o horário" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-background z-50">
+                        {allHorarios.map((h) => (
+                          <SelectItem key={h} value={h}>
+                            {h}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {showCustomInput ? (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Ex: Sábado 8h às 12h"
+                          value={newHorario}
+                          onChange={(e) => setNewHorario(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddCustomHorario();
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleAddCustomHorario}
+                        >
+                          OK
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setShowCustomInput(false);
+                            setNewHorario("");
+                          }}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setShowCustomInput(true)}
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Adicionar horário personalizado
+                      </Button>
+                    )}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="curso"
@@ -317,10 +411,7 @@ export const AddTurmaDialog = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o status" />
