@@ -48,7 +48,25 @@ export const Grades = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("dashboard");
   const [entryParams, setEntryParams] = useState<{ turmaId: string; disciplinaId: string; turmaNome: string; disciplinaNome: string } | null>(null);
   const { hasPending, pendingCount } = useAceiteCronograma();
+  const { user } = useAuth();
   const { professorNome, turmasDisponiveis, loading: loadingProfessor, fetchAllGradesForDisciplina } = useGrades();
+
+  // Active turmas for dropdown
+  const [activeTurmas, setActiveTurmas] = useState<{ id: string; nome: string; curso: string | null }[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchActiveTurmas = async () => {
+      const { data } = await supabase
+        .from("turmas")
+        .select("id, nome, curso")
+        .eq("user_id", user.id)
+        .eq("status", "Ativa")
+        .order("nome");
+      setActiveTurmas(data || []);
+    };
+    fetchActiveTurmas();
+  }, [user]);
 
   // Real dashboard data
   const [dashboardStudents, setDashboardStudents] = useState<DashboardStudent[]>([]);
