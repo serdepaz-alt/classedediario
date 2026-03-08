@@ -106,7 +106,7 @@ export const useGrades = () => {
   }, []);
 
   // Fetch grades for a student + disciplina
-  const fetchStudentGrades = async (studentId: string, disciplinaId: string) => {
+  const fetchStudentGrades = useCallback(async (studentId: string, disciplinaId: string) => {
     const { data } = await supabase
       .from("notas")
       .select("*")
@@ -115,7 +115,7 @@ export const useGrades = () => {
       .order("numero_avaliacao");
 
     return data || [];
-  };
+  }, []);
 
   // Fetch all grades for a disciplina (all students)
   const fetchAllGradesForDisciplina = async (disciplinaId: string) => {
