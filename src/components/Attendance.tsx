@@ -619,25 +619,46 @@ export const Attendance = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Controle de Presença</h1>
-          <p className="text-muted-foreground">
-            {selectedDate && format(selectedDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs py-1 px-3">
-            <Clock className="w-3.5 h-3.5 mr-1.5" />
-            {format(currentTime, "HH:mm")}
-          </Badge>
-          {selectedDisciplina && (
-            <Badge variant="secondary" className="text-sm py-1 px-3">
-              <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-              {selectedDisciplina.nome}
+      {/* Greeting & Header */}
+      <div className="space-y-3">
+        <Card className="p-4 border-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-foreground">
+                {getGreeting()}, {firstName}! 👋
+              </h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{dailyPhrase}</p>
+              {activeAula?.turma && (
+                <p className="text-xs text-primary mt-1 font-medium">
+                  Turma do momento: {activeAula.turma.nome} • {activeAula.hora_inicio.slice(0, 5)} - {activeAula.hora_fim.slice(0, 5)}
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Controle de Presença</h1>
+            <p className="text-muted-foreground">
+              {selectedDate && format(selectedDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs py-1 px-3">
+              <Clock className="w-3.5 h-3.5 mr-1.5" />
+              {format(currentTime, "HH:mm")}
             </Badge>
-          )}
+            {selectedDisciplina && (
+              <Badge variant="secondary" className="text-sm py-1 px-3">
+                <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+                {selectedDisciplina.nome}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
