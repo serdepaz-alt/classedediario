@@ -344,7 +344,12 @@ export const AddTurmaDialog = ({
                       <Calendar
                         mode="single"
                         selected={field.value ?? undefined}
-                        onSelect={field.onChange}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          if (date) {
+                            form.setValue("ano_letivo", date.getFullYear());
+                          }
+                        }}
                         initialFocus
                         className={cn("p-3 pointer-events-auto")}
                       />
