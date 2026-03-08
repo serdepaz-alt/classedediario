@@ -20,6 +20,7 @@ import AceiteCronogramaPage from "./pages/AceiteCronogramaPage";
 import GestaoExcecoesPage from "./pages/GestaoExcecoesPage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
+import PayrollPage from "./pages/PayrollPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/cronograma" element={<ProtectedRoute><CronogramaPage /></ProtectedRoute>} />
             <Route path="/aceite-cronograma" element={<ProtectedRoute><AceiteCronogramaPage /></ProtectedRoute>} />
             <Route path="/gestao-excecoes" element={<ProtectedRoute><GestaoExcecoesPage /></ProtectedRoute>} />
+            <Route path="/payroll" element={<ProtectedRoute><PayrollPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_trail: {
+        Row: {
+          acao: string
+          created_at: string
+          id: string
+          registro_id: string | null
+          tabela_afetada: string
+          user_id: string
+          usuario_responsavel: string
+          valor_anterior: Json | null
+          valor_novo: Json | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          id?: string
+          registro_id?: string | null
+          tabela_afetada: string
+          user_id: string
+          usuario_responsavel: string
+          valor_anterior?: Json | null
+          valor_novo?: Json | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          id?: string
+          registro_id?: string | null
+          tabela_afetada?: string
+          user_id?: string
+          usuario_responsavel?: string
+          valor_anterior?: Json | null
+          valor_novo?: Json | null
+        }
+        Relationships: []
+      }
       cad_disciplinas: {
         Row: {
           carga_horaria: number | null
@@ -151,6 +187,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      contestacoes: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          mes_referencia: string
+          professor_id: string | null
+          respondido_em: string | null
+          respondido_por: string | null
+          resposta: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          mes_referencia: string
+          professor_id?: string | null
+          respondido_em?: string | null
+          respondido_por?: string | null
+          resposta?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          mes_referencia?: string
+          professor_id?: string | null
+          respondido_em?: string | null
+          respondido_por?: string | null
+          resposta?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contestacoes_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "cad_professores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conteudo_programatico_docs: {
         Row: {
@@ -388,6 +474,42 @@ export type Database = {
           id?: string
           nome?: string
           tipo?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      folha_fechamento: {
+        Row: {
+          created_at: string
+          fechada_em: string | null
+          fechada_por: string | null
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fechada_em?: string | null
+          fechada_por?: string | null
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fechada_em?: string | null
+          fechada_por?: string | null
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -772,6 +894,42 @@ export type Database = {
           },
         ]
       }
+      tabela_valores_hora: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          descricao: string | null
+          id: string
+          turno: string
+          updated_at: string
+          user_id: string
+          valor_hora: number
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          turno?: string
+          updated_at?: string
+          user_id: string
+          valor_hora?: number
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          turno?: string
+          updated_at?: string
+          user_id?: string
+          valor_hora?: number
+        }
+        Relationships: []
+      }
       turmas: {
         Row: {
           ano_letivo: number
@@ -814,6 +972,48 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      valores_estagio: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          custo_total_calculado: number
+          dias_padrao: number
+          id: string
+          unidade_hospitalar: string
+          updated_at: string
+          user_id: string
+          valor_base: number
+          valor_va: number
+          valor_vt: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          custo_total_calculado?: number
+          dias_padrao?: number
+          id?: string
+          unidade_hospitalar: string
+          updated_at?: string
+          user_id: string
+          valor_base?: number
+          valor_va?: number
+          valor_vt?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          custo_total_calculado?: number
+          dias_padrao?: number
+          id?: string
+          unidade_hospitalar?: string
+          updated_at?: string
+          user_id?: string
+          valor_base?: number
+          valor_va?: number
+          valor_vt?: number
         }
         Relationships: []
       }

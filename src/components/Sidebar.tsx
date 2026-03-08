@@ -24,7 +24,8 @@ import {
   ChevronRight,
   DollarSign,
   ClipboardCheck,
-  ShieldAlert
+  ShieldAlert,
+  Wallet
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -40,6 +41,7 @@ const adminSubMenuItems = [
   { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
   { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
   { icon: ShieldAlert, label: "Gestão de Exceções", path: "/gestao-excecoes" },
+  { icon: Wallet, label: "Pagamentos", path: "/payroll" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: UserCheck, label: "Professores", path: "/professores" },
