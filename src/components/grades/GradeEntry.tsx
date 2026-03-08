@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useGrades } from "@/hooks/useGrades";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GradeRow {
   id?: string; // DB id if exists
@@ -223,6 +224,55 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
 
       toast.success("Notas salvas com sucesso!");
       setHasUnsavedChanges(false);
+
+      // Check if any locked grades need notification
+      const lockedGradesWithValues = grades.filter(g => g.is_locked && g.valor !== null);
+      if (lockedGradesWithValues.length > 0) {
+        // Get student email
+        const { data: studentData } = await supabase
+          .from("students")
+          .select("email")
+          .eq("id", selectedStudent.id)
+          .single();
+
+        if (studentData?.email) {
+          // Send grade notification
+          const currentFinalAverage = calculateFinalAverage();
+          const currentAllLocked = grades.length > 0 && grades.every(g => g.is_locked);
+          const currentSituacao = currentAllLocked 
+            ? (currentFinalAverage >= 7.0 ? "Aprovado" : currentFinalAverage >= 5.0 ? "Recuperação" : "Reprovado")
+            : null;
+
+          try {
+            const { error: fnError } = await supabase.functions.invoke("send-grade-notifications", {
+              body: {
+                student_id: selectedStudent.id,
+                student_name: selectedStudent.nome,
+                student_email: studentData.email,
+                disciplina_nome: disciplinaNome,
+                turma_nome: turmaNome,
+                professor_nome: "Professor(a)",
+                grades: grades.map(g => ({
+                  nome_avaliacao: g.nome_avaliacao,
+                  valor: g.valor,
+                  peso: g.peso,
+                  is_locked: g.is_locked,
+                })),
+                media_final: currentFinalAverage,
+                bonus: bonusGrade,
+                situacao: currentSituacao,
+              },
+            });
+
+            if (!fnError) {
+              toast.success("Email de notas enviado para o aluno!");
+            }
+          } catch (emailErr) {
+            console.error("Erro ao enviar email:", emailErr);
+          }
+        }
+      }
+
       // Reload to get fresh ids
       await loadGrades(selectedStudent.id);
     } catch (err) {
