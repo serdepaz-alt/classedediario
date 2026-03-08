@@ -107,14 +107,20 @@ export const CronogramasTab = () => {
       }
     });
 
+    // All future (turma hasn't started yet) → show first 3
+    const allFuture = items.every((d) => d.data_inicio > today);
+    if (allFuture) {
+      return { visible: items.slice(0, 3), currentIdx: -1, startIdx: 0 };
+    }
+
     // If no current found, find next upcoming
     if (currentIdx === -1) {
       currentIdx = items.findIndex((d) => d.data_inicio > today);
     }
 
-    // If still not found, show last 5
+    // If still not found, show last 3
     if (currentIdx === -1) {
-      currentIdx = Math.max(0, items.length - 3);
+      currentIdx = Math.max(0, items.length - 2);
     }
 
     const startIdx = Math.max(0, currentIdx - 1);
