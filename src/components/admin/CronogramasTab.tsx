@@ -208,7 +208,7 @@ export const CronogramasTab = () => {
 
                 return (
                   <div key={turmaId} className="space-y-2">
-                    <div className="bg-muted/50 rounded-lg px-4 py-3">
+                    <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-foreground">{turmaName}</h3>
                         <Badge variant="outline" className="text-xs">
@@ -220,7 +220,7 @@ export const CronogramasTab = () => {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {[
                           items[0]?.turma_periodo && `Turno: ${items[0].turma_periodo}`,
                           items[0]?.turma_horario && `Horário: ${items[0].turma_horario}`,
