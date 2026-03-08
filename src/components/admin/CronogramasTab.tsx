@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar, Loader2, CalendarRange, ListOrdered, ChevronDown, ChevronUp, FileDown, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FeriadosManager } from "./FeriadosManager";
+import { CascadeHistoryCard } from "./CascadeHistoryCard";
+import { FeriadoImpactReport } from "./FeriadoImpactReport";
 import { SequenciaDisciplinasDialog } from "./SequenciaDisciplinasDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -412,6 +414,8 @@ export const CronogramasTab = () => {
       </Card>
 
       <FeriadosManager />
+      <FeriadoImpactReport />
+      <CascadeHistoryCard />
 
       <SequenciaDisciplinasDialog
         open={sequenciaDialogOpen}

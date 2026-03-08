@@ -131,7 +131,7 @@ export const useAutoCascade = () => {
     }
   };
 
-  const applyCascade = async () => {
+  const applyCascade = async (feriadoNome?: string, feriadoData?: string) => {
     if (cascadeChanges.length === 0) return;
     setIsApplying(true);
 
@@ -145,7 +145,26 @@ export const useAutoCascade = () => {
         if (error) throw error;
       }
 
+      // Log the cascade
+      if (user?.id) {
+        await supabase.from("cascade_logs").insert({
+          user_id: user.id,
+          feriado_data: feriadoData || cascadeChanges[0]?.oldDate,
+          feriado_nome: feriadoNome || "Feriado",
+          total_aulas_realocadas: cascadeChanges.length,
+          detalhes: cascadeChanges.map((c) => ({
+            turma: c.turma,
+            disciplina: c.disciplina,
+            professor: c.professor,
+            de: c.oldDate,
+            para: c.newDate,
+            horario: c.horario,
+          })),
+        });
+      }
+
       queryClient.invalidateQueries({ queryKey: ["cronograma"] });
+      queryClient.invalidateQueries({ queryKey: ["cascade_logs"] });
       toast.success(
         `${cascadeChanges.length} aula(s) realocada(s) com sucesso!`
       );

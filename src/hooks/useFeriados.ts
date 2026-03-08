@@ -60,6 +60,22 @@ export const useFeriados = () => {
     onError: () => toast.error("Erro ao cadastrar feriado"),
   });
 
+  const updateFeriado = useMutation({
+    mutationFn: async (params: FeriadoFormData & { id: string }) => {
+      const { id, ...rest } = params;
+      const { error } = await supabase
+        .from("feriados")
+        .update({ nome: rest.nome, data: rest.data, tipo: rest.tipo || "feriado" })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feriados"] });
+      toast.success("Feriado atualizado!");
+    },
+    onError: () => toast.error("Erro ao atualizar feriado"),
+  });
+
   const deleteFeriado = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("feriados").delete().eq("id", id);
@@ -72,5 +88,5 @@ export const useFeriados = () => {
     onError: () => toast.error("Erro ao remover feriado"),
   });
 
-  return { feriados, isLoading, createFeriado, deleteFeriado };
+  return { feriados, isLoading, createFeriado, updateFeriado, deleteFeriado };
 };
