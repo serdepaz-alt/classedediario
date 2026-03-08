@@ -88,5 +88,5 @@ export const useFeriados = () => {
     onError: () => toast.error("Erro ao remover feriado"),
   });
 
-  return { feriados, isLoading, createFeriado, deleteFeriado };
+  return { feriados, isLoading, createFeriado, updateFeriado, deleteFeriado };
 };
