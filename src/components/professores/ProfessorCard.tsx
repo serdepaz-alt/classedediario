@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Pencil, Trash2, Mail, Phone, Clock, GraduationCap } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Mail, Phone, GraduationCap, Briefcase } from "lucide-react";
 
 interface ProfessorCardProps {
   professor: Professor;
@@ -35,12 +35,19 @@ export const ProfessorCard = ({ professor, onEdit, onDelete }: ProfessorCardProp
             </div>
             <div>
               <h3 className="font-semibold text-foreground">{professor.nome}</h3>
-              <Badge
-                variant="outline"
-                className={statusColors[professor.status || "Ativo"]}
-              >
-                {professor.status || "Ativo"}
-              </Badge>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge
+                  variant="outline"
+                  className={statusColors[professor.status || "Ativo"]}
+                >
+                  {professor.status || "Ativo"}
+                </Badge>
+                {professor.funcao && (
+                  <Badge variant="secondary" className="text-xs">
+                    {professor.funcao}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
 
@@ -81,6 +88,7 @@ export const ProfessorCard = ({ professor, onEdit, onDelete }: ProfessorCardProp
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Phone className="h-4 w-4" />
               <span>{professor.telefone}</span>
+              {professor.telefone2 && <span className="text-muted-foreground/60">| {professor.telefone2}</span>}
             </div>
           )}
           {professor.especialidade && (
@@ -88,6 +96,15 @@ export const ProfessorCard = ({ professor, onEdit, onDelete }: ProfessorCardProp
               <GraduationCap className="h-4 w-4" />
               <span>{professor.especialidade}</span>
             </div>
+          )}
+          {professor.formacao && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Briefcase className="h-4 w-4" />
+              <span>{professor.formacao}</span>
+            </div>
+          )}
+          {professor.coren && (
+            <p className="text-xs text-muted-foreground">Coren: {professor.coren}</p>
           )}
         </div>
       </CardContent>

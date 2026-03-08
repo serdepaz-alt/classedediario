@@ -9,9 +9,21 @@ export interface Professor {
   nome: string;
   email: string | null;
   telefone: string | null;
+  telefone2: string | null;
   valor_hora: number;
   especialidade: string | null;
   status: string | null;
+  rg: string | null;
+  cpf: string | null;
+  data_nascimento: string | null;
+  endereco: string | null;
+  formacao: string | null;
+  indicacao: string | null;
+  funcao: string | null;
+  experiencia: string | null;
+  coren: string | null;
+  disciplinas_lecionar: string | null;
+  turnos_disponiveis: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -20,9 +32,21 @@ export interface ProfessorFormData {
   nome: string;
   email?: string;
   telefone?: string;
+  telefone2?: string;
   valor_hora: number;
   especialidade?: string;
   status?: string;
+  rg?: string;
+  cpf?: string;
+  data_nascimento?: string;
+  endereco?: string;
+  formacao?: string;
+  indicacao?: string;
+  funcao?: string;
+  experiencia?: string;
+  coren?: string;
+  disciplinas_lecionar?: string;
+  turnos_disponiveis?: string;
 }
 
 export const useProfessores = () => {
@@ -57,9 +81,21 @@ export const useProfessores = () => {
           nome: formData.nome,
           email: formData.email || null,
           telefone: formData.telefone || null,
-          valor_hora: formData.valor_hora,
+          telefone2: formData.telefone2 || null,
+          valor_hora: formData.valor_hora || 50,
           especialidade: formData.especialidade || null,
           status: formData.status || "Ativo",
+          rg: formData.rg || null,
+          cpf: formData.cpf || null,
+          data_nascimento: formData.data_nascimento || null,
+          endereco: formData.endereco || null,
+          formacao: formData.formacao || null,
+          indicacao: formData.indicacao || null,
+          funcao: formData.funcao || null,
+          experiencia: formData.experiencia || null,
+          coren: formData.coren || null,
+          disciplinas_lecionar: formData.disciplinas_lecionar || null,
+          turnos_disponiveis: formData.turnos_disponiveis || null,
         })
         .select()
         .single();
@@ -85,9 +121,21 @@ export const useProfessores = () => {
           nome: formData.nome,
           email: formData.email || null,
           telefone: formData.telefone || null,
-          valor_hora: formData.valor_hora,
+          telefone2: formData.telefone2 || null,
+          valor_hora: formData.valor_hora || 50,
           especialidade: formData.especialidade || null,
           status: formData.status,
+          rg: formData.rg || null,
+          cpf: formData.cpf || null,
+          data_nascimento: formData.data_nascimento || null,
+          endereco: formData.endereco || null,
+          formacao: formData.formacao || null,
+          indicacao: formData.indicacao || null,
+          funcao: formData.funcao || null,
+          experiencia: formData.experiencia || null,
+          coren: formData.coren || null,
+          disciplinas_lecionar: formData.disciplinas_lecionar || null,
+          turnos_disponiveis: formData.turnos_disponiveis || null,
         })
         .eq("id", id)
         .select()

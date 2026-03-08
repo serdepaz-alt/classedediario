@@ -43,37 +43,73 @@ export type Database = {
       }
       cad_professores: {
         Row: {
+          coren: string | null
+          cpf: string | null
           created_at: string | null
+          data_nascimento: string | null
+          disciplinas_lecionar: string | null
           email: string | null
+          endereco: string | null
           especialidade: string | null
+          experiencia: string | null
+          formacao: string | null
+          funcao: string | null
           id: string
+          indicacao: string | null
           nome: string
+          rg: string | null
           status: string | null
           telefone: string | null
+          telefone2: string | null
+          turnos_disponiveis: string | null
           updated_at: string | null
           user_id: string
           valor_hora: number
         }
         Insert: {
+          coren?: string | null
+          cpf?: string | null
           created_at?: string | null
+          data_nascimento?: string | null
+          disciplinas_lecionar?: string | null
           email?: string | null
+          endereco?: string | null
           especialidade?: string | null
+          experiencia?: string | null
+          formacao?: string | null
+          funcao?: string | null
           id?: string
+          indicacao?: string | null
           nome: string
+          rg?: string | null
           status?: string | null
           telefone?: string | null
+          telefone2?: string | null
+          turnos_disponiveis?: string | null
           updated_at?: string | null
           user_id: string
           valor_hora?: number
         }
         Update: {
+          coren?: string | null
+          cpf?: string | null
           created_at?: string | null
+          data_nascimento?: string | null
+          disciplinas_lecionar?: string | null
           email?: string | null
+          endereco?: string | null
           especialidade?: string | null
+          experiencia?: string | null
+          formacao?: string | null
+          funcao?: string | null
           id?: string
+          indicacao?: string | null
           nome?: string
+          rg?: string | null
           status?: string | null
           telefone?: string | null
+          telefone2?: string | null
+          turnos_disponiveis?: string | null
           updated_at?: string | null
           user_id?: string
           valor_hora?: number
