@@ -9,6 +9,7 @@ import {
   ChevronRight, 
   CheckCircle2,
   CalendarDays,
+  Lock,
 } from "lucide-react";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -44,12 +45,14 @@ interface TurmaAttendanceCardProps {
   turma: TurmaGroup;
   isSelected: boolean;
   onSelect: (turma: TurmaGroup) => void;
+  isLocked?: boolean;
 }
 
 export const TurmaAttendanceCard = ({
   turma,
   isSelected,
   onSelect,
+  isLocked = false,
 }: TurmaAttendanceCardProps) => {
   const today = startOfDay(new Date());
   const disc = turma.disciplinaAtual;
@@ -81,18 +84,36 @@ export const TurmaAttendanceCard = ({
   const progress = getProgress();
   const diasRestantes = getDiasRestantes();
 
+  const handleClick = () => {
+    if (!isLocked) {
+      onSelect(turma);
+    }
+  };
+
   return (
     <Card
-      className={`relative overflow-hidden cursor-pointer transition-all duration-200 border-2 ${
-        isSelected
-          ? "border-primary shadow-lg ring-2 ring-primary/20"
-          : "border-transparent hover:border-primary/30 hover:shadow-md"
+      className={`relative overflow-hidden transition-all duration-200 border-2 ${
+        isLocked
+          ? "border-muted opacity-60 cursor-not-allowed"
+          : isSelected
+            ? "border-primary shadow-lg ring-2 ring-primary/20 cursor-pointer"
+            : "border-transparent hover:border-primary/30 hover:shadow-md cursor-pointer"
       }`}
-      onClick={() => onSelect(turma)}
+      onClick={handleClick}
     >
+      {/* Lock overlay */}
+      {isLocked && (
+        <div className="absolute inset-0 z-10 bg-background/50 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
+            <Lock className="w-6 h-6" />
+            <span className="text-xs font-medium">Fora do horário</span>
+          </div>
+        </div>
+      )}
+
       {/* Top colored bar */}
       <div className={`h-1.5 ${
-        isSelected ? "bg-primary" : disc ? "bg-primary/40" : "bg-muted-foreground/30"
+        isLocked ? "bg-muted-foreground/20" : isSelected ? "bg-primary" : disc ? "bg-primary/40" : "bg-muted-foreground/30"
       }`} />
 
       <div className="p-4 space-y-3">
@@ -112,7 +133,11 @@ export const TurmaAttendanceCard = ({
                 Feita
               </Badge>
             )}
-            <ChevronRight className={`w-5 h-5 transition-transform ${isSelected ? "text-primary rotate-90" : "text-muted-foreground"}`} />
+            {isLocked ? (
+              <Lock className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronRight className={`w-5 h-5 transition-transform ${isSelected ? "text-primary rotate-90" : "text-muted-foreground"}`} />
+            )}
           </div>
         </div>
 
@@ -151,7 +176,7 @@ export const TurmaAttendanceCard = ({
         )}
 
         {/* Quick action */}
-        {isSelected && disc && (
+        {isSelected && disc && !isLocked && (
           <Button size="sm" className="w-full" variant="default">
             <Users className="w-4 h-4 mr-2" />
             Iniciar Chamada

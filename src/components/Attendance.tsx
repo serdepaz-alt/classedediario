@@ -41,6 +41,8 @@ import {
   Video,
   Info,
   MapPin,
+  Lock,
+  Sparkles,
 } from "lucide-react";
 import { AddDisciplinaDialog } from "./attendance/AddDisciplinaDialog";
 import { DisciplinaDetailsDialog } from "./attendance/DisciplinaDetailsDialog";
@@ -118,6 +120,7 @@ export const Attendance = () => {
   const [datesWithAttendance, setDatesWithAttendance] = useState<Set<string>>(new Set());
   const [todayAttendanceDone, setTodayAttendanceDone] = useState<Set<string>>(new Set());
   const [activeAula, setActiveAula] = useState<ActiveAula | null>(null);
+  const [todayAulas, setTodayAulas] = useState<ActiveAula[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const classStartTimeRef = useRef<Date | null>(null);
@@ -134,14 +137,15 @@ export const Attendance = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Detect active aula from cronograma_mestre based on current date/time
+  // Detect active aula and fetch all today's aulas from cronograma_mestre
   useEffect(() => {
     const detectActiveAula = async () => {
       if (!user) return;
       const todayStr = format(new Date(), "yyyy-MM-dd");
       const nowTime = format(new Date(), "HH:mm:ss");
 
-      const { data, error } = await supabase
+      // Fetch ALL today's aulas
+      const { data: allToday } = await supabase
         .from("cronograma_mestre")
         .select(`
           id, turma_id, disciplina_id, professor_id, data_aula, hora_inicio, hora_fim,
@@ -151,32 +155,21 @@ export const Attendance = () => {
         `)
         .eq("user_id", user.id)
         .eq("data_aula", todayStr)
-        .lte("hora_inicio", nowTime)
-        .gte("hora_fim", nowTime)
-        .limit(1);
+        .order("hora_inicio", { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        setActiveAula(data[0] as unknown as ActiveAula);
-      } else {
-        // If no aula right now, try to find the next one today
-        const { data: nextData } = await supabase
-          .from("cronograma_mestre")
-          .select(`
-            id, turma_id, disciplina_id, professor_id, data_aula, hora_inicio, hora_fim,
-            turma:turmas(id, nome, curso),
-            professor:cad_professores(id, nome),
-            disciplina_cad:cad_disciplinas(id, nome)
-          `)
-          .eq("user_id", user.id)
-          .eq("data_aula", todayStr)
-          .gte("hora_inicio", nowTime)
-          .order("hora_inicio", { ascending: true })
-          .limit(1);
+      if (allToday) {
+        setTodayAulas(allToday as unknown as ActiveAula[]);
 
-        if (nextData && nextData.length > 0) {
-          setActiveAula(nextData[0] as unknown as ActiveAula);
+        // Find current aula (within time range)
+        const current = allToday.find(
+          (a) => a.hora_inicio <= nowTime && a.hora_fim >= nowTime
+        );
+        if (current) {
+          setActiveAula(current as unknown as ActiveAula);
         } else {
-          setActiveAula(null);
+          // Next upcoming aula today
+          const next = allToday.find((a) => a.hora_inicio >= nowTime);
+          setActiveAula(next ? (next as unknown as ActiveAula) : null);
         }
       }
     };
@@ -590,27 +583,82 @@ export const Attendance = () => {
 
   const selectedTurmaGroup = turmaGroups.find((t) => t.turmaId === selectedTurmaId);
 
+  // Determine which turma IDs are active right now (in current time slot)
+  const nowTimeStr = format(currentTime, "HH:mm:ss");
+  const activeTurmaIds = new Set(
+    todayAulas
+      .filter((a) => a.hora_inicio <= nowTimeStr && a.hora_fim >= nowTimeStr)
+      .map((a) => a.turma_id)
+      .filter(Boolean)
+  );
+
+  // All turma IDs scheduled today
+  const todayTurmaIds = new Set(
+    todayAulas.map((a) => a.turma_id).filter(Boolean)
+  );
+
+  // Greeting helpers
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour < 12) return "Bom dia";
+    if (hour < 18) return "Boa tarde";
+    return "Boa noite";
+  };
+
+  const professorName = activeAula?.professor?.nome || user?.email?.split("@")[0] || "Professor(a)";
+  const firstName = professorName.split(" ")[0];
+
+  const motivationalPhrases = [
+    "Cada aula é uma semente de transformação. Vamos fazer a diferença hoje! 🌱",
+    "Ensinar é acender uma luz que nunca se apaga. Brilhe hoje! ✨",
+    "Sua dedicação constrói futuros. A turma de hoje tem sorte de ter você! 🎯",
+    "O conhecimento que você compartilha hoje será o alicerce de amanhã. 📚",
+    "Grandes professores inspiram grandes conquistas. Vamos lá! 🚀",
+  ];
+  const dailyPhrase = motivationalPhrases[currentTime.getDate() % motivationalPhrases.length];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Controle de Presença</h1>
-          <p className="text-muted-foreground">
-            {selectedDate && format(selectedDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs py-1 px-3">
-            <Clock className="w-3.5 h-3.5 mr-1.5" />
-            {format(currentTime, "HH:mm")}
-          </Badge>
-          {selectedDisciplina && (
-            <Badge variant="secondary" className="text-sm py-1 px-3">
-              <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-              {selectedDisciplina.nome}
+      {/* Greeting & Header */}
+      <div className="space-y-3">
+        <Card className="p-4 border-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-foreground">
+                {getGreeting()}, {firstName}! 👋
+              </h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{dailyPhrase}</p>
+              {activeAula?.turma && (
+                <p className="text-xs text-primary mt-1 font-medium">
+                  Turma do momento: {activeAula.turma.nome} • {activeAula.hora_inicio.slice(0, 5)} - {activeAula.hora_fim.slice(0, 5)}
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Controle de Presença</h1>
+            <p className="text-muted-foreground">
+              {selectedDate && format(selectedDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs py-1 px-3">
+              <Clock className="w-3.5 h-3.5 mr-1.5" />
+              {format(currentTime, "HH:mm")}
             </Badge>
-          )}
+            {selectedDisciplina && (
+              <Badge variant="secondary" className="text-sm py-1 px-3">
+                <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+                {selectedDisciplina.nome}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
@@ -691,14 +739,23 @@ export const Attendance = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {turmaGroups.map((turma) => (
-              <TurmaAttendanceCard
-                key={turma.turmaId}
-                turma={turma}
-                isSelected={selectedTurmaId === turma.turmaId}
-                onSelect={handleSelectTurma}
-              />
-            ))}
+            {turmaGroups.map((turma) => {
+              // A turma is locked if there are active aulas right now but this turma isn't one of them
+              const hasActiveSlots = activeTurmaIds.size > 0;
+              const isTurmaActive = activeTurmaIds.has(turma.turmaId);
+              const isTurmaScheduledToday = todayTurmaIds.has(turma.turmaId);
+              const isLocked = hasActiveSlots && !isTurmaActive && isTurmaScheduledToday;
+
+              return (
+                <TurmaAttendanceCard
+                  key={turma.turmaId}
+                  turma={turma}
+                  isSelected={selectedTurmaId === turma.turmaId}
+                  onSelect={handleSelectTurma}
+                  isLocked={isLocked}
+                />
+              );
+            })}
           </div>
         )}
       </div>
