@@ -11,14 +11,26 @@ import {
   Trophy,
   Lock,
   AlertTriangle,
-  Loader2
+  Loader2,
+  ChevronDown,
+  GraduationCap
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { StudentGradesFlyout } from "@/components/grades/StudentGradesFlyout";
 import { GradeBarChart } from "@/components/grades/GradeBarChart";
 import { GradeEntry } from "@/components/grades/GradeEntry";
 import { TurmaDisciplinaSelector } from "@/components/grades/TurmaDisciplinaSelector";
 import { useAceiteCronograma } from "@/hooks/useAceiteCronograma";
 import { useGrades } from "@/hooks/useGrades";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 
 interface DashboardStudent {
