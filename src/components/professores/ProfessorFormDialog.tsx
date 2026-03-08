@@ -99,7 +99,27 @@ export const ProfessorFormDialog = ({
   onSubmit,
   isSubmitting,
 }: ProfessorFormDialogProps) => {
+  const { user } = useAuth();
   const isEditing = !!professor;
+  const [disciplinasList, setDisciplinasList] = useState<string[]>([]);
+
+  // Fetch distinct discipline names from padroes_disciplinas
+  const fetchDisciplinas = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from("padroes_disciplinas")
+      .select("nome")
+      .eq("user_id", user.id)
+      .order("nome");
+    if (data) {
+      const unique = [...new Set(data.map((d) => d.nome))];
+      setDisciplinasList(unique);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (open) fetchDisciplinas();
+  }, [open, fetchDisciplinas]);
 
   const form = useForm<ProfessorFormData>({
     resolver: zodResolver(professorSchema),
