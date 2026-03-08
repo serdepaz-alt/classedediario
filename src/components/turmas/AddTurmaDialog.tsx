@@ -127,16 +127,16 @@ export const AddTurmaDialog = ({
     try {
       if (turma) {
         const { error } = await supabase
-130:           .from("turmas")
-131:           .update({
-132:             nome: data.nome,
-133:             ano_letivo: data.ano_letivo,
-134:             periodo: data.periodo,
-135:             curso: data.curso || null,
-136:             disciplina: data.disciplina || null,
-137:             status: data.status,
-138:           })
-139:           .eq("id", turma.id);
+          .from("turmas")
+          .update({
+            nome: data.nome,
+            ano_letivo: data.ano_letivo,
+            periodo: data.periodo,
+            curso: data.curso || null,
+            disciplina: data.disciplina || null,
+            status: data.status,
+          })
+          .eq("id", turma.id);
 
         if (error) throw error;
         toast.success("Turma atualizada com sucesso!");
