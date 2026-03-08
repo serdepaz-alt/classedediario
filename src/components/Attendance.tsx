@@ -263,7 +263,24 @@ export const Attendance = () => {
   // Auto-select turma from active aula detection or fallback to discipline-based
   useEffect(() => {
     if (turmaGroups.length > 0 && !selectedTurmaId) {
-      // Priority: match from cronograma_mestre active aula
+      const nowTime = format(currentTime, "HH:mm:ss");
+
+      // Priority 1: Find turma with active cronograma slot RIGHT NOW
+      const currentSlotAula = todayAulas.find(
+        (a) => a.hora_inicio <= nowTime && a.hora_fim >= nowTime
+      );
+      if (currentSlotAula?.turma_id) {
+        const matchingTurma = turmaGroups.find((t) => t.turmaId === currentSlotAula.turma_id);
+        if (matchingTurma) {
+          setSelectedTurmaId(matchingTurma.turmaId);
+          if (matchingTurma.disciplinaAtual) {
+            setSelectedDisciplina(matchingTurma.disciplinaAtual);
+          }
+          return;
+        }
+      }
+
+      // Priority 2: match from activeAula (next upcoming)
       if (activeAula?.turma_id) {
         const matchingTurma = turmaGroups.find((t) => t.turmaId === activeAula.turma_id);
         if (matchingTurma) {
@@ -274,14 +291,15 @@ export const Attendance = () => {
           return;
         }
       }
-      // Fallback: first turma with active discipline
+
+      // Priority 3: first turma with active discipline
       const active = turmaGroups.find((t) => t.disciplinaAtual);
       if (active) {
         setSelectedTurmaId(active.turmaId);
         setSelectedDisciplina(active.disciplinaAtual);
       }
     }
-  }, [turmaGroups, selectedTurmaId, activeAula]);
+  }, [turmaGroups, selectedTurmaId, activeAula, todayAulas, currentTime]);
 
   // Fetch disciplinas
   useEffect(() => {
