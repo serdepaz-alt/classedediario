@@ -278,7 +278,7 @@ export const useSequenciaDisciplinas = () => {
         turma_id: selectedTurmaId,
         nome: item.nome,
         turno: turno,
-        curso: selectedTurma.curso || "",
+        curso: selectedTurma.curso || "Técnico em Enfermagem",
         carga_horaria_total: item.carga_horaria_total,
         carga_horaria_diaria: item.carga_horaria_diaria,
         dias_uteis: item.qtd_dias,
