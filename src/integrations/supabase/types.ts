@@ -119,6 +119,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cascade_logs: {
+        Row: {
+          aplicado_em: string
+          created_at: string
+          detalhes: Json | null
+          feriado_data: string | null
+          feriado_nome: string | null
+          id: string
+          total_aulas_realocadas: number | null
+          user_id: string
+        }
+        Insert: {
+          aplicado_em?: string
+          created_at?: string
+          detalhes?: Json | null
+          feriado_data?: string | null
+          feriado_nome?: string | null
+          id?: string
+          total_aulas_realocadas?: number | null
+          user_id: string
+        }
+        Update: {
+          aplicado_em?: string
+          created_at?: string
+          detalhes?: Json | null
+          feriado_data?: string | null
+          feriado_nome?: string | null
+          id?: string
+          total_aulas_realocadas?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       conteudo_programatico_docs: {
         Row: {
           created_at: string | null
