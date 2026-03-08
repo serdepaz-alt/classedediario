@@ -224,16 +224,28 @@ export const Attendance = () => {
     });
   }, [disciplinas, todayAttendanceDone]);
 
-  // Auto-select turma with active discipline on load
+  // Auto-select turma from active aula detection or fallback to discipline-based
   useEffect(() => {
     if (turmaGroups.length > 0 && !selectedTurmaId) {
+      // Priority: match from cronograma_mestre active aula
+      if (activeAula?.turma_id) {
+        const matchingTurma = turmaGroups.find((t) => t.turmaId === activeAula.turma_id);
+        if (matchingTurma) {
+          setSelectedTurmaId(matchingTurma.turmaId);
+          if (matchingTurma.disciplinaAtual) {
+            setSelectedDisciplina(matchingTurma.disciplinaAtual);
+          }
+          return;
+        }
+      }
+      // Fallback: first turma with active discipline
       const active = turmaGroups.find((t) => t.disciplinaAtual);
       if (active) {
         setSelectedTurmaId(active.turmaId);
         setSelectedDisciplina(active.disciplinaAtual);
       }
     }
-  }, [turmaGroups, selectedTurmaId]);
+  }, [turmaGroups, selectedTurmaId, activeAula]);
 
   // Fetch disciplinas
   useEffect(() => {
