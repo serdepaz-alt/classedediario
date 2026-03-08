@@ -3,7 +3,7 @@ import { X, Trophy, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface StudentData {
-  id: number;
+  id: string;
   student: string;
   matricula: string;
   grades: Record<string, number[]>;
