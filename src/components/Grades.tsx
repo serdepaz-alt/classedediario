@@ -11,14 +11,26 @@ import {
   Trophy,
   Lock,
   AlertTriangle,
-  Loader2
+  Loader2,
+  ChevronDown,
+  GraduationCap
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { StudentGradesFlyout } from "@/components/grades/StudentGradesFlyout";
 import { GradeBarChart } from "@/components/grades/GradeBarChart";
 import { GradeEntry } from "@/components/grades/GradeEntry";
 import { TurmaDisciplinaSelector } from "@/components/grades/TurmaDisciplinaSelector";
 import { useAceiteCronograma } from "@/hooks/useAceiteCronograma";
 import { useGrades } from "@/hooks/useGrades";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 
 interface DashboardStudent {
@@ -35,8 +47,27 @@ export const Grades = () => {
   const [selectedStudent, setSelectedStudent] = useState<DashboardStudent | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("dashboard");
   const [entryParams, setEntryParams] = useState<{ turmaId: string; disciplinaId: string; turmaNome: string; disciplinaNome: string } | null>(null);
+  const [selectedTurmaForSelector, setSelectedTurmaForSelector] = useState<{ id: string; nome: string } | null>(null);
   const { hasPending, pendingCount } = useAceiteCronograma();
+  const { user } = useAuth();
   const { professorNome, turmasDisponiveis, loading: loadingProfessor, fetchAllGradesForDisciplina } = useGrades();
+
+  // Active turmas for dropdown
+  const [activeTurmas, setActiveTurmas] = useState<{ id: string; nome: string; curso: string | null }[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchActiveTurmas = async () => {
+      const { data } = await supabase
+        .from("turmas")
+        .select("id, nome, curso")
+        .eq("user_id", user.id)
+        .eq("status", "Ativa")
+        .order("nome");
+      setActiveTurmas(data || []);
+    };
+    fetchActiveTurmas();
+  }, [user]);
 
   // Real dashboard data
   const [dashboardStudents, setDashboardStudents] = useState<DashboardStudent[]>([]);
@@ -106,17 +137,27 @@ export const Grades = () => {
     return "destructive";
   };
 
-  // Show selector
-  if (viewMode === "selector") {
+  // Handle turma selection from dropdown
+  const handleTurmaSelect = (turma: { id: string; nome: string }) => {
+    setSelectedTurmaForSelector(turma);
+    setViewMode("selector");
+  };
+
+  // Show selector (filtered by selected turma)
+  if (viewMode === "selector" && selectedTurmaForSelector) {
+    const filteredTurmas = turmasDisponiveis.filter(t => t.turma_id === selectedTurmaForSelector.id);
     return (
       <TurmaDisciplinaSelector
-        turmas={turmasDisponiveis}
+        turmas={filteredTurmas}
         professorNome={professorNome}
         onSelect={(turmaId, disciplinaId, turmaNome, disciplinaNome) => {
           setEntryParams({ turmaId, disciplinaId, turmaNome, disciplinaNome });
           setViewMode("entry");
         }}
-        onBack={() => setViewMode("dashboard")}
+        onBack={() => {
+          setSelectedTurmaForSelector(null);
+          setViewMode("dashboard");
+        }}
       />
     );
   }
@@ -125,7 +166,13 @@ export const Grades = () => {
   if (viewMode === "entry" && entryParams) {
     return (
       <GradeEntry
-        onBack={() => setViewMode("selector")}
+        onBack={() => {
+          if (selectedTurmaForSelector) {
+            setViewMode("selector");
+          } else {
+            setViewMode("dashboard");
+          }
+        }}
         turmaId={entryParams.turmaId}
         disciplinaId={entryParams.disciplinaId}
         turmaNome={entryParams.turmaNome}
@@ -162,18 +209,49 @@ export const Grades = () => {
           <p className="text-muted-foreground">Acompanhe o desempenho acadêmico</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
-            className="bg-primary hover:bg-primary/90"
-            onClick={() => setViewMode("selector")}
-            disabled={hasPending}
-          >
-            {hasPending ? (
-              <Lock className="w-4 h-4 mr-2" />
-            ) : (
-              <Plus className="w-4 h-4 mr-2" />
-            )}
-            Lançar Notas
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                className="bg-primary hover:bg-primary/90"
+                disabled={hasPending}
+              >
+                {hasPending ? (
+                  <Lock className="w-4 h-4 mr-2" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                Lançar Notas
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4" />
+                Selecione a Turma
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {activeTurmas.length === 0 ? (
+                <div className="px-2 py-3 text-sm text-muted-foreground text-center">
+                  Nenhuma turma ativa encontrada
+                </div>
+              ) : (
+                activeTurmas.map((turma) => (
+                  <DropdownMenuItem
+                    key={turma.id}
+                    onClick={() => handleTurmaSelect(turma)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{turma.nome}</span>
+                      {turma.curso && (
+                        <span className="text-xs text-muted-foreground">{turma.curso}</span>
+                      )}
+                    </div>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline">
             <Download className="w-4 h-4 mr-2" />
             Exportar
