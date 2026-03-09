@@ -318,10 +318,10 @@ export const ProgrammaticContent = () => {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
-                Plano de Aulas — IA ({aulasSalvas.length})
+                Plano de Aulas ({filteredAulas.length})
               </h2>
               <div className="grid gap-3">
-                {aulasSalvas.map((aula) => (
+                {filteredAulas.map((aula) => (
                   <Card key={aula.id} className="gradient-card">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-2">
