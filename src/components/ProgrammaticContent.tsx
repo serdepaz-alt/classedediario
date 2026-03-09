@@ -125,10 +125,11 @@ export const ProgrammaticContent = () => {
     setSelectedDate(undefined);
   };
 
-  const handleImportComplete = (aulas: AulaGerada[], disciplinaNome: string) => {
-    // Find the selected disciplina to get its ID and turma_id
+  const handleImportComplete = (aulas: AulaGerada[], disciplinaNome: string, disciplinaId?: string, turmaId?: string) => {
     salvarAulasImportadas.mutate({
       aulasData: aulas,
+      disciplinaId,
+      turmaId,
       disciplinaNome,
     });
   };
