@@ -39,6 +39,8 @@ export interface ProfessorLogado {
   nome: string;
   disciplinas_lecionar: string[];
   turma_ids: string[];
+  disciplina_atual: string | null;
+  turma_atual_id: string | null;
 }
 
 export const useNotes = () => {
@@ -112,18 +114,43 @@ export const useNotes = () => {
         // Get turma_ids from cronograma where this professor teaches
         const { data: aulas } = await supabase
           .from("cronograma_mestre")
-          .select("turma_id")
+          .select("turma_id, disciplina_id, data_aula, hora_inicio, hora_fim, cad_disciplinas!cronograma_mestre_disciplina_id_fkey(nome)")
           .eq("user_id", user.id)
           .eq("professor_id", me.id)
           .not("turma_id", "is", null);
 
         const turmaIds = [...new Set((aulas || []).map(a => a.turma_id).filter(Boolean))] as string[];
 
+        // Detect current discipline (today's date, current time)
+        const hoje = new Date().toISOString().split("T")[0];
+        const agora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
+        let disciplinaAtual: string | null = null;
+        let turmaAtualId: string | null = null;
+
+        const aulaHoje = (aulas || []).find((a: any) => 
+          a.data_aula === hoje && a.hora_inicio <= agora && a.hora_fim >= agora
+        );
+        if (aulaHoje) {
+          disciplinaAtual = (aulaHoje as any).cad_disciplinas?.nome || null;
+          turmaAtualId = aulaHoje.turma_id;
+        } else {
+          // Fallback: next class today
+          const proxima = (aulas || [])
+            .filter((a: any) => a.data_aula === hoje && a.hora_inicio >= agora)
+            .sort((a: any, b: any) => a.hora_inicio.localeCompare(b.hora_inicio))[0];
+          if (proxima) {
+            disciplinaAtual = (proxima as any).cad_disciplinas?.nome || null;
+            turmaAtualId = proxima.turma_id;
+          }
+        }
+
         setProfessorLogado({
           id: me.id,
           nome: me.nome,
           disciplinas_lecionar: discs,
           turma_ids: turmaIds,
+          disciplina_atual: disciplinaAtual,
+          turma_atual_id: turmaAtualId,
         });
       }
     }
