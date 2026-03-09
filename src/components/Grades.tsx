@@ -233,23 +233,24 @@ export const Grades = () => {
     ? filteredByTurma.reduce((sum, student) => sum + calculateStudentOverallAverage(student.grades), 0) / filteredByTurma.length
     : 0;
   
-  const studentsAbove7 = filteredByTurma.filter(student => 
-    calculateStudentOverallAverage(student.grades) >= 7.0).length;
+  const studentsApproved = filteredByTurma.filter(student => 
+    calculateStudentOverallAverage(student.grades) >= 6.0).length;
   
-  const percentAbove7 = filteredByTurma.length > 0
-    ? Math.round((studentsAbove7 / filteredByTurma.length) * 100)
+  const percentApproved = filteredByTurma.length > 0
+    ? Math.round((studentsApproved / filteredByTurma.length) * 100)
     : 0;
   
   const allGradeValues = filteredByTurma.flatMap(student => Object.values(student.grades).flat());
   const highestGrade = allGradeValues.length > 0 ? Math.max(...allGradeValues) : 0;
 
-  // New KPIs: Recovery & Failed
-  const studentsInRecovery = filteredByTurma.filter(s => {
+  // Avaliação Final: avg >= 5.0 && < 6.0
+  const studentsInAvaliacaoFinal = filteredByTurma.filter(s => {
     const avg = calculateStudentOverallAverage(s.grades);
-    return avg >= 5.0 && avg < 7.0;
+    return avg >= 5.0 && avg < 6.0;
   }).length;
 
-  const studentsFailed = filteredByTurma.filter(s => {
+  // Mantido: avg > 0 && < 5.0
+  const studentsMantido = filteredByTurma.filter(s => {
     const avg = calculateStudentOverallAverage(s.grades);
     return avg > 0 && avg < 5.0;
   }).length;
