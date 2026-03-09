@@ -52,7 +52,7 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
   const [studentId, setStudentId] = useState("");
   const [titulo, setTitulo] = useState("");
   const [conteudo, setConteudo] = useState("");
-  const [tipo, setTipo] = useState("info");
+  const [tipo, setTipo] = useState("");
   const [prioridade, setPrioridade] = useState("normal");
   const [disciplina, setDisciplina] = useState("");
   const [professorNome, setProfessorNome] = useState("");
@@ -67,7 +67,7 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
   };
 
   const handleSubmit = () => {
-    if (!studentId || !titulo) return;
+    if (!studentId || !titulo || !tipo) return;
     onSave({
       student_id: studentId,
       turma_id: selectedStudent?.turma_id || null,
@@ -81,7 +81,7 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
     setStudentId("");
     setTitulo("");
     setConteudo("");
-    setTipo("info");
+    setTipo("");
     setPrioridade("normal");
     setDisciplina("");
     setProfessorNome("");
@@ -142,6 +142,7 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
             <div>
               <label className="text-sm font-medium mb-1 block">Tipo</label>
               <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                <option value="">Selecione...</option>
                 <option value="positive">Positiva</option>
                 <option value="attention">Atenção</option>
                 <option value="achievement">Conquista</option>
@@ -165,30 +166,34 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Conteúdo</label>
-            <Collapsible>
-              <CollapsibleTrigger className="text-xs text-primary/70 hover:text-primary underline cursor-pointer mb-2 inline-block">
-                Sugestões
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {sugestoes.map((s, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleSugestaoClick(s)}
-                      className="text-xs px-2.5 py-1.5 rounded-full bg-primary/8 text-primary/80 border border-primary/15 hover:bg-primary/15 hover:border-primary/30 transition-colors cursor-pointer"
-                    >
-                      {s.length > 55 ? s.substring(0, 55) + "…" : s}
-                    </button>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+            {tipo && sugestoes.length > 0 ? (
+              <Collapsible>
+                <CollapsibleTrigger className="text-xs text-primary/70 hover:text-primary underline cursor-pointer mb-2 inline-block">
+                  Sugestões
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {sugestoes.map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleSugestaoClick(s)}
+                        className="text-xs px-2.5 py-1.5 rounded-full bg-primary/8 text-primary/80 border border-primary/15 hover:bg-primary/15 hover:border-primary/30 transition-colors cursor-pointer"
+                      >
+                        {s.length > 55 ? s.substring(0, 55) + "…" : s}
+                      </button>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            ) : (
+              <span className="text-xs text-muted-foreground/50 mb-2 inline-block">Sugestões (selecione o tipo primeiro)</span>
+            )}
             <Textarea value={conteudo} onChange={(e) => setConteudo(e.target.value)} placeholder="Descreva sua observação ou clique numa sugestão acima..." className="min-h-[100px]" />
           </div>
           <div className="flex gap-3 justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button variant="gradient" disabled={!studentId || !titulo} onClick={handleSubmit}>Salvar Anotação</Button>
+            <Button variant="gradient" disabled={!studentId || !titulo || !tipo} onClick={handleSubmit}>Salvar Anotação</Button>
           </div>
         </div>
       </DialogContent>
