@@ -247,7 +247,7 @@ export const useSmartFinance = () => {
       return acc;
     }, {} as Record<string, { mes: string; mes_label: string; custo_previsto: number; custo_realizado: number }>);
 
-    const monthlyData = Object.values(monthlyAgg)
+    const monthlyData = (Object.values(monthlyAgg) as Array<{ mes: string; mes_label: string; custo_previsto: number; custo_realizado: number }> )
       .map((m) => ({
         ...m,
         custo_previsto: Math.round(m.custo_previsto * 100) / 100,
@@ -270,7 +270,7 @@ export const useSmartFinance = () => {
       return acc;
     }, {} as Record<string, { turma_id: string; turma_nome: string; custo_previsto: number; custo_realizado: number }>);
 
-    const turmaData: FinanceTurmaMonth[] = Object.values(turmaAgg).map((item) => {
+    const turmaData: FinanceTurmaMonth[] = (Object.values(turmaAgg) as Array<{ turma_id: string; turma_nome: string; custo_previsto: number; custo_realizado: number }>).map((item) => {
       const desvio = item.custo_realizado - item.custo_previsto;
       return {
         ...item,
