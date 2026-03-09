@@ -127,20 +127,60 @@ export const useNotes = () => {
         let disciplinaAtual: string | null = null;
         let turmaAtualId: string | null = null;
 
-        const aulaHoje = (aulas || []).find((a: any) => 
+        // 1) Try cronograma with disciplina_id set
+        const aulasComDisc = (aulas || []).filter((a: any) => a.disciplina_id);
+        const aulaHoje = aulasComDisc.find((a: any) =>
           a.data_aula === hoje && a.hora_inicio <= agora && a.hora_fim >= agora
         );
         if (aulaHoje) {
           disciplinaAtual = (aulaHoje as any).cad_disciplinas?.nome || null;
           turmaAtualId = aulaHoje.turma_id;
         } else {
-          // Fallback: next class today
-          const proxima = (aulas || [])
+          const proxima = aulasComDisc
             .filter((a: any) => a.data_aula === hoje && a.hora_inicio >= agora)
             .sort((a: any, b: any) => a.hora_inicio.localeCompare(b.hora_inicio))[0];
           if (proxima) {
             disciplinaAtual = (proxima as any).cad_disciplinas?.nome || null;
             turmaAtualId = proxima.turma_id;
+          }
+        }
+
+        // 2) Fallback: find active discipline from `disciplinas` table by date range + turma
+        if (!disciplinaAtual && turmaIds.length > 0) {
+          const { data: discAtivas } = await supabase
+            .from("disciplinas")
+            .select("nome, turma_id")
+            .eq("user_id", user.id)
+            .in("turma_id", turmaIds)
+            .lte("data_inicio", hoje)
+            .gte("data_termino", hoje)
+            .limit(1);
+
+          if (discAtivas && discAtivas.length > 0) {
+            disciplinaAtual = discAtivas[0].nome;
+            turmaAtualId = discAtivas[0].turma_id;
+          }
+        }
+
+        // 3) Fallback: today's cronograma entry turma → any active discipline for that turma
+        if (!disciplinaAtual) {
+          const aulaHojeSemDisc = (aulas || []).find((a: any) =>
+            a.data_aula === hoje || (a.data_aula >= hoje)
+          );
+          if (aulaHojeSemDisc?.turma_id) {
+            const { data: discTurma } = await supabase
+              .from("disciplinas")
+              .select("nome, turma_id")
+              .eq("user_id", user.id)
+              .eq("turma_id", aulaHojeSemDisc.turma_id)
+              .lte("data_inicio", hoje)
+              .gte("data_termino", hoje)
+              .limit(1);
+
+            if (discTurma && discTurma.length > 0) {
+              disciplinaAtual = discTurma[0].nome;
+              turmaAtualId = discTurma[0].turma_id;
+            }
           }
         }
 
