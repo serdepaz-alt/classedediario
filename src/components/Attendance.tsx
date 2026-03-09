@@ -638,6 +638,11 @@ export const Attendance = () => {
   };
 
   const handleSaveClick = () => {
+    // Reset lesson plan state for the dialog
+    setSelectedAulaId(null);
+    setSeguiuPlanejado(true);
+    setConteudoMinistrado("");
+    setObservacoesAula("");
     setShowConfirmDialog(true);
   };
 
