@@ -41,7 +41,6 @@ const adminSubMenuItems = [
   { icon: Bell, label: "Backlog", path: "/backlog" },
   { icon: ShieldAlert, label: "Gestão de Exceções", path: "/gestao-excecoes" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
-  { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: Settings, label: "Configurações", path: "/admin", requiresAuth: true },
 ];
 
@@ -54,6 +53,7 @@ const financeSubMenuItems = [
 const pedagogicoSubMenuItems = [
   { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
   { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
+  { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: UserCheck, label: "Professores", path: "/professores" },
   { icon: Users, label: "Estudantes", path: "/students" },
 ];
