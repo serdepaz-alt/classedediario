@@ -124,6 +124,11 @@ export const ProgrammaticContent = () => {
     setSelectedDate(undefined);
   };
 
+  const handleImportComplete = (aulas: AulaGerada[], disciplinaNome: string) => {
+    setImportedAulas(aulas);
+    toast.success(`${aulas.length} aulas importadas para ${disciplinaNome}`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
