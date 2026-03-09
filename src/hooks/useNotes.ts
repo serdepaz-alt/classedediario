@@ -203,7 +203,7 @@ export const useNotes = () => {
 
   const createAnotacao = async (form: AnotacaoForm) => {
     if (!user) return;
-    const { error } = await supabase.from("anotacoes").insert({
+    const { data, error } = await supabase.from("anotacoes").insert({
       user_id: user.id,
       student_id: form.student_id,
       turma_id: form.turma_id || null,
@@ -214,12 +214,40 @@ export const useNotes = () => {
       disciplina: form.disciplina || null,
       professor_nome: form.professor_nome || null,
       status_acompanhamento: form.status_acompanhamento || "pendente",
-    });
+    }).select("id").single();
     if (error) {
       toast.error("Erro ao salvar anotação");
       console.error(error);
     } else {
       toast.success("Anotação salva com sucesso!");
+      // Create backlog items for professor + admin
+      if (data?.id) {
+        const backlogItems = [
+          {
+            user_id: user.id,
+            anotacao_id: data.id,
+            responsavel_tipo: "admin",
+            responsavel_nome: "Administrativo",
+            titulo: `[Admin] ${form.titulo}`,
+            descricao: form.conteudo,
+            prioridade: form.prioridade,
+            status: "pendente",
+            lido: false,
+          },
+          {
+            user_id: user.id,
+            anotacao_id: data.id,
+            responsavel_tipo: "professor",
+            responsavel_nome: form.professor_nome || "Professor",
+            titulo: `[Prof] ${form.titulo}`,
+            descricao: form.conteudo,
+            prioridade: form.prioridade,
+            status: "pendente",
+            lido: false,
+          },
+        ];
+        await supabase.from("backlog_anotacoes").insert(backlogItems);
+      }
       fetchAnotacoes();
     }
   };
