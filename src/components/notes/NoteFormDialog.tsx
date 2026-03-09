@@ -55,7 +55,7 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
   const [prioridade, setPrioridade] = useState("normal");
   const [disciplina, setDisciplina] = useState("");
   const [professorNome, setProfessorNome] = useState("");
-  const [usandoSugestao, setUsandoSugestao] = useState(false);
+  
 
   const selectedStudent = students.find(s => s.id === studentId);
   const sugestoes = useMemo(() => sugestoesPorTipo[tipo] || [], [tipo]);
