@@ -51,7 +51,7 @@ export const Turmas = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTurno, setSelectedTurno] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("Ativa");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -69,23 +69,31 @@ export const Turmas = () => {
     if (user) fetchTurmas();
   }, [user]);
 
-  // Auto-update status to "Concluída"
+  // Auto-update status to "Concluída" only when all disciplines are done
   useEffect(() => {
     if (Object.keys(statsMap).length === 0) return;
     turmas.forEach(async (turma) => {
       const s = statsMap[turma.id];
-      if (
+      const shouldBeConcluida =
         s &&
         s.totalDisciplinas > 0 &&
         s.disciplinasConcluidas === s.totalDisciplinas &&
-        turma.status === "Ativa"
-      ) {
-        await supabase
-          .from("turmas")
-          .update({ status: "Concluída" })
-          .eq("id", turma.id);
+        turma.status === "Ativa";
+      const shouldBeAtiva =
+        s &&
+        s.totalDisciplinas > 0 &&
+        s.disciplinasConcluidas < s.totalDisciplinas &&
+        turma.status === "Concluída";
+
+      if (shouldBeConcluida) {
+        await supabase.from("turmas").update({ status: "Concluída" }).eq("id", turma.id);
         setTurmas((prev) =>
           prev.map((t) => (t.id === turma.id ? { ...t, status: "Concluída" } : t))
+        );
+      } else if (shouldBeAtiva) {
+        await supabase.from("turmas").update({ status: "Ativa" }).eq("id", turma.id);
+        setTurmas((prev) =>
+          prev.map((t) => (t.id === turma.id ? { ...t, status: "Ativa" } : t))
         );
       }
     });
@@ -309,6 +317,9 @@ export const Turmas = () => {
         <span><strong>HE</strong> – Hemodiálise</span>
         <span><strong>EM</strong> – Emergência</span>
         <span><strong>CI</strong> – Cuidador de Idosos</span>
+        <span><strong>AT</strong> – Atualização</span>
+        <span><strong>HC</strong> – Home Care</span>
+        <span><strong>CC</strong> – CME e CC</span>
       </div>
 
       {/* Content */}

@@ -82,8 +82,9 @@ export const TurmaDetailsDialog = ({
       setStudents(studentsRes.data || []);
       setDisciplinas(discRes.data || []);
 
-      // Fetch medias for students
       const studentIds = (studentsRes.data || []).map((s) => s.id);
+      const disciplinaIds = (discRes.data || []).map((d) => d.id);
+
       if (studentIds.length > 0) {
         const { data: mediasData } = await supabase
           .from("medias_alunos")
@@ -92,12 +93,18 @@ export const TurmaDetailsDialog = ({
           .in("student_id", studentIds);
         setMedias(mediasData || []);
 
-        // Fetch presencas
-        const { data: presencasRaw } = await supabase
+        // Fetch presencas filtered to this turma's disciplines only
+        const presencasQuery = supabase
           .from("presencas")
           .select("student_id, status")
           .eq("user_id", user.id)
           .in("student_id", studentIds);
+
+        if (disciplinaIds.length > 0) {
+          presencasQuery.in("disciplina_id", disciplinaIds);
+        }
+
+        const { data: presencasRaw } = await presencasQuery;
 
         if (presencasRaw) {
           const map: Record<string, { total: number; presentes: number }> = {};
@@ -145,8 +152,8 @@ export const TurmaDetailsDialog = ({
   const getStudentSituacao = (studentId: string) => {
     const studentMedias = medias.filter((m) => m.student_id === studentId);
     if (studentMedias.length === 0) return "Em Andamento";
-    const allDone = studentMedias.every((m) => m.situacao && m.situacao !== "Em Andamento");
-    if (!allDone) return "Em Andamento";
+    const hasInProgress = studentMedias.some((m) => !m.situacao || m.situacao === "Em Andamento");
+    if (hasInProgress) return "Em Andamento";
     const allApproved = studentMedias.every((m) => m.situacao === "Aprovado");
     return allApproved ? "Aprovado" : "Reprovado";
   };
