@@ -41,7 +41,7 @@ interface AttendanceTableViewProps {
   setJustificativa: (studentId: string, justificativa: string) => void;
   selectedStudents: Set<string>;
   toggleStudentSelection: (studentId: string) => void;
-  toggleSelectAll: () => void;
+  toggleSelectAll: (visibleStudentIds: string[]) => void;
   studentsAtRisk: Map<string, { absences: number; lates: number }>;
   onViewHistory: (student: Student) => void;
   searchQuery: string;
