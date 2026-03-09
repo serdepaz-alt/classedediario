@@ -83,6 +83,8 @@ export const ProgrammaticContent = () => {
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isImportPdfOpen, setIsImportPdfOpen] = useState(false);
+  const [importedAulas, setImportedAulas] = useState<AulaGerada[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [newContent, setNewContent] = useState({
     subject: "",
