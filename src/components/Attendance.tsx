@@ -587,11 +587,17 @@ export const Attendance = () => {
     setSelectedStudents(newSelection);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedStudents.size === students.length) {
-      setSelectedStudents(new Set());
+  const toggleSelectAll = (visibleStudentIds?: string[]) => {
+    const ids = visibleStudentIds ?? students.map((s) => s.id);
+    const allVisible = ids.every((id) => selectedStudents.has(id));
+    if (allVisible && ids.length > 0) {
+      const next = new Set(selectedStudents);
+      ids.forEach((id) => next.delete(id));
+      setSelectedStudents(next);
     } else {
-      setSelectedStudents(new Set(students.map((s) => s.id)));
+      const next = new Set(selectedStudents);
+      ids.forEach((id) => next.add(id));
+      setSelectedStudents(next);
     }
   };
 
