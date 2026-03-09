@@ -40,16 +40,19 @@ const mainMenuItems = [
 const adminSubMenuItems = [
   { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
   { icon: Bell, label: "Backlog", path: "/backlog" },
-  { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
-  { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
   { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
   { icon: ShieldAlert, label: "Gestão de Exceções", path: "/gestao-excecoes" },
-  { icon: Wallet, label: "Pagamentos", path: "/payroll" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: UserCheck, label: "Professores", path: "/professores" },
   { icon: Users, label: "Estudantes", path: "/students" },
   { icon: Settings, label: "Configurações", path: "/admin", requiresAuth: true },
+];
+
+const financeSubMenuItems = [
+  { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
+  { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
+  { icon: Wallet, label: "Pagamentos", path: "/payroll" },
 ];
 
 export const Sidebar = () => {
