@@ -1,8 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { BacklogItem } from "@/hooks/useBacklog";
 import {
-  CheckCircle, Clock, AlertTriangle, User, Briefcase, GripVertical,
+  CheckCircle, Clock, AlertTriangle, User, Briefcase, Mail,
 } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
@@ -15,10 +16,12 @@ interface Props {
   item: BacklogItem;
   onStatusChange: (id: string, status: string) => void;
   onMarkRead: (id: string) => void;
+  onTriagem?: (item: BacklogItem) => void;
 }
 
-export const KanbanCard = ({ item, onStatusChange, onMarkRead }: Props) => {
+export const KanbanCard = ({ item, onStatusChange, onMarkRead, onTriagem }: Props) => {
   const st = statusConfig[item.status] || statusConfig.pendente;
+  const canSendMail = item.responsavel_tipo === "admin" && item.status !== "concluido";
 
   return (
     <Card
@@ -28,7 +31,20 @@ export const KanbanCard = ({ item, onStatusChange, onMarkRead }: Props) => {
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-2">
           <h4 className="text-sm font-medium text-foreground leading-tight flex-1">{item.titulo.replace(/^\[(Admin|Prof)\]\s*/, "")}</h4>
-          {!item.lido && <Badge variant="default" className="text-[10px] px-1.5 py-0 shrink-0">Novo</Badge>}
+          <div className="flex items-center gap-1 shrink-0">
+            {!item.lido && <Badge variant="default" className="text-[10px] px-1.5 py-0">Novo</Badge>}
+            {canSendMail && onTriagem && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                title="Triagem — Enviar comunicado"
+                onClick={(e) => { e.stopPropagation(); onTriagem(item); }}
+              >
+                <Mail className="w-3.5 h-3.5 text-primary" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {item.descricao && (
