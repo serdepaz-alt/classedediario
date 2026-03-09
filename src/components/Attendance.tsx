@@ -536,7 +536,7 @@ export const Attendance = () => {
         studentStats.forEach((stats, studentId) => {
           riskMap.set(studentId, { absences: stats.absences, lates: stats.lates });
           const student = students.find((s) => s.id === studentId);
-          if (student && (stats.absences >= 2 || stats.lates >= 3)) {
+          if (student && (stats.absences >= 2 || stats.lates >= 2)) {
             const percentage = Math.round(((stats.total - stats.absences) / stats.total) * 100);
             atRisk.push({ name: student.nome, percentage, absences: stats.absences });
           }
