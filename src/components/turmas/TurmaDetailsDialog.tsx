@@ -82,36 +82,42 @@ export const TurmaDetailsDialog = ({
       setStudents(studentsRes.data || []);
       setDisciplinas(discRes.data || []);
 
-      // Fetch medias for students
-      const studentIds = (studentsRes.data || []).map((s) => s.id);
-      if (studentIds.length > 0) {
-        const { data: mediasData } = await supabase
-          .from("medias_alunos")
-          .select("student_id, disciplina_id, media_final, situacao")
-          .eq("user_id", user.id)
-          .in("student_id", studentIds);
-        setMedias(mediasData || []);
+        const disciplinaIds = (discRes.data || []).map((d) => d.id);
 
-        // Fetch presencas
-        const { data: presencasRaw } = await supabase
-          .from("presencas")
-          .select("student_id, status")
-          .eq("user_id", user.id)
-          .in("student_id", studentIds);
+        if (studentIds.length > 0) {
+          const { data: mediasData } = await supabase
+            .from("medias_alunos")
+            .select("student_id, disciplina_id, media_final, situacao")
+            .eq("user_id", user.id)
+            .in("student_id", studentIds);
+          setMedias(mediasData || []);
 
-        if (presencasRaw) {
-          const map: Record<string, { total: number; presentes: number }> = {};
-          for (const p of presencasRaw) {
-            if (!p.student_id) continue;
-            if (!map[p.student_id]) map[p.student_id] = { total: 0, presentes: 0 };
-            map[p.student_id].total++;
-            if (p.status === "presente") map[p.student_id].presentes++;
+          // Fetch presencas filtered to this turma's disciplines only
+          const presencasQuery = supabase
+            .from("presencas")
+            .select("student_id, status")
+            .eq("user_id", user.id)
+            .in("student_id", studentIds);
+
+          if (disciplinaIds.length > 0) {
+            presencasQuery.in("disciplina_id", disciplinaIds);
           }
-          setPresencas(
-            Object.entries(map).map(([student_id, v]) => ({ student_id, ...v }))
-          );
+
+          const { data: presencasRaw } = await presencasQuery;
+
+          if (presencasRaw) {
+            const map: Record<string, { total: number; presentes: number }> = {};
+            for (const p of presencasRaw) {
+              if (!p.student_id) continue;
+              if (!map[p.student_id]) map[p.student_id] = { total: 0, presentes: 0 };
+              map[p.student_id].total++;
+              if (p.status === "presente") map[p.student_id].presentes++;
+            }
+            setPresencas(
+              Object.entries(map).map(([student_id, v]) => ({ student_id, ...v }))
+            );
+          }
         }
-      }
     } catch (error) {
       console.error("Error fetching turma details:", error);
     } finally {
@@ -145,8 +151,8 @@ export const TurmaDetailsDialog = ({
   const getStudentSituacao = (studentId: string) => {
     const studentMedias = medias.filter((m) => m.student_id === studentId);
     if (studentMedias.length === 0) return "Em Andamento";
-    const allDone = studentMedias.every((m) => m.situacao && m.situacao !== "Em Andamento");
-    if (!allDone) return "Em Andamento";
+    const hasInProgress = studentMedias.some((m) => !m.situacao || m.situacao === "Em Andamento");
+    if (hasInProgress) return "Em Andamento";
     const allApproved = studentMedias.every((m) => m.situacao === "Aprovado");
     return allApproved ? "Aprovado" : "Reprovado";
   };
