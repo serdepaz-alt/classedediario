@@ -38,7 +38,7 @@ const professorSchema = z.object({
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   telefone: z.string().max(20).optional().or(z.literal("")),
   telefone2: z.string().max(20).optional().or(z.literal("")),
-  valor_hora: z.coerce.number().min(0).default(50),
+  valor_hora: z.coerce.number().min(0).default(50).optional(),
   especialidade: z.string().max(100).optional().or(z.literal("")),
   status: z.string().optional(),
   rg: z.string().max(20).optional().or(z.literal("")),
@@ -479,24 +479,59 @@ export const ProfessorFormDialog = ({
               <FormField
                 control={form.control}
                 name="turnos_disponiveis"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Turnos Disponíveis</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {TURNOS.map((t) => (
-                          <SelectItem key={t} value={t}>{t}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const selected = field.value ? field.value.split(", ").filter(Boolean) : [];
+                  const toggleTurno = (turno: string) => {
+                    const updated = selected.includes(turno)
+                      ? selected.filter((s) => s !== turno)
+                      : [...selected, turno];
+                    field.onChange(updated.join(", "));
+                  };
+                  return (
+                    <FormItem>
+                      <FormLabel>Turnos Disponíveis</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-full justify-between h-auto min-h-10 font-normal"
+                            >
+                              {selected.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {selected.map((s) => (
+                                    <Badge key={s} variant="secondary" className="text-xs">
+                                      {s}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">Selecione...</span>
+                              )}
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[220px] p-2" align="start">
+                          {TURNOS.map((t) => (
+                            <label
+                              key={t}
+                              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm"
+                            >
+                              <Checkbox
+                                checked={selected.includes(t)}
+                                onCheckedChange={() => toggleTurno(t)}
+                              />
+                              {t}
+                            </label>
+                          ))}
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 

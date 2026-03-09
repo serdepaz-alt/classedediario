@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreVertical, Pencil, Trash2, Mail, Phone, GraduationCap, Briefcase, MessageCircle, CalendarDays, Clock, Users } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Mail, Phone, GraduationCap, Briefcase, MessageCircle, Users } from "lucide-react";
 import type { ProfessorStats } from "@/hooks/useProfessorStats";
 
 const cleanPhone = (phone: string) => phone.replace(/\D/g, "");
