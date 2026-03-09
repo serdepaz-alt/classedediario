@@ -364,6 +364,12 @@ export const Attendance = () => {
 
       if (!error && data) {
         setDisciplinas(data);
+        // Validate selectedDisciplina still exists in the loaded list; clear if stale/phantom
+        setSelectedDisciplina((prev) => {
+          if (!prev) return null;
+          const found = data.find((d) => d.id === prev.id);
+          return found ?? null;
+        });
       }
     };
 
