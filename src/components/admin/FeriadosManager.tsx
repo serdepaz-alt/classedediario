@@ -59,16 +59,19 @@ export const FeriadosManager = () => {
         end: parseISO(formData.data_fim),
       }).filter((d) => !isWeekend(d));
 
-      for (const day of days) {
+      const daysFormatted = days.map((d) => format(d, "yyyy-MM-dd"));
+      for (const dayStr of daysFormatted) {
         await createFeriado.mutateAsync({
-          data: format(day, "yyyy-MM-dd"),
+          data: dayStr,
           nome: formData.nome,
           tipo: formData.tipo,
         });
       }
       setIsDialogOpen(false);
       // Trigger cascade for entire range
-      await calculateCascade(formData.data);
+      if (daysFormatted.length > 0) {
+        await calculateCascade(daysFormatted);
+      }
       resetForm();
       return;
     }
@@ -76,6 +79,7 @@ export const FeriadosManager = () => {
     if (editingFeriado) {
       await updateFeriado.mutateAsync({ id: editingFeriado, ...formData });
       setIsDialogOpen(false);
+      await calculateCascade(formData.data);
       resetForm();
       return;
     }
@@ -96,6 +100,7 @@ export const FeriadosManager = () => {
   const handleDelete = async (id: string) => {
     if (confirm("Tem certeza que deseja remover este feriado?")) {
       await deleteFeriado.mutateAsync(id);
+      toast.info("Aulas previamente realocadas por este feriado não voltam automaticamente para a data original.", { duration: 6000 });
     }
   };
 
@@ -119,12 +124,18 @@ export const FeriadosManager = () => {
         return;
       }
 
+      const datesToCascade = [];
       for (const f of novos) {
         await createFeriado.mutateAsync(f);
+        datesToCascade.push(f.data);
       }
 
       toast.success(`${novos.length} feriado(s) nacional(is) de ${ano} importados!`);
       setIsImportDialogOpen(false);
+      
+      if (datesToCascade.length > 0) {
+        await calculateCascade(datesToCascade);
+      }
     } catch (err) {
       console.error(err);
       toast.error("Erro ao importar feriados nacionais");
