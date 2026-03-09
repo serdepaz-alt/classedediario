@@ -113,6 +113,36 @@ export const ProgrammaticContent = () => {
         </TabsList>
 
         <TabsContent value="registros" className="mt-6 space-y-6">
+          {/* Padrões de Disciplinas - Summary */}
+          {padroesDisciplinas.length > 0 && (
+            <Card className="gradient-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-primary" />
+                  Disciplinas do Padrão de Marcação ({padroesDisciplinas.length})
+                </CardTitle>
+                <CardDescription>Disciplinas configuradas para carga de dados</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex flex-wrap gap-2">
+                  {padroesDisciplinas.slice(0, 5).map((padrao) => (
+                    <Badge 
+                      key={padrao.id} 
+                      variant="outline" 
+                      className="cursor-pointer hover:bg-primary/10"
+                      onClick={() => setSelectedSubject(padrao.nome)}
+                    >
+                      {padrao.nome}
+                      <span className="ml-1 text-[10px] text-muted-foreground">
+                        ({padrao.carga_horaria_total}h)
+                      </span>
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Add Button */}
           <div className="flex justify-end gap-2">
             <Button variant="outline" className="gap-2" onClick={() => setIsImportPdfOpen(true)}>
