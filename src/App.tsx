@@ -21,6 +21,7 @@ import GestaoExcecoesPage from "./pages/GestaoExcecoesPage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
 import PayrollPage from "./pages/PayrollPage";
+import BacklogPage from "./pages/BacklogPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
             <Route path="/grades" element={<ProtectedRoute><GradesPage /></ProtectedRoute>} />
             <Route path="/notes" element={<ProtectedRoute><NotesPage /></ProtectedRoute>} />
+            <Route path="/backlog" element={<ProtectedRoute><BacklogPage /></ProtectedRoute>} />
             <Route path="/programmatic-content" element={<ProtectedRoute><ProgrammaticContentPage /></ProtectedRoute>} />
             <Route path="/turmas" element={<ProtectedRoute><TurmasPage /></ProtectedRoute>} />
             <Route path="/predictive" element={<ProtectedRoute><PredictivePage /></ProtectedRoute>} />
