@@ -288,9 +288,9 @@ Data: ${new Date().toLocaleDateString("pt-BR")}
 RESUMO
 ------
 Média Geral: ${classAverage.toFixed(1)}
-Acima de 7.0: ${percentAbove7}%
-Em Recuperação: ${studentsInRecovery}
-Reprovados: ${studentsFailed}
+Aprovados (≥6.0): ${percentApproved}%
+Avaliação Final: ${studentsInAvaliacaoFinal}
+Mantidos: ${studentsMantido}
 Maior Nota: ${highestGrade.toFixed(1)}
 
 RANKING DOS ALUNOS
