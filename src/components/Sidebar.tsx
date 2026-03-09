@@ -62,9 +62,10 @@ export const Sidebar = () => {
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const { unreadCount } = useBacklog();
   
-  // Check if any admin submenu is active
-  const isAdminSectionActive = adminSubMenuItems.some(item => location.pathname === item.path);
+  const isFinanceSectionActive = financeSubMenuItems.some(item => location.pathname === item.path);
+  const isAdminSectionActive = adminSubMenuItems.some(item => location.pathname === item.path) || isFinanceSectionActive;
   const [isAdminOpen, setIsAdminOpen] = useState(isAdminSectionActive);
+  const [isFinanceOpen, setIsFinanceOpen] = useState(isFinanceSectionActive);
 
   const handleSignOut = async () => {
     await signOut();
