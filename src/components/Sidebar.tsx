@@ -20,7 +20,7 @@ import {
   BrainCircuit,
   UserCheck,
   CalendarClock,
-  Settings,
+  CalendarRange,
   ChevronDown,
   ChevronRight,
   DollarSign,
