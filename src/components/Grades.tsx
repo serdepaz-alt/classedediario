@@ -301,7 +301,7 @@ DETALHAMENTO POR DISCIPLINA
 ----------------------------
 ${filteredByTurma.map(s => {
   const avg = calculateStudentOverallAverage(s.grades);
-  const status = avg >= 7.0 ? "APROVADO" : avg >= 5.0 ? "RECUPERAÇÃO" : avg > 0 ? "REPROVADO" : "SEM NOTAS";
+  const status = avg >= 6.0 ? "APROVADO" : avg >= 5.0 ? "AVALIAÇÃO FINAL" : avg > 0 ? "MANTIDO" : "SEM NOTAS";
   const detalhes = subjects.map(sub => {
     const grades = s.grades[sub] || [];
     return grades.length > 0 ? `  ${sub}: ${grades.map(g => g.toFixed(1)).join(", ")} (Média: ${calculateAverage(grades).toFixed(1)})` : `  ${sub}: —`;
