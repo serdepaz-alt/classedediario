@@ -58,10 +58,13 @@ export const NoteFormDialog = ({ open, onOpenChange, allStudents, professorLogad
   const [disciplina, setDisciplina] = useState("");
   const [professorNome, setProfessorNome] = useState("");
 
-  // Auto-set professor logado
+  // Auto-set professor logado and current discipline
   useEffect(() => {
-    if (professorLogado && !professorNome) {
-      setProfessorNome(professorLogado.nome);
+    if (professorLogado && open) {
+      if (!professorNome) setProfessorNome(professorLogado.nome);
+      if (professorLogado.disciplina_atual && !disciplina) {
+        setDisciplina(professorLogado.disciplina_atual);
+      }
     }
   }, [professorLogado, open]);
 
@@ -178,10 +181,15 @@ export const NoteFormDialog = ({ open, onOpenChange, allStudents, professorLogad
             )}
           </div>
 
-          {/* Disciplina - do professor */}
+          {/* Disciplina - atual do cronograma */}
           <div>
             <label className="text-sm font-medium mb-1 block">Disciplina</label>
-            {disciplinasDisponiveis.length > 0 ? (
+            {professorLogado?.disciplina_atual ? (
+              <div className="flex items-center gap-2">
+                <Input value={professorLogado.disciplina_atual} disabled className="flex-1 bg-muted/30" />
+                <Badge variant="outline" className="text-xs whitespace-nowrap">Atual</Badge>
+              </div>
+            ) : disciplinasDisponiveis.length > 0 ? (
               <select
                 value={disciplina}
                 onChange={(e) => setDisciplina(e.target.value)}
