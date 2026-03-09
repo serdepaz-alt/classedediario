@@ -34,12 +34,19 @@ export interface AnotacaoForm {
   status_acompanhamento?: string;
 }
 
+export interface ProfessorLogado {
+  id: string;
+  nome: string;
+  disciplinas_lecionar: string[];
+  turma_ids: string[];
+}
+
 export const useNotes = () => {
   const { user } = useAuth();
   const [anotacoes, setAnotacoes] = useState<Anotacao[]>([]);
-  const [students, setStudents] = useState<{ id: string; nome: string; turma_id: string | null; turma_nome?: string }[]>([]);
-  const [disciplinasPadrao, setDisciplinasPadrao] = useState<string[]>([]);
-  const [professores, setProfessores] = useState<{ id: string; nome: string }[]>([]);
+  const [allStudents, setAllStudents] = useState<{ id: string; nome: string; turma_id: string | null; turma_nome?: string }[]>([]);
+  const [professorLogado, setProfessorLogado] = useState<ProfessorLogado | null>(null);
+  const [professores, setProfessores] = useState<{ id: string; nome: string; disciplinas_lecionar: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchAnotacoes = useCallback(async () => {
@@ -67,7 +74,7 @@ export const useNotes = () => {
   const fetchSupport = useCallback(async () => {
     if (!user) return;
 
-    // Students
+    // All active students
     const { data: sts } = await supabase
       .from("students")
       .select("id, nome, turma_id, turmas(nome)")
@@ -75,28 +82,51 @@ export const useNotes = () => {
       .eq("status", "Ativo")
       .order("nome");
     if (sts) {
-      setStudents(sts.map((s: any) => ({ id: s.id, nome: s.nome, turma_id: s.turma_id, turma_nome: s.turmas?.nome || null })));
+      setAllStudents(sts.map((s: any) => ({ id: s.id, nome: s.nome, turma_id: s.turma_id, turma_nome: s.turmas?.nome || null })));
     }
 
-    // Padroes disciplinas (nomes únicos)
-    const { data: pds } = await supabase
-      .from("padroes_disciplinas")
-      .select("nome")
-      .eq("user_id", user.id)
-      .order("nome");
-    if (pds) {
-      const unique = [...new Set(pds.map(p => p.nome))];
-      setDisciplinasPadrao(unique);
-    }
-
-    // Professores
+    // All professors
     const { data: profs } = await supabase
       .from("cad_professores")
-      .select("id, nome")
+      .select("id, nome, email, disciplinas_lecionar")
       .eq("user_id", user.id)
       .eq("status", "Ativo")
       .order("nome");
     if (profs) setProfessores(profs);
+
+    // Detect logged-in professor by email
+    if (user.email && profs) {
+      const me = profs.find(p => p.email === user.email);
+      if (me) {
+        // Parse disciplinas_lecionar (comma-separated or JSON array)
+        let discs: string[] = [];
+        if (me.disciplinas_lecionar) {
+          try {
+            const parsed = JSON.parse(me.disciplinas_lecionar);
+            discs = Array.isArray(parsed) ? parsed : [me.disciplinas_lecionar];
+          } catch {
+            discs = me.disciplinas_lecionar.split(",").map(d => d.trim()).filter(Boolean);
+          }
+        }
+
+        // Get turma_ids from cronograma where this professor teaches
+        const { data: aulas } = await supabase
+          .from("cronograma_mestre")
+          .select("turma_id")
+          .eq("user_id", user.id)
+          .eq("professor_id", me.id)
+          .not("turma_id", "is", null);
+
+        const turmaIds = [...new Set((aulas || []).map(a => a.turma_id).filter(Boolean))] as string[];
+
+        setProfessorLogado({
+          id: me.id,
+          nome: me.nome,
+          disciplinas_lecionar: discs,
+          turma_ids: turmaIds,
+        });
+      }
+    }
   }, [user]);
 
   useEffect(() => {
@@ -153,5 +183,5 @@ export const useNotes = () => {
     }
   };
 
-  return { anotacoes, students, disciplinasPadrao, professores, loading, createAnotacao, updateAnotacao, deleteAnotacao, refetch: fetchAnotacoes };
+  return { anotacoes, allStudents, professorLogado, professores, loading, createAnotacao, updateAnotacao, deleteAnotacao, refetch: fetchAnotacoes };
 };

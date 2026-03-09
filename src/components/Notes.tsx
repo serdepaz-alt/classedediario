@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 export const Notes = () => {
-  const { anotacoes, students, disciplinasPadrao, professores, loading, createAnotacao, updateAnotacao, deleteAnotacao } = useNotes();
+  const { anotacoes, allStudents, professorLogado, professores, loading, createAnotacao, updateAnotacao, deleteAnotacao } = useNotes();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -136,8 +136,8 @@ export const Notes = () => {
       <NoteFormDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        students={students}
-        disciplinasPadrao={disciplinasPadrao}
+        allStudents={allStudents}
+        professorLogado={professorLogado}
         professores={professores}
         onSave={handleSave}
       />
