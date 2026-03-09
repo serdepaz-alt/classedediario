@@ -51,11 +51,12 @@ export const ProgrammaticContent = () => {
     status: "planejado"
   });
 
-  const filteredContent = programmaticContent.filter(item => {
-    const matchesSearch = item.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.content.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSubject = selectedSubject === "all" || item.subject === selectedSubject;
-    const matchesStatus = selectedStatus === "all" || item.status === selectedStatus;
+  // Filtrar aulas salvas
+  const filteredAulas = aulasSalvas.filter(aula => {
+    const matchesSearch = aula.topico.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (aula.objetivo || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSubject = selectedSubject === "all" || aula.disciplina_nome === selectedSubject;
+    const matchesStatus = selectedStatus === "all" || aula.status === selectedStatus;
     
     return matchesSearch && matchesSubject && matchesStatus;
   });
