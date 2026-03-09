@@ -132,6 +132,7 @@ export type Database = {
           lido: boolean
           prioridade: string
           professor_id: string | null
+          quadro: string
           responsavel_nome: string | null
           responsavel_tipo: string
           status: string
@@ -147,6 +148,7 @@ export type Database = {
           lido?: boolean
           prioridade?: string
           professor_id?: string | null
+          quadro?: string
           responsavel_nome?: string | null
           responsavel_tipo?: string
           status?: string
@@ -162,6 +164,7 @@ export type Database = {
           lido?: boolean
           prioridade?: string
           professor_id?: string | null
+          quadro?: string
           responsavel_nome?: string | null
           responsavel_tipo?: string
           status?: string

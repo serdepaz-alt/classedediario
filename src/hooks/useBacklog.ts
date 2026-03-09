@@ -14,15 +14,17 @@ export interface BacklogItem {
   descricao: string | null;
   status: string;
   prioridade: string;
+  quadro: string;
   lido: boolean;
   created_at: string;
   updated_at: string;
-  // joined
   anotacao_titulo?: string;
   anotacao_tipo?: string;
   student_nome?: string;
   turma_nome?: string;
 }
+
+export type QuadroType = "presenca" | "notas" | "anotacoes";
 
 export const useBacklog = () => {
   const { user } = useAuth();
@@ -52,7 +54,6 @@ export const useBacklog = () => {
     setLoading(false);
   }, [user]);
 
-  // Realtime subscription
   useEffect(() => {
     if (!user) return;
     fetchItems();
@@ -63,7 +64,13 @@ export const useBacklog = () => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "backlog_anotacoes", filter: `user_id=eq.${user.id}` },
         (payload) => {
-          toast.info("📋 Nova tarefa no backlog!", {
+          const quadroLabels: Record<string, string> = {
+            presenca: "Presença",
+            notas: "Notas",
+            anotacoes: "Anotações",
+          };
+          const q = (payload.new as any).quadro || "anotacoes";
+          toast.info(`📋 Nova tarefa — ${quadroLabels[q] || "Backlog"}`, {
             description: (payload.new as any).titulo,
             duration: 5000,
           });
@@ -77,6 +84,8 @@ export const useBacklog = () => {
 
   const unreadCount = items.filter(i => !i.lido).length;
   const pendingCount = items.filter(i => i.status === "pendente").length;
+
+  const getItemsByQuadro = (quadro: QuadroType) => items.filter(i => i.quadro === quadro);
 
   const markAsRead = async (id: string) => {
     if (!user) return;
@@ -105,37 +114,5 @@ export const useBacklog = () => {
     }
   };
 
-  const createBacklogItems = async (anotacaoId: string, titulo: string, descricao: string, prioridade: string, professorNome?: string) => {
-    if (!user) return;
-    const items = [
-      // Item for admin
-      {
-        user_id: user.id,
-        anotacao_id: anotacaoId,
-        responsavel_tipo: "admin",
-        responsavel_nome: "Administrativo",
-        titulo: `[Admin] ${titulo}`,
-        descricao,
-        prioridade,
-        status: "pendente",
-        lido: false,
-      },
-      // Item for professor (author)
-      {
-        user_id: user.id,
-        anotacao_id: anotacaoId,
-        responsavel_tipo: "professor",
-        responsavel_nome: professorNome || "Professor",
-        titulo: `[Prof] ${titulo}`,
-        descricao,
-        prioridade,
-        status: "pendente",
-        lido: false,
-      },
-    ];
-    const { error } = await supabase.from("backlog_anotacoes").insert(items);
-    if (error) console.error("Erro ao criar backlog:", error);
-  };
-
-  return { items, loading, unreadCount, pendingCount, fetchItems, markAsRead, markAllAsRead, updateStatus, createBacklogItems };
+  return { items, loading, unreadCount, pendingCount, getItemsByQuadro, fetchItems, markAsRead, markAllAsRead, updateStatus };
 };
