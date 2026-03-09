@@ -17,19 +17,8 @@ import { cn } from "@/lib/utils";
 import { DocumentUploadSection } from "@/components/programmatic/DocumentUploadSection";
 import { ImportPdfConteudoDialog, AulaGerada } from "@/components/programmatic/ImportPdfConteudoDialog";
 import { useConteudoProgramaticoAulas } from "@/hooks/useConteudoProgramaticoAulas";
+import { usePadroesDisciplinas } from "@/hooks/usePadroesDisciplinas";
 import { toast } from "sonner";
-
-// Mock data
-const subjects = [
-  "Matemática",
-  "Português", 
-  "História",
-  "Geografia",
-  "Ciências",
-  "Inglês",
-  "Educação Física",
-  "Arte"
-];
 
 const programmaticContent = [
   {
@@ -80,6 +69,11 @@ const statusMap = {
 };
 
 export const ProgrammaticContent = () => {
+  const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes } = usePadroesDisciplinas();
+  
+  // Extrair nomes únicos de disciplinas dos padrões
+  const subjects = padroesDisciplinas.map(p => p.nome);
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
