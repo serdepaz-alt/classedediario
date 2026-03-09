@@ -407,6 +407,9 @@ export const Attendance = () => {
         return;
       }
 
+      // Reset start time when teacher selects a new discipline/class
+      classStartTimeRef.current = new Date();
+
       const { data, error } = await supabase
         .from("students")
         .select("id, nome, matricula, email")
