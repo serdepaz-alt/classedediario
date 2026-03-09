@@ -1489,28 +1489,48 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
 
       {/* Confirm Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Chamada</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <p>Confirma o registro de presença para {selectedDate && format(selectedDate, "dd/MM/yyyy")}?</p>
-              <div className="grid grid-cols-3 gap-3 pt-2">
-                <div className="text-center p-2 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                  <p className="text-lg font-bold text-green-600">{todayStats.present}</p>
-                  <p className="text-xs text-muted-foreground">Presentes</p>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Confirma o registro de presença para {selectedDate && format(selectedDate, "dd/MM/yyyy")}?</p>
+                <div className="grid grid-cols-3 gap-3 pt-2">
+                  <div className="text-center p-2 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                    <p className="text-lg font-bold text-green-600">{todayStats.present}</p>
+                    <p className="text-xs text-muted-foreground">Presentes</p>
+                  </div>
+                  <div className="text-center p-2 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                    <p className="text-lg font-bold text-red-600">{todayStats.absent}</p>
+                    <p className="text-xs text-muted-foreground">Ausentes</p>
+                  </div>
+                  <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
+                    <p className="text-lg font-bold text-yellow-600">{todayStats.late}</p>
+                    <p className="text-xs text-muted-foreground">Atrasados</p>
+                  </div>
                 </div>
-                <div className="text-center p-2 bg-red-50 dark:bg-red-950/30 rounded-lg">
-                  <p className="text-lg font-bold text-red-600">{todayStats.absent}</p>
-                  <p className="text-xs text-muted-foreground">Ausentes</p>
-                </div>
-                <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
-                  <p className="text-lg font-bold text-yellow-600">{todayStats.late}</p>
-                  <p className="text-xs text-muted-foreground">Atrasados</p>
-                </div>
+                <p className="text-center pt-2">
+                  <span className="font-semibold">{Math.round((todayStats.present / todayStats.total) * 100)}%</span> de frequência
+                </p>
+
+                {/* Lesson Plan Selector */}
+                {selectedDisciplina && selectedDate && (
+                  <AttendanceLessonPlanSelector
+                    disciplinaId={selectedDisciplina.id}
+                    disciplinaNome={selectedDisciplina.nome}
+                    turmaId={selectedDisciplina.turma_id}
+                    selectedDate={selectedDate}
+                    selectedAulaId={selectedAulaId}
+                    onSelectAula={setSelectedAulaId}
+                    seguiuPlanejado={seguiuPlanejado}
+                    onSeguiuPlanejadoChange={setSeguiuPlanejado}
+                    conteudoMinistrado={conteudoMinistrado}
+                    onConteudoMinistradoChange={setConteudoMinistrado}
+                    observacoesAula={observacoesAula}
+                    onObservacoesAulaChange={setObservacoesAula}
+                  />
+                )}
               </div>
-              <p className="text-center pt-2">
-                <span className="font-semibold">{Math.round((todayStats.present / todayStats.total) * 100)}%</span> de frequência
-              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
