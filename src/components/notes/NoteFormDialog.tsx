@@ -140,7 +140,7 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium mb-1 block">Tipo</label>
-              <select value={tipo} onChange={(e) => { setTipo(e.target.value); setUsandoSugestao(false); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+              <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
                 <option value="positive">Positiva</option>
                 <option value="attention">Atenção</option>
                 <option value="achievement">Conquista</option>
