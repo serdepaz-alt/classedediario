@@ -68,12 +68,14 @@ export const useAutoCascade = () => {
     return format(candidate, "yyyy-MM-dd");
   };
 
-  const calculateCascade = async (holidayDate: string) => {
+  const calculateCascade = async (holidayDate: string | string[]) => {
     if (!user?.id) return;
     setIsCalculating(true);
 
+    const datesToCheck = Array.isArray(holidayDate) ? holidayDate : [holidayDate];
+
     try {
-      // Fetch all classes on the holiday date
+      // Fetch all classes on the holiday date(s)
       const { data: affectedAulas, error } = await supabase
         .from("cronograma_mestre")
         .select(`
@@ -83,7 +85,7 @@ export const useAutoCascade = () => {
           disciplina:cad_disciplinas(nome)
         `)
         .eq("user_id", user.id)
-        .eq("data_aula", holidayDate)
+        .in("data_aula", datesToCheck)
         .not("status_aula", "in", '("Realizada","Cancelada")');
 
       if (error) throw error;
