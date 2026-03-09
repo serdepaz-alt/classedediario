@@ -313,67 +313,8 @@ export const ProgrammaticContent = () => {
             </CardContent>
           </Card>
 
-          {/* Content List */}
-          <div className="grid gap-4">
-            {filteredContent.map((item) => (
-              <Card key={item.id} className="gradient-card hover:shadow-elevated transition-smooth">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <BookOpen className="w-5 h-5 text-primary" />
-                        {item.topic}
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-4 mt-1">
-                        <span className="flex items-center gap-1">
-                          <CalendarIcon className="w-4 h-4" />
-                          {format(item.date, "dd/MM/yyyy", { locale: ptBR })}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          {item.duration} min
-                        </span>
-                        <Badge variant="outline">{item.subject}</Badge>
-                      </CardDescription>
-                    </div>
-                    <Badge variant={statusMap[item.status as keyof typeof statusMap].variant}>
-                      {statusMap[item.status as keyof typeof statusMap].label}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-sm text-foreground mb-1">Objetivos:</h4>
-                    <p className="text-sm text-muted-foreground">{item.objectives}</p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold text-sm text-foreground mb-1">Conteúdo:</h4>
-                    <p className="text-sm text-muted-foreground">{item.content}</p>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <h5 className="font-medium text-foreground">Metodologia:</h5>
-                      <p className="text-muted-foreground">{item.methodology}</p>
-                    </div>
-                    <div>
-                      <h5 className="font-medium text-foreground">Recursos:</h5>
-                      <p className="text-muted-foreground">{item.resources}</p>
-                    </div>
-                    <div>
-                      <h5 className="font-medium text-foreground">Avaliação:</h5>
-                      <p className="text-muted-foreground">{item.assessment}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Aulas salvas do banco */}
-          {aulasSalvas.length > 0 && (
+          {/* Aulas salvas (com filtro) */}
+          {filteredAulas.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
