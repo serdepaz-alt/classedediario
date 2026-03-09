@@ -233,23 +233,24 @@ export const Grades = () => {
     ? filteredByTurma.reduce((sum, student) => sum + calculateStudentOverallAverage(student.grades), 0) / filteredByTurma.length
     : 0;
   
-  const studentsAbove7 = filteredByTurma.filter(student => 
-    calculateStudentOverallAverage(student.grades) >= 7.0).length;
+  const studentsApproved = filteredByTurma.filter(student => 
+    calculateStudentOverallAverage(student.grades) >= 6.0).length;
   
-  const percentAbove7 = filteredByTurma.length > 0
-    ? Math.round((studentsAbove7 / filteredByTurma.length) * 100)
+  const percentApproved = filteredByTurma.length > 0
+    ? Math.round((studentsApproved / filteredByTurma.length) * 100)
     : 0;
   
   const allGradeValues = filteredByTurma.flatMap(student => Object.values(student.grades).flat());
   const highestGrade = allGradeValues.length > 0 ? Math.max(...allGradeValues) : 0;
 
-  // New KPIs: Recovery & Failed
-  const studentsInRecovery = filteredByTurma.filter(s => {
+  // Avaliação Final: avg >= 5.0 && < 6.0
+  const studentsInAvaliacaoFinal = filteredByTurma.filter(s => {
     const avg = calculateStudentOverallAverage(s.grades);
-    return avg >= 5.0 && avg < 7.0;
+    return avg >= 5.0 && avg < 6.0;
   }).length;
 
-  const studentsFailed = filteredByTurma.filter(s => {
+  // Mantido: avg > 0 && < 5.0
+  const studentsMantido = filteredByTurma.filter(s => {
     const avg = calculateStudentOverallAverage(s.grades);
     return avg > 0 && avg < 5.0;
   }).length;
@@ -287,9 +288,9 @@ Data: ${new Date().toLocaleDateString("pt-BR")}
 RESUMO
 ------
 Média Geral: ${classAverage.toFixed(1)}
-Acima de 7.0: ${percentAbove7}%
-Em Recuperação: ${studentsInRecovery}
-Reprovados: ${studentsFailed}
+Aprovados (≥6.0): ${percentApproved}%
+Avaliação Final: ${studentsInAvaliacaoFinal}
+Mantidos: ${studentsMantido}
 Maior Nota: ${highestGrade.toFixed(1)}
 
 RANKING DOS ALUNOS
@@ -300,7 +301,7 @@ DETALHAMENTO POR DISCIPLINA
 ----------------------------
 ${filteredByTurma.map(s => {
   const avg = calculateStudentOverallAverage(s.grades);
-  const status = avg >= 7.0 ? "APROVADO" : avg >= 5.0 ? "RECUPERAÇÃO" : avg > 0 ? "REPROVADO" : "SEM NOTAS";
+  const status = avg >= 6.0 ? "APROVADO" : avg >= 5.0 ? "AVALIAÇÃO FINAL" : avg > 0 ? "MANTIDO" : "SEM NOTAS";
   const detalhes = subjects.map(sub => {
     const grades = s.grades[sub] || [];
     return grades.length > 0 ? `  ${sub}: ${grades.map(g => g.toFixed(1)).join(", ")} (Média: ${calculateAverage(grades).toFixed(1)})` : `  ${sub}: —`;
@@ -440,8 +441,8 @@ ${filteredByTurma.map(s => {
               <TrendingUp className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{percentAbove7}%</p>
-              <p className="text-xs text-muted-foreground">Acima de 7.0</p>
+              <p className="text-2xl font-bold text-foreground">{percentApproved}%</p>
+              <p className="text-xs text-muted-foreground">Aprovados</p>
             </div>
           </div>
         </Card>
@@ -452,8 +453,8 @@ ${filteredByTurma.map(s => {
               <AlertTriangle className="w-5 h-5 text-yellow-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{studentsInRecovery}</p>
-              <p className="text-xs text-muted-foreground">Recuperação</p>
+              <p className="text-2xl font-bold text-foreground">{studentsInAvaliacaoFinal}</p>
+              <p className="text-xs text-muted-foreground">Avaliação Final</p>
             </div>
           </div>
         </Card>
@@ -464,8 +465,8 @@ ${filteredByTurma.map(s => {
               <TrendingDown className="w-5 h-5 text-red-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{studentsFailed}</p>
-              <p className="text-xs text-muted-foreground">Reprovados</p>
+              <p className="text-2xl font-bold text-foreground">{studentsMantido}</p>
+              <p className="text-xs text-muted-foreground">Mantidos</p>
             </div>
           </div>
         </Card>
@@ -537,7 +538,7 @@ ${filteredByTurma.map(s => {
                     {filteredData.map((item) => {
                       const avg = calculateStudentOverallAverage(item.grades);
                       const rank = getRank(item.id);
-                      const status = avg >= 7.0 ? "Aprovado" : avg >= 5.0 ? "Recuperação" : avg > 0 ? "Reprovado" : "—";
+                      const status = avg >= 6.0 ? "Aprovado" : avg >= 5.0 ? "Avaliação Final" : avg > 0 ? "Mantido" : "—";
 
                       return (
                         <tr 
@@ -601,7 +602,7 @@ ${filteredByTurma.map(s => {
 
                           <td className="p-4 text-center">
                             <span className={`text-lg font-bold ${
-                              avg >= 7.0 ? "text-green-600" : avg >= 5.0 ? "text-yellow-600" : avg > 0 ? "text-red-600" : "text-muted-foreground"
+                              avg >= 6.0 ? "text-green-600" : avg >= 5.0 ? "text-yellow-600" : avg > 0 ? "text-red-600" : "text-muted-foreground"
                             }`}>
                               {avg > 0 ? avg.toFixed(1) : "—"}
                             </span>
@@ -610,7 +611,7 @@ ${filteredByTurma.map(s => {
                           <td className="p-4 text-center">
                             {status !== "—" && (
                               <Badge
-                                variant={status === "Aprovado" ? "default" : status === "Recuperação" ? "secondary" : "destructive"}
+                                variant={status === "Aprovado" ? "default" : status === "Avaliação Final" ? "secondary" : "destructive"}
                                 className="text-xs"
                               >
                                 {status}
