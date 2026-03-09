@@ -40,16 +40,19 @@ const mainMenuItems = [
 const adminSubMenuItems = [
   { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
   { icon: Bell, label: "Backlog", path: "/backlog" },
-  { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
-  { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
   { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
   { icon: ShieldAlert, label: "Gestão de Exceções", path: "/gestao-excecoes" },
-  { icon: Wallet, label: "Pagamentos", path: "/payroll" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: UserCheck, label: "Professores", path: "/professores" },
   { icon: Users, label: "Estudantes", path: "/students" },
   { icon: Settings, label: "Configurações", path: "/admin", requiresAuth: true },
+];
+
+const financeSubMenuItems = [
+  { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
+  { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
+  { icon: Wallet, label: "Pagamentos", path: "/payroll" },
 ];
 
 export const Sidebar = () => {
@@ -59,9 +62,10 @@ export const Sidebar = () => {
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const { unreadCount } = useBacklog();
   
-  // Check if any admin submenu is active
-  const isAdminSectionActive = adminSubMenuItems.some(item => location.pathname === item.path);
+  const isFinanceSectionActive = financeSubMenuItems.some(item => location.pathname === item.path);
+  const isAdminSectionActive = adminSubMenuItems.some(item => location.pathname === item.path) || isFinanceSectionActive;
   const [isAdminOpen, setIsAdminOpen] = useState(isAdminSectionActive);
+  const [isFinanceOpen, setIsFinanceOpen] = useState(isFinanceSectionActive);
 
   const handleSignOut = async () => {
     await signOut();
@@ -183,6 +187,51 @@ export const Sidebar = () => {
                 </Link>
               );
             })}
+
+            {/* Finance Sub-Collapsible */}
+            <Collapsible open={isFinanceOpen} onOpenChange={setIsFinanceOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  className={cn(
+                    "flex items-center justify-between w-full px-4 py-2.5 rounded-lg transition-smooth text-sm font-medium",
+                    isFinanceSectionActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="w-4 h-4" />
+                    Financeiro
+                  </div>
+                  {isFinanceOpen ? (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                {financeSubMenuItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-2 rounded-lg transition-smooth text-xs font-medium",
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-card"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      )}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </CollapsibleContent>
+            </Collapsible>
           </CollapsibleContent>
         </Collapsible>
       </nav>
