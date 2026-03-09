@@ -21,6 +21,7 @@ export interface BacklogItem {
   anotacao_titulo?: string;
   anotacao_tipo?: string;
   student_nome?: string;
+  student_email?: string;
   turma_nome?: string;
 }
 
@@ -36,7 +37,7 @@ export const useBacklog = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("backlog_anotacoes")
-      .select("*, anotacoes!backlog_anotacoes_anotacao_id_fkey(titulo, tipo, student_id, turma_id, students!anotacoes_student_id_fkey(nome), turmas!anotacoes_turma_id_fkey(nome))")
+      .select("*, anotacoes!backlog_anotacoes_anotacao_id_fkey(titulo, tipo, student_id, turma_id, students!anotacoes_student_id_fkey(nome, email), turmas!anotacoes_turma_id_fkey(nome))")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -48,6 +49,7 @@ export const useBacklog = () => {
         anotacao_titulo: item.anotacoes?.titulo || "",
         anotacao_tipo: item.anotacoes?.tipo || "info",
         student_nome: item.anotacoes?.students?.nome || "Aluno",
+        student_email: item.anotacoes?.students?.email || null,
         turma_nome: item.anotacoes?.turmas?.nome || null,
       })));
     }
