@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,18 +165,25 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Conteúdo</label>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {sugestoes.map((s, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => handleSugestaoClick(s)}
-                  className="text-xs px-2.5 py-1.5 rounded-full bg-primary/8 text-primary/80 border border-primary/15 hover:bg-primary/15 hover:border-primary/30 transition-colors cursor-pointer"
-                >
-                  {s.length > 55 ? s.substring(0, 55) + "…" : s}
-                </button>
-              ))}
-            </div>
+            <Collapsible>
+              <CollapsibleTrigger className="text-xs text-primary/70 hover:text-primary underline cursor-pointer mb-2 inline-block">
+                Sugestões
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {sugestoes.map((s, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleSugestaoClick(s)}
+                      className="text-xs px-2.5 py-1.5 rounded-full bg-primary/8 text-primary/80 border border-primary/15 hover:bg-primary/15 hover:border-primary/30 transition-colors cursor-pointer"
+                    >
+                      {s.length > 55 ? s.substring(0, 55) + "…" : s}
+                    </button>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
             <Textarea value={conteudo} onChange={(e) => setConteudo(e.target.value)} placeholder="Descreva sua observação ou clique numa sugestão acima..." className="min-h-[100px]" />
           </div>
           <div className="flex gap-3 justify-end">
