@@ -14,6 +14,76 @@ export type Database = {
   }
   public: {
     Tables: {
+      anotacoes: {
+        Row: {
+          conteudo: string
+          created_at: string
+          disciplina: string | null
+          id: string
+          observacao_admin: string | null
+          prioridade: string
+          status_acompanhamento: string
+          student_id: string
+          tipo: string
+          titulo: string
+          turma_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conteudo?: string
+          created_at?: string
+          disciplina?: string | null
+          id?: string
+          observacao_admin?: string | null
+          prioridade?: string
+          status_acompanhamento?: string
+          student_id: string
+          tipo?: string
+          titulo: string
+          turma_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          disciplina?: string | null
+          id?: string
+          observacao_admin?: string | null
+          prioridade?: string
+          status_acompanhamento?: string
+          student_id?: string
+          tipo?: string
+          titulo?: string
+          turma_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anotacoes_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anotacoes_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anotacoes_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "vw_hotspots_turmas"
+            referencedColumns: ["turma_id"]
+          },
+        ]
+      }
       audit_trail: {
         Row: {
           acao: string
