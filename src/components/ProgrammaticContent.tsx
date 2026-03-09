@@ -363,7 +363,7 @@ export const ProgrammaticContent = () => {
             </div>
           )}
 
-          {filteredContent.length === 0 && aulasSalvas.length === 0 && (
+          {filteredAulas.length === 0 && (
             <Card className="gradient-card">
               <CardContent className="text-center py-12">
                 <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
