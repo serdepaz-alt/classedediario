@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 export const Notes = () => {
-  const { anotacoes, students, loading, createAnotacao, updateAnotacao, deleteAnotacao } = useNotes();
+  const { anotacoes, students, disciplinasPadrao, professores, loading, createAnotacao, updateAnotacao, deleteAnotacao } = useNotes();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
