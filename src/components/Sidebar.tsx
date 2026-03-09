@@ -35,10 +35,10 @@ const mainMenuItems = [
   { icon: CalendarCheck, label: "Presença", path: "/attendance" },
   { icon: TrendingUp, label: "Notas", path: "/grades" },
   { icon: StickyNote, label: "Anotações", path: "/notes" },
-  { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
 ];
 
 const adminSubMenuItems = [
+  { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
   { icon: Bell, label: "Backlog", path: "/backlog" },
   { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
   { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
