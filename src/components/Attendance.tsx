@@ -693,11 +693,22 @@ export const Attendance = () => {
           horario_inicio: startTime,
           horario_salvamento: saveTime,
           justificativa: justificativas.get(studentId) || null,
+          aula_programatica_id: selectedAulaId || null,
+          conteudo_ministrado: conteudoMinistrado || null,
+          observacoes_aula: observacoesAula || null,
         }));
 
       if (records.length > 0) {
         const { error } = await supabase.from("presencas").insert(records);
         if (error) throw error;
+      }
+
+      // Update aula status to concluido if linked
+      if (selectedAulaId) {
+        await supabase
+          .from("conteudo_programatico_aulas")
+          .update({ status: "concluido", updated_at: new Date().toISOString() })
+          .eq("id", selectedAulaId);
       }
 
       setDatesWithAttendance((prev) => new Set([...prev, dateStr]));
