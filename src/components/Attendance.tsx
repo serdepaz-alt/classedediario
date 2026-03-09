@@ -150,6 +150,12 @@ export const Attendance = () => {
   const [notificationsSent, setNotificationsSent] = useState(false);
   const [studentsWithIssuesCount, setStudentsWithIssuesCount] = useState(0);
 
+  // Lesson plan integration state
+  const [selectedAulaId, setSelectedAulaId] = useState<string | null>(null);
+  const [seguiuPlanejado, setSeguiuPlanejado] = useState(true);
+  const [conteudoMinistrado, setConteudoMinistrado] = useState("");
+  const [observacoesAula, setObservacoesAula] = useState("");
+
   const classStartTimeRef = useRef<Date | null>(null);
 
   useEffect(() => {
