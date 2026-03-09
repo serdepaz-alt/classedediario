@@ -44,13 +44,7 @@ export const HeatmapChart = ({ data, onSelectTurma }: HeatmapChartProps) => {
     return acc;
   }, [] as { turma: string; turma_id: string; custoBase: number; custoRisco: number; status: string }[]) || [];
 
-  // Dados mock quando não houver dados
-  const displayData = chartData.length > 0 ? chartData.slice(0, 6) : [
-    { turma: "Saúde", turma_id: "1", custoBase: 85000, custoRisco: 12000, status: "ATENÇÃO" },
-    { turma: "Direito", turma_id: "2", custoBase: 62000, custoRisco: 5000, status: "ESTÁVEL" },
-    { turma: "Enfermagem", turma_id: "3", custoBase: 78000, custoRisco: 18000, status: "CRÍTICO" },
-    { turma: "Odontologia", turma_id: "4", custoBase: 71000, custoRisco: 8000, status: "ATENÇÃO" },
-  ];
+  const displayData = chartData.slice(0, 8);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
