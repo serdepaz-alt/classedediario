@@ -458,9 +458,13 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
 
   const handleSaveAndNext = async () => {
     await handleSave();
-    if (selectedStudentIndex < filteredStudents.length - 1) {
-      setSelectedStudentIndex(prev => prev + 1);
-    }
+    // Delay navigation so the save summary dialog can be seen before moving on
+    setTimeout(() => {
+      setShowSaveSummary(false);
+      if (selectedStudentIndex < filteredStudents.length - 1) {
+        setSelectedStudentIndex(prev => prev + 1);
+      }
+    }, 1500);
   };
 
   const handleSelectStudent = (index: number) => {
