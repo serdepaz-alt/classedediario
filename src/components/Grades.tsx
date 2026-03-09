@@ -602,7 +602,7 @@ ${filteredByTurma.map(s => {
 
                           <td className="p-4 text-center">
                             <span className={`text-lg font-bold ${
-                              avg >= 7.0 ? "text-green-600" : avg >= 5.0 ? "text-yellow-600" : avg > 0 ? "text-red-600" : "text-muted-foreground"
+                              avg >= 6.0 ? "text-green-600" : avg >= 5.0 ? "text-yellow-600" : avg > 0 ? "text-red-600" : "text-muted-foreground"
                             }`}>
                               {avg > 0 ? avg.toFixed(1) : "—"}
                             </span>
@@ -611,7 +611,7 @@ ${filteredByTurma.map(s => {
                           <td className="p-4 text-center">
                             {status !== "—" && (
                               <Badge
-                                variant={status === "Aprovado" ? "default" : status === "Recuperação" ? "secondary" : "destructive"}
+                                variant={status === "Aprovado" ? "default" : status === "Avaliação Final" ? "secondary" : "destructive"}
                                 className="text-xs"
                               >
                                 {status}
