@@ -414,7 +414,56 @@ export const ProgrammaticContent = () => {
             ))}
           </div>
 
-          {filteredContent.length === 0 && (
+          {/* Imported Aulas from PDF */}
+          {importedAulas.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                Aulas Geradas pela IA ({importedAulas.length})
+              </h2>
+              <div className="grid gap-3">
+                {importedAulas.map((aula, idx) => (
+                  <Card key={idx} className="gradient-card">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-primary" />
+                            {aula.topico}
+                          </h4>
+                          <p className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+                            <CalendarIcon className="w-3 h-3" /> {aula.data}
+                          </p>
+                        </div>
+                        <Badge variant={aula.tipo_avaliacao === "avaliacao" ? "destructive" : aula.tipo_avaliacao === "revisao" ? "secondary" : "default"}>
+                          {aula.tipo_avaliacao === "avaliacao" ? "Avaliação" : aula.tipo_avaliacao === "revisao" ? "Revisão" : "Aula"}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mt-3">
+                        <div>
+                          <h5 className="font-medium text-foreground">Objetivo:</h5>
+                          <p className="text-muted-foreground">{aula.objetivo}</p>
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-foreground">Metodologia:</h5>
+                          <p className="text-muted-foreground">{aula.metodologia}</p>
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-foreground">Recursos:</h5>
+                          <p className="text-muted-foreground">{aula.recursos}</p>
+                        </div>
+                      </div>
+                      {aula.observacoes && (
+                        <p className="text-xs text-muted-foreground italic mt-2">💡 {aula.observacoes}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {filteredContent.length === 0 && importedAulas.length === 0 && (
             <Card className="gradient-card">
               <CardContent className="text-center py-12">
                 <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -422,11 +471,17 @@ export const ProgrammaticContent = () => {
                   Nenhum registro encontrado
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  Não há registros de conteúdo programático que correspondam aos filtros aplicados.
+                  Não há registros de conteúdo programático. Importe um PDF ou crie manualmente.
                 </p>
-                <Button onClick={() => setIsAddDialogOpen(true)}>
-                  Criar Primeiro Registro
-                </Button>
+                <div className="flex gap-2 justify-center">
+                  <Button variant="outline" onClick={() => setIsImportPdfOpen(true)}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Importar PDF com IA
+                  </Button>
+                  <Button onClick={() => setIsAddDialogOpen(true)}>
+                    Criar Registro
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -436,6 +491,12 @@ export const ProgrammaticContent = () => {
           <DocumentUploadSection />
         </TabsContent>
       </Tabs>
+
+      <ImportPdfConteudoDialog
+        open={isImportPdfOpen}
+        onOpenChange={setIsImportPdfOpen}
+        onImportComplete={handleImportComplete}
+      />
     </div>
   );
 };
