@@ -573,9 +573,8 @@ export const Attendance = () => {
 
   const handleSelectTurma = (turma: TurmaGroup) => {
     setSelectedTurmaId(turma.turmaId);
-    if (turma.disciplinaAtual) {
-      setSelectedDisciplina(turma.disciplinaAtual);
-    }
+    // Always update selectedDisciplina when switching turmas — clear if no active discipline
+    setSelectedDisciplina(turma.disciplinaAtual ?? null);
   };
 
   const setStatus = (studentId: string, status: string) => {
