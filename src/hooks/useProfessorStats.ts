@@ -29,9 +29,10 @@ export const useProfessorStats = (professorIds: string[]) => {
       // Fetch all cronograma entries for these professors
       const { data: aulas } = await supabase
         .from("cronograma_mestre")
-        .select("professor_id, data_aula, hora_inicio, hora_fim, turma:turmas(nome)")
+        .select("professor_id, data_aula, hora_inicio, hora_fim, status_aula, turma:turmas(nome)")
         .eq("user_id", user.id)
-        .in("professor_id", professorIds);
+        .in("professor_id", professorIds)
+        .neq("status_aula", "Cancelada");
 
       if (aulas) {
         const turmaSet: Record<string, Set<string>> = {};

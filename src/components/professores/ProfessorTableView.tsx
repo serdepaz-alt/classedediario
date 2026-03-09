@@ -2,7 +2,7 @@ import { Professor } from "@/hooks/useProfessores";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreVertical, Pencil, Trash2, GraduationCap, Users, Mail, Phone } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Mail, Phone } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,

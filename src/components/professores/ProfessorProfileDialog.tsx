@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Professor } from "@/hooks/useProfessores";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Mail, Phone, GraduationCap, Briefcase, User, CalendarDays, Clock, MapPin, FileDown } from "lucide-react";
+import { Mail, Phone, GraduationCap, Briefcase, User, CalendarDays, Clock, MapPin, FileDown, IdCard, Heart } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -50,6 +50,7 @@ export const ProfessorProfileDialog = ({ open, onOpenChange, professor }: Profes
         `)
         .eq("user_id", user.id)
         .eq("professor_id", professor.id)
+        .neq("status_aula", "Cancelada")
         .order("data_aula", { ascending: true });
 
       if (error) throw error;
@@ -97,8 +98,12 @@ export const ProfessorProfileDialog = ({ open, onOpenChange, professor }: Profes
       table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #ccc;padding:5px 8px;text-align:left}th{background:#f0f0f0}</style></head><body>
       <h1>${professor.nome}</h1>
       <p><strong>Função:</strong> ${professor.funcao || "—"} | <strong>Status:</strong> ${professor.status || "Ativo"} | <strong>Coren:</strong> ${professor.coren || "—"}</p>
-      <p><strong>Email:</strong> ${professor.email || "—"} | <strong>Telefone:</strong> ${professor.telefone || "—"}</p>
+      <p><strong>RG:</strong> ${professor.rg || "—"} | <strong>CPF:</strong> ${professor.cpf || "—"} | <strong>Nascimento:</strong> ${professor.data_nascimento ? format(parseISO(professor.data_nascimento), "dd/MM/yyyy") : "—"}</p>
+      <p><strong>Email:</strong> ${professor.email || "—"} | <strong>Telefone:</strong> ${professor.telefone || "—"}${professor.telefone2 ? ` / ${professor.telefone2}` : ""}</p>
+      <p><strong>Endereço:</strong> ${professor.endereco || "—"}</p>
       <p><strong>Formação:</strong> ${professor.formacao || "—"} | <strong>Especialidade:</strong> ${professor.especialidade || "—"}</p>
+      <p><strong>Indicação:</strong> ${professor.indicacao || "—"} | <strong>Experiência:</strong> ${professor.experiencia || "—"}</p>
+      <p><strong>Turnos:</strong> ${professor.turnos_disponiveis || "—"} | <strong>Disciplinas:</strong> ${professor.disciplinas_lecionar || "—"}</p>
       <p><strong>Total de Aulas:</strong> ${aulas.length} | <strong>Total de Horas:</strong> ${Math.round(totalHoras)}h | <strong>Turmas:</strong> ${turmasUnicas.join(", ") || "—"}</p>
       <h2>Histórico de Aulas</h2><table><tr><th>Data</th><th>Turma</th><th>Disciplina</th><th>Horário</th><th>Status</th></tr>`);
     aulas.forEach((a) => {
@@ -114,6 +119,10 @@ export const ProfessorProfileDialog = ({ open, onOpenChange, professor }: Profes
 
   const disciplinas = professor.disciplinas_lecionar
     ? professor.disciplinas_lecionar.split(",").map((d) => d.trim()).filter(Boolean)
+    : [];
+
+  const turnos = professor.turnos_disponiveis
+    ? professor.turnos_disponiveis.split(",").map((t) => t.trim()).filter(Boolean)
     : [];
 
   return (
@@ -145,7 +154,7 @@ export const ProfessorProfileDialog = ({ open, onOpenChange, professor }: Profes
           </div>
         ) : (
           <div className="space-y-5">
-            {/* Info Grid */}
+            {/* KPI Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-muted/50 rounded-lg p-3 text-center">
                 <CalendarDays className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
@@ -173,30 +182,71 @@ export const ProfessorProfileDialog = ({ open, onOpenChange, professor }: Profes
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
               {professor.email && (
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Mail className="w-3.5 h-3.5" /> {professor.email}
+                  <Mail className="w-3.5 h-3.5 shrink-0" /> {professor.email}
                 </div>
               )}
               {professor.telefone && (
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Phone className="w-3.5 h-3.5" /> {professor.telefone}
+                  <Phone className="w-3.5 h-3.5 shrink-0" /> {professor.telefone}
+                  {professor.telefone2 && <span className="text-muted-foreground/60">| {professor.telefone2}</span>}
+                </div>
+              )}
+              {professor.rg && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <IdCard className="w-3.5 h-3.5 shrink-0" /> RG: {professor.rg}
+                </div>
+              )}
+              {professor.cpf && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <IdCard className="w-3.5 h-3.5 shrink-0" /> CPF: {professor.cpf}
+                </div>
+              )}
+              {professor.data_nascimento && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Heart className="w-3.5 h-3.5 shrink-0" /> Nasc: {format(parseISO(professor.data_nascimento), "dd/MM/yyyy")}
+                </div>
+              )}
+              {professor.coren && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <IdCard className="w-3.5 h-3.5 shrink-0" /> Coren: {professor.coren}
                 </div>
               )}
               {professor.formacao && (
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Briefcase className="w-3.5 h-3.5" /> {professor.formacao}
+                  <Briefcase className="w-3.5 h-3.5 shrink-0" /> {professor.formacao}
                 </div>
               )}
               {professor.especialidade && (
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <GraduationCap className="w-3.5 h-3.5" /> {professor.especialidade}
+                  <GraduationCap className="w-3.5 h-3.5 shrink-0" /> {professor.especialidade}
                 </div>
               )}
               {professor.endereco && (
                 <div className="flex items-center gap-2 text-muted-foreground col-span-2">
-                  <MapPin className="w-3.5 h-3.5" /> {professor.endereco}
+                  <MapPin className="w-3.5 h-3.5 shrink-0" /> {professor.endereco}
+                </div>
+              )}
+              {professor.indicacao && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <User className="w-3.5 h-3.5 shrink-0" /> Indicação: {professor.indicacao}
+                </div>
+              )}
+              {professor.experiencia && (
+                <div className="flex items-center gap-2 text-muted-foreground col-span-2">
+                  <Briefcase className="w-3.5 h-3.5 shrink-0" /> Exp: {professor.experiencia}
                 </div>
               )}
             </div>
+
+            {/* Turnos */}
+            {turnos.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground font-medium">Turnos:</span>
+                {turnos.map((t) => (
+                  <Badge key={t} variant="outline" className="text-xs">{t}</Badge>
+                ))}
+              </div>
+            )}
 
             {/* Disciplinas */}
             {disciplinas.length > 0 && (
