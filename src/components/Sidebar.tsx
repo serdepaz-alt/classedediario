@@ -175,6 +175,11 @@ export const Sidebar = () => {
                 >
                   <Icon className="w-4 h-4" />
                   {item.label}
+                  {item.path === "/backlog" && unreadCount > 0 && (
+                    <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
