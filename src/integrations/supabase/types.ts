@@ -377,6 +377,82 @@ export type Database = {
           },
         ]
       }
+      conteudo_programatico_aulas: {
+        Row: {
+          created_at: string | null
+          data_aula: string
+          disciplina_id: string | null
+          disciplina_nome: string
+          id: string
+          metodologia: string | null
+          objetivo: string | null
+          observacoes: string | null
+          recursos: string | null
+          status: string
+          tipo_avaliacao: string
+          topico: string
+          turma_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_aula: string
+          disciplina_id?: string | null
+          disciplina_nome: string
+          id?: string
+          metodologia?: string | null
+          objetivo?: string | null
+          observacoes?: string | null
+          recursos?: string | null
+          status?: string
+          tipo_avaliacao?: string
+          topico: string
+          turma_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data_aula?: string
+          disciplina_id?: string | null
+          disciplina_nome?: string
+          id?: string
+          metodologia?: string | null
+          objetivo?: string | null
+          observacoes?: string | null
+          recursos?: string | null
+          status?: string
+          tipo_avaliacao?: string
+          topico?: string
+          turma_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conteudo_programatico_aulas_disciplina_id_fkey"
+            columns: ["disciplina_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteudo_programatico_aulas_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteudo_programatico_aulas_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "vw_hotspots_turmas"
+            referencedColumns: ["turma_id"]
+          },
+        ]
+      }
       conteudo_programatico_docs: {
         Row: {
           created_at: string | null
