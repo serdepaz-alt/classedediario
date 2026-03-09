@@ -32,14 +32,15 @@ export const useGrades = () => {
   const [turmasDisponiveis, setTurmasDisponiveis] = useState<ProfessorTurmaInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Find professor by email
+  // Find professor by email — scoped to user_id to avoid cross-user leakage
   useEffect(() => {
-    if (!user?.email) return;
+    if (!user?.email || !user?.id) return;
 
     const fetchProfessor = async () => {
       const { data } = await supabase
         .from("cad_professores")
         .select("id, nome")
+        .eq("user_id", user.id)
         .eq("email", user.email!)
         .maybeSingle();
 
@@ -51,7 +52,7 @@ export const useGrades = () => {
     };
 
     fetchProfessor();
-  }, [user?.email]);
+  }, [user?.email, user?.id]);
 
   // Fetch turmas where this professor has classes in cronograma
   useEffect(() => {
