@@ -63,7 +63,6 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
   const handleSugestaoClick = (texto: string) => {
     setConteudo(prev => prev ? `${prev}\n${texto}` : texto);
     if (!titulo) setTitulo(texto.substring(0, 60));
-    setUsandoSugestao(false);
   };
 
   const handleSubmit = () => {
