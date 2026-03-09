@@ -160,43 +160,25 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
             </div>
           </div>
 
-          {/* Sugestões de conteúdo */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium">Sugestões rápidas</label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-xs h-6"
-                onClick={() => setUsandoSugestao(!usandoSugestao)}
-              >
-                {usandoSugestao ? "Ocultar" : "Mostrar sugestões"}
-              </Button>
-            </div>
-            {usandoSugestao && (
-              <div className="space-y-2">
-                {sugestoes.map((s, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handleSugestaoClick(s)}
-                    className="w-full text-left text-sm px-3 py-2 rounded-lg border border-input bg-muted/30 hover:bg-primary/10 hover:border-primary/30 transition-colors"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           <div>
             <label className="text-sm font-medium mb-1 block">Título *</label>
             <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título da anotação..." />
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Conteúdo</label>
-            <Textarea value={conteudo} onChange={(e) => setConteudo(e.target.value)} placeholder="Descreva sua observação ou use uma sugestão acima..." className="min-h-[100px]" />
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {sugestoes.map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleSugestaoClick(s)}
+                  className="text-xs px-2.5 py-1.5 rounded-full bg-primary/8 text-primary/80 border border-primary/15 hover:bg-primary/15 hover:border-primary/30 transition-colors cursor-pointer"
+                >
+                  {s.length > 55 ? s.substring(0, 55) + "…" : s}
+                </button>
+              ))}
+            </div>
+            <Textarea value={conteudo} onChange={(e) => setConteudo(e.target.value)} placeholder="Descreva sua observação ou clique numa sugestão acima..." className="min-h-[100px]" />
           </div>
           <div className="flex gap-3 justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
