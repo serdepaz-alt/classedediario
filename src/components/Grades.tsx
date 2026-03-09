@@ -538,7 +538,7 @@ ${filteredByTurma.map(s => {
                     {filteredData.map((item) => {
                       const avg = calculateStudentOverallAverage(item.grades);
                       const rank = getRank(item.id);
-                      const status = avg >= 7.0 ? "Aprovado" : avg >= 5.0 ? "Recuperação" : avg > 0 ? "Reprovado" : "—";
+                      const status = avg >= 6.0 ? "Aprovado" : avg >= 5.0 ? "Avaliação Final" : avg > 0 ? "Mantido" : "—";
 
                       return (
                         <tr 
