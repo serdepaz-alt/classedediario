@@ -967,6 +967,8 @@ export type Database = {
       }
       presencas: {
         Row: {
+          aula_programatica_id: string | null
+          conteudo_ministrado: string | null
           created_at: string
           data: string
           disciplina_id: string | null
@@ -975,12 +977,15 @@ export type Database = {
           id: string
           justificativa: string | null
           notificacao_enviada: boolean | null
+          observacoes_aula: string | null
           status: string
           student_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          aula_programatica_id?: string | null
+          conteudo_ministrado?: string | null
           created_at?: string
           data: string
           disciplina_id?: string | null
@@ -989,12 +994,15 @@ export type Database = {
           id?: string
           justificativa?: string | null
           notificacao_enviada?: boolean | null
+          observacoes_aula?: string | null
           status: string
           student_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          aula_programatica_id?: string | null
+          conteudo_ministrado?: string | null
           created_at?: string
           data?: string
           disciplina_id?: string | null
@@ -1003,12 +1011,20 @@ export type Database = {
           id?: string
           justificativa?: string | null
           notificacao_enviada?: boolean | null
+          observacoes_aula?: string | null
           status?: string
           student_id?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "presencas_aula_programatica_id_fkey"
+            columns: ["aula_programatica_id"]
+            isOneToOne: false
+            referencedRelation: "conteudo_programatico_aulas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "presencas_disciplina_id_fkey"
             columns: ["disciplina_id"]
