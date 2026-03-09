@@ -59,6 +59,7 @@ import { StudentFrequencyHistory } from "./attendance/StudentFrequencyHistory";
 import { AttendanceFrequencyChart } from "./attendance/AttendanceFrequencyChart";
 import { AttendanceTableView } from "./attendance/AttendanceTableView";
 import { AttendanceSaveSummary } from "./attendance/AttendanceSaveSummary";
+import { AttendanceLessonPlanSelector } from "./attendance/AttendanceLessonPlanSelector";
 
 interface Disciplina {
   id: string;
