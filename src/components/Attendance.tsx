@@ -407,6 +407,9 @@ export const Attendance = () => {
         return;
       }
 
+      // Reset start time when teacher selects a new discipline/class
+      classStartTimeRef.current = new Date();
+
       const { data, error } = await supabase
         .from("students")
         .select("id, nome, matricula, email")
@@ -536,7 +539,7 @@ export const Attendance = () => {
         studentStats.forEach((stats, studentId) => {
           riskMap.set(studentId, { absences: stats.absences, lates: stats.lates });
           const student = students.find((s) => s.id === studentId);
-          if (student && (stats.absences >= 2 || stats.lates >= 3)) {
+          if (student && (stats.absences >= 2 || stats.lates >= 2)) {
             const percentage = Math.round(((stats.total - stats.absences) / stats.total) * 100);
             atRisk.push({ name: student.nome, percentage, absences: stats.absences });
           }
@@ -587,11 +590,17 @@ export const Attendance = () => {
     setSelectedStudents(newSelection);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedStudents.size === students.length) {
-      setSelectedStudents(new Set());
+  const toggleSelectAll = (visibleStudentIds?: string[]) => {
+    const ids = visibleStudentIds ?? students.map((s) => s.id);
+    const allVisible = ids.every((id) => selectedStudents.has(id));
+    if (allVisible && ids.length > 0) {
+      const next = new Set(selectedStudents);
+      ids.forEach((id) => next.delete(id));
+      setSelectedStudents(next);
     } else {
-      setSelectedStudents(new Set(students.map((s) => s.id)));
+      const next = new Set(selectedStudents);
+      ids.forEach((id) => next.add(id));
+      setSelectedStudents(next);
     }
   };
 

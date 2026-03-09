@@ -41,7 +41,7 @@ interface AttendanceTableViewProps {
   setJustificativa: (studentId: string, justificativa: string) => void;
   selectedStudents: Set<string>;
   toggleStudentSelection: (studentId: string) => void;
-  toggleSelectAll: () => void;
+  toggleSelectAll: (visibleStudentIds: string[]) => void;
   studentsAtRisk: Map<string, { absences: number; lates: number }>;
   onViewHistory: (student: Student) => void;
   searchQuery: string;
@@ -93,8 +93,11 @@ export const AttendanceTableView = ({
           <TableRow className="bg-muted/50">
             <TableHead className="w-[40px]">
               <Checkbox
-                checked={selectedStudents.size === students.length && students.length > 0}
-                onCheckedChange={toggleSelectAll}
+                checked={
+                  filteredStudents.length > 0 &&
+                  filteredStudents.every((s) => selectedStudents.has(s.id))
+                }
+                onCheckedChange={() => toggleSelectAll(filteredStudents.map((s) => s.id))}
               />
             </TableHead>
             <TableHead className="min-w-[200px]">Aluno</TableHead>
