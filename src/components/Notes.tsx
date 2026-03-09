@@ -137,6 +137,8 @@ export const Notes = () => {
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         students={students}
+        disciplinasPadrao={disciplinasPadrao}
+        professores={professores}
         onSave={handleSave}
       />
     </div>
