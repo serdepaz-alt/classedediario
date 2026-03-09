@@ -82,42 +82,43 @@ export const TurmaDetailsDialog = ({
       setStudents(studentsRes.data || []);
       setDisciplinas(discRes.data || []);
 
-        const disciplinaIds = (discRes.data || []).map((d) => d.id);
+      const studentIds = (studentsRes.data || []).map((s) => s.id);
+      const disciplinaIds = (discRes.data || []).map((d) => d.id);
 
-        if (studentIds.length > 0) {
-          const { data: mediasData } = await supabase
-            .from("medias_alunos")
-            .select("student_id, disciplina_id, media_final, situacao")
-            .eq("user_id", user.id)
-            .in("student_id", studentIds);
-          setMedias(mediasData || []);
+      if (studentIds.length > 0) {
+        const { data: mediasData } = await supabase
+          .from("medias_alunos")
+          .select("student_id, disciplina_id, media_final, situacao")
+          .eq("user_id", user.id)
+          .in("student_id", studentIds);
+        setMedias(mediasData || []);
 
-          // Fetch presencas filtered to this turma's disciplines only
-          const presencasQuery = supabase
-            .from("presencas")
-            .select("student_id, status")
-            .eq("user_id", user.id)
-            .in("student_id", studentIds);
+        // Fetch presencas filtered to this turma's disciplines only
+        const presencasQuery = supabase
+          .from("presencas")
+          .select("student_id, status")
+          .eq("user_id", user.id)
+          .in("student_id", studentIds);
 
-          if (disciplinaIds.length > 0) {
-            presencasQuery.in("disciplina_id", disciplinaIds);
-          }
-
-          const { data: presencasRaw } = await presencasQuery;
-
-          if (presencasRaw) {
-            const map: Record<string, { total: number; presentes: number }> = {};
-            for (const p of presencasRaw) {
-              if (!p.student_id) continue;
-              if (!map[p.student_id]) map[p.student_id] = { total: 0, presentes: 0 };
-              map[p.student_id].total++;
-              if (p.status === "presente") map[p.student_id].presentes++;
-            }
-            setPresencas(
-              Object.entries(map).map(([student_id, v]) => ({ student_id, ...v }))
-            );
-          }
+        if (disciplinaIds.length > 0) {
+          presencasQuery.in("disciplina_id", disciplinaIds);
         }
+
+        const { data: presencasRaw } = await presencasQuery;
+
+        if (presencasRaw) {
+          const map: Record<string, { total: number; presentes: number }> = {};
+          for (const p of presencasRaw) {
+            if (!p.student_id) continue;
+            if (!map[p.student_id]) map[p.student_id] = { total: 0, presentes: 0 };
+            map[p.student_id].total++;
+            if (p.status === "presente") map[p.student_id].presentes++;
+          }
+          setPresencas(
+            Object.entries(map).map(([student_id, v]) => ({ student_id, ...v }))
+          );
+        }
+      }
     } catch (error) {
       console.error("Error fetching turma details:", error);
     } finally {
