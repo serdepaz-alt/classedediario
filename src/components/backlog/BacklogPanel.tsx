@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useBacklog, QuadroType } from "@/hooks/useBacklog";
+import { useBacklog, QuadroType, BacklogItem } from "@/hooks/useBacklog";
 import { KanbanBoard } from "./KanbanBoard";
+import { TriagemMailDialog } from "./TriagemMailDialog";
 import {
   Eye, Loader2, CalendarCheck, TrendingUp, StickyNote,
 } from "lucide-react";
@@ -17,6 +18,18 @@ const quadros: { key: QuadroType; label: string; icon: any }[] = [
 export const BacklogPanel = () => {
   const { items, loading, unreadCount, getItemsByQuadro, markAsRead, markAllAsRead, updateStatus } = useBacklog();
   const [activeQuadro, setActiveQuadro] = useState<QuadroType>("anotacoes");
+  const [triagemItem, setTriagemItem] = useState<BacklogItem | null>(null);
+  const [showTriagem, setShowTriagem] = useState(false);
+
+  const handleTriagem = (item: BacklogItem) => {
+    setTriagemItem(item);
+    setShowTriagem(true);
+  };
+
+  const handleTriagemSent = (id: string) => {
+    updateStatus(id, "em_andamento");
+    markAsRead(id);
+  };
 
   if (loading) {
     return (
@@ -75,10 +88,18 @@ export const BacklogPanel = () => {
               items={getItemsByQuadro(q.key)}
               onStatusChange={updateStatus}
               onMarkRead={markAsRead}
+              onTriagem={handleTriagem}
             />
           </TabsContent>
         ))}
       </Tabs>
+
+      <TriagemMailDialog
+        open={showTriagem}
+        onOpenChange={setShowTriagem}
+        item={triagemItem}
+        onSent={handleTriagemSent}
+      />
     </div>
   );
 };

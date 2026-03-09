@@ -13,9 +13,10 @@ interface Props {
   items: BacklogItem[];
   onStatusChange: (id: string, status: string) => void;
   onMarkRead: (id: string) => void;
+  onTriagem?: (item: BacklogItem) => void;
 }
 
-export const KanbanBoard = ({ items, onStatusChange, onMarkRead }: Props) => {
+export const KanbanBoard = ({ items, onStatusChange, onMarkRead, onTriagem }: Props) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-h-[400px]">
       {columns.map((col) => {
@@ -24,7 +25,6 @@ export const KanbanBoard = ({ items, onStatusChange, onMarkRead }: Props) => {
 
         return (
           <div key={col.key} className={`rounded-xl ${col.bgColor} p-3`}>
-            {/* Column Header */}
             <div className={`flex items-center gap-2 mb-3 pb-2 border-b-2 ${col.headerColor}`}>
               <Icon className="w-4 h-4" />
               <h3 className="text-sm font-semibold">{col.label}</h3>
@@ -33,7 +33,6 @@ export const KanbanBoard = ({ items, onStatusChange, onMarkRead }: Props) => {
               </span>
             </div>
 
-            {/* Cards */}
             <div className="space-y-2">
               {colItems.map((item) => (
                 <KanbanCard
@@ -41,6 +40,7 @@ export const KanbanBoard = ({ items, onStatusChange, onMarkRead }: Props) => {
                   item={item}
                   onStatusChange={onStatusChange}
                   onMarkRead={onMarkRead}
+                  onTriagem={onTriagem}
                 />
               ))}
 
