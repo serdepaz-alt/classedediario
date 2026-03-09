@@ -32,14 +32,15 @@ export const useGrades = () => {
   const [turmasDisponiveis, setTurmasDisponiveis] = useState<ProfessorTurmaInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Find professor by email
+  // Find professor by email — scoped to user_id to avoid cross-user leakage
   useEffect(() => {
-    if (!user?.email) return;
+    if (!user?.email || !user?.id) return;
 
     const fetchProfessor = async () => {
       const { data } = await supabase
         .from("cad_professores")
         .select("id, nome")
+        .eq("user_id", user.id)
         .eq("email", user.email!)
         .maybeSingle();
 
@@ -51,39 +52,70 @@ export const useGrades = () => {
     };
 
     fetchProfessor();
-  }, [user?.email]);
+  }, [user?.email, user?.id]);
 
   // Fetch turmas where this professor has classes in cronograma
+  // Fallback: also include disciplinas where nome_professor matches
   useEffect(() => {
-    if (!professorId || !user) return;
+    if (!user) return;
 
     const fetchTurmas = async () => {
-      const { data: aulas } = await supabase
-        .from("cronograma_mestre")
-        .select(`
-          turma_id,
-          disciplina_id,
-          turmas!cronograma_mestre_turma_id_fkey(nome),
-          cad_disciplinas!cronograma_mestre_disciplina_id_fkey(nome)
-        `)
-        .eq("professor_id", professorId);
-
-      if (!aulas) return;
-
-      // Deduplicate by turma_id + disciplina_id
       const uniqueMap = new Map<string, ProfessorTurmaInfo>();
-      for (const aula of aulas) {
-        if (!aula.turma_id || !aula.disciplina_id) continue;
-        const key = `${aula.turma_id}_${aula.disciplina_id}`;
-        if (!uniqueMap.has(key)) {
-          const turmaData = aula.turmas as any;
-          const discData = aula.cad_disciplinas as any;
-          uniqueMap.set(key, {
-            turma_id: aula.turma_id,
-            turma_nome: turmaData?.nome || "Turma",
-            disciplina_id: aula.disciplina_id,
-            disciplina_nome: discData?.nome || "Disciplina",
-          });
+
+      // Primary: from cronograma_mestre (when professorId is found)
+      if (professorId) {
+        const { data: aulas } = await supabase
+          .from("cronograma_mestre")
+          .select(`
+            turma_id,
+            disciplina_id,
+            turmas!cronograma_mestre_turma_id_fkey(nome),
+            cad_disciplinas!cronograma_mestre_disciplina_id_fkey(nome)
+          `)
+          .eq("user_id", user.id)
+          .eq("professor_id", professorId);
+
+        if (aulas) {
+          for (const aula of aulas) {
+            if (!aula.turma_id || !aula.disciplina_id) continue;
+            const key = `${aula.turma_id}_${aula.disciplina_id}`;
+            if (!uniqueMap.has(key)) {
+              const turmaData = aula.turmas as any;
+              const discData = aula.cad_disciplinas as any;
+              uniqueMap.set(key, {
+                turma_id: aula.turma_id,
+                turma_nome: turmaData?.nome || "Turma",
+                disciplina_id: aula.disciplina_id,
+                disciplina_nome: discData?.nome || "Disciplina",
+              });
+            }
+          }
+        }
+      }
+
+      // Fallback: disciplinas table (works even without cronograma entries)
+      // Fetches all disciplinas for this user — used when no cronograma match
+      if (uniqueMap.size === 0) {
+        const { data: discs } = await supabase
+          .from("disciplinas")
+          .select("id, nome, turma_id, turmas(nome)")
+          .eq("user_id", user.id)
+          .not("turma_id", "is", null);
+
+        if (discs) {
+          for (const disc of discs) {
+            if (!disc.turma_id) continue;
+            const key = `${disc.turma_id}_${disc.id}`;
+            if (!uniqueMap.has(key)) {
+              const turmaData = disc.turmas as any;
+              uniqueMap.set(key, {
+                turma_id: disc.turma_id,
+                turma_nome: turmaData?.nome || "Turma",
+                disciplina_id: disc.id,
+                disciplina_nome: disc.nome,
+              });
+            }
+          }
         }
       }
 

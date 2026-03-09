@@ -195,21 +195,22 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
     }
   }, [entryMode, students]);
 
-  // Calculate partial average (only locked grades count)
+  // Média parcial: apenas notas travadas + bônus proporcional
   const calculatePartialAverage = () => {
     const lockedGrades = grades.filter(g => g.is_locked && g.valor !== null);
-    if (lockedGrades.length === 0) return 0;
+    if (lockedGrades.length === 0) return bonusGrade > 0 ? bonusGrade : 0;
     const totalWeight = lockedGrades.reduce((sum, g) => sum + g.peso, 0);
     const weightedSum = lockedGrades.reduce((sum, g) => sum + (g.valor || 0) * g.peso, 0);
-    return (weightedSum + bonusGrade) / totalWeight;
+    return totalWeight > 0 ? (weightedSum / totalWeight) + bonusGrade : 0;
   };
 
+  // Média final: todas as notas com valor (inclui não-travadas) + bônus
   const calculateFinalAverage = () => {
     const allWithValues = grades.filter(g => g.valor !== null);
-    if (allWithValues.length === 0) return 0;
+    if (allWithValues.length === 0) return bonusGrade > 0 ? bonusGrade : 0;
     const totalWeight = allWithValues.reduce((sum, g) => sum + g.peso, 0);
     const weightedSum = allWithValues.reduce((sum, g) => sum + (g.valor || 0) * g.peso, 0);
-    return (weightedSum + bonusGrade) / totalWeight;
+    return totalWeight > 0 ? (weightedSum / totalWeight) + bonusGrade : 0;
   };
 
   const partialAverage = calculatePartialAverage();
@@ -457,9 +458,13 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
 
   const handleSaveAndNext = async () => {
     await handleSave();
-    if (selectedStudentIndex < filteredStudents.length - 1) {
-      setSelectedStudentIndex(prev => prev + 1);
-    }
+    // Delay navigation so the save summary dialog can be seen before moving on
+    setTimeout(() => {
+      setShowSaveSummary(false);
+      if (selectedStudentIndex < filteredStudents.length - 1) {
+        setSelectedStudentIndex(prev => prev + 1);
+      }
+    }, 1500);
   };
 
   const handleSelectStudent = (index: number) => {
