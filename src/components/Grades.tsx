@@ -441,8 +441,8 @@ ${filteredByTurma.map(s => {
               <TrendingUp className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{percentAbove7}%</p>
-              <p className="text-xs text-muted-foreground">Acima de 7.0</p>
+              <p className="text-2xl font-bold text-foreground">{percentApproved}%</p>
+              <p className="text-xs text-muted-foreground">Aprovados</p>
             </div>
           </div>
         </Card>
@@ -453,8 +453,8 @@ ${filteredByTurma.map(s => {
               <AlertTriangle className="w-5 h-5 text-yellow-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{studentsInRecovery}</p>
-              <p className="text-xs text-muted-foreground">Recuperação</p>
+              <p className="text-2xl font-bold text-foreground">{studentsInAvaliacaoFinal}</p>
+              <p className="text-xs text-muted-foreground">Avaliação Final</p>
             </div>
           </div>
         </Card>
@@ -465,8 +465,8 @@ ${filteredByTurma.map(s => {
               <TrendingDown className="w-5 h-5 text-red-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{studentsFailed}</p>
-              <p className="text-xs text-muted-foreground">Reprovados</p>
+              <p className="text-2xl font-bold text-foreground">{studentsMantido}</p>
+              <p className="text-xs text-muted-foreground">Mantidos</p>
             </div>
           </div>
         </Card>
