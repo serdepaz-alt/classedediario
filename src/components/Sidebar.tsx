@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { AdminPasswordDialog } from "@/components/admin/AdminPasswordDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useBacklog } from "@/hooks/useBacklog";
 import { 
   BookOpen, 
   Users, 
@@ -25,7 +26,8 @@ import {
   DollarSign,
   ClipboardCheck,
   ShieldAlert,
-  Wallet
+  Wallet,
+  Bell
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -33,6 +35,7 @@ const mainMenuItems = [
   { icon: CalendarCheck, label: "Presença", path: "/attendance" },
   { icon: TrendingUp, label: "Notas", path: "/grades" },
   { icon: StickyNote, label: "Anotações", path: "/notes" },
+  { icon: Bell, label: "Backlog", path: "/backlog" },
   { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
 ];
 
@@ -54,6 +57,7 @@ export const Sidebar = () => {
   const { user, signOut } = useAuth();
   const [showAdminDialog, setShowAdminDialog] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const { unreadCount } = useBacklog();
   
   // Check if any admin submenu is active
   const isAdminSectionActive = adminSubMenuItems.some(item => location.pathname === item.path);
@@ -104,6 +108,11 @@ export const Sidebar = () => {
             >
               <Icon className="w-5 h-5" />
               {item.label}
+              {item.path === "/backlog" && unreadCount > 0 && (
+                <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </Link>
           );
         })}
