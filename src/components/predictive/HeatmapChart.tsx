@@ -78,53 +78,58 @@ export const HeatmapChart = ({ data, onSelectTurma }: HeatmapChartProps) => {
       <h3 className="font-semibold text-foreground mb-4">
         Ocupação de Turmas por Curso
       </h3>
-      
-      <div className="h-[280px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart 
-            data={displayData} 
-            margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-            layout="vertical"
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-            <XAxis 
-              type="number"
-              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-              axisLine={{ stroke: "hsl(var(--border))" }}
-              tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-            />
-            <YAxis 
-              dataKey="turma"
-              type="category"
-              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-              axisLine={{ stroke: "hsl(var(--border))" }}
-              width={90}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend 
-              wrapperStyle={{ fontSize: 12 }}
-            />
-            <Bar
-              dataKey="custoBase"
-              name="Custo Base"
-              stackId="a"
-              fill="hsl(var(--success))"
-              radius={[0, 0, 0, 0]}
-              onClick={handleBarClick}
-              cursor="pointer"
-            />
-            <Bar
-              dataKey="custoRisco"
-              name="Pico - Reposições de Risco"
-              stackId="a"
-              fill="hsl(var(--destructive))"
-              radius={[0, 4, 4, 0]}
-              onClick={handleBarClick}
-              cursor="pointer"
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+
+      {displayData.length === 0 ? (
+        <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">
+          Sem turmas com dados de cronograma disponíveis
+        </div>
+      ) : (
+        <div className="h-[280px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={displayData}
+              margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              layout="vertical"
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+              <XAxis
+                type="number"
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+              />
+              <YAxis
+                dataKey="turma"
+                type="category"
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                width={90}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar
+                dataKey="custoBase"
+                name="Custo Base"
+                stackId="a"
+                fill="hsl(var(--success))"
+                radius={[0, 0, 0, 0]}
+                onClick={handleBarClick}
+                cursor="pointer"
+              />
+              <Bar
+                dataKey="custoRisco"
+                name="Pico — Reposições de Risco"
+                stackId="a"
+                fill="hsl(var(--destructive))"
+                radius={[0, 4, 4, 0]}
+                onClick={handleBarClick}
+                cursor="pointer"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </Card>
   );
 };
+
