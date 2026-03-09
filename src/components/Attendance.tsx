@@ -938,12 +938,6 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
               <Clock className="w-3.5 h-3.5 mr-1.5" />
               {format(currentTime, "HH:mm")}
             </Badge>
-            {selectedDisciplina && (
-              <Badge variant="secondary" className="text-sm py-1 px-3">
-                <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-                {selectedDisciplina.nome}
-              </Badge>
-            )}
           </div>
         </div>
       </div>
