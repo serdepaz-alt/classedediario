@@ -22,6 +22,7 @@ export type Database = {
           id: string
           observacao_admin: string | null
           prioridade: string
+          professor_nome: string | null
           status_acompanhamento: string
           student_id: string
           tipo: string
@@ -37,6 +38,7 @@ export type Database = {
           id?: string
           observacao_admin?: string | null
           prioridade?: string
+          professor_nome?: string | null
           status_acompanhamento?: string
           student_id: string
           tipo?: string
@@ -52,6 +54,7 @@ export type Database = {
           id?: string
           observacao_admin?: string | null
           prioridade?: string
+          professor_nome?: string | null
           status_acompanhamento?: string
           student_id?: string
           tipo?: string
