@@ -54,6 +54,12 @@ export const NoteCard = ({ note, onUpdate, onDelete }: Props) => {
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <User className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">{note.student_nome}</span>
+                {note.professor_nome && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-sm text-muted-foreground italic">Prof. {note.professor_nome}</span>
+                  </>
+                )}
                 {note.disciplina && (
                   <>
                     <span className="text-muted-foreground">•</span>

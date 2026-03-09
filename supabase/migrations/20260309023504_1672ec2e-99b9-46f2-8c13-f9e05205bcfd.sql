@@ -1,0 +1,1 @@
+ALTER TABLE public.anotacoes ADD COLUMN professor_nome TEXT;
