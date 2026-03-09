@@ -1,9 +1,43 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import type { AnotacaoForm } from "@/hooks/useNotes";
+
+const sugestoesPorTipo: Record<string, string[]> = {
+  positive: [
+    "Demonstrou excelente participação e engajamento na aula",
+    "Ajudou colegas com dificuldade, mostrando espírito colaborativo",
+    "Entregou todas as atividades no prazo com qualidade acima da média",
+  ],
+  attention: [
+    "Apresenta dificuldade de concentração durante as aulas",
+    "Tem se mostrado disperso(a) e pouco participativo(a)",
+    "Necessita de acompanhamento individualizado para acompanhar o conteúdo",
+  ],
+  achievement: [
+    "Obteve a maior nota da turma na avaliação",
+    "Apresentou trabalho de destaque reconhecido pela turma",
+    "Superou meta de desempenho estabelecida no início do período",
+  ],
+  progress: [
+    "Demonstrou melhora significativa em relação ao período anterior",
+    "Evoluiu na interpretação e resolução de exercícios práticos",
+    "Passou a participar ativamente após intervenção pedagógica",
+  ],
+  concern: [
+    "Acumula faltas consecutivas sem justificativa apresentada",
+    "Apresenta sinais de desmotivação e risco de evasão",
+    "Rendimento caiu drasticamente — recomenda-se conversa com a família",
+  ],
+  info: [
+    "Solicitou transferência de turma por questões de horário",
+    "Apresentou atestado médico para justificar ausências recentes",
+    "Responsável entrou em contato solicitando informações sobre desempenho",
+  ],
+};
 
 interface Props {
   open: boolean;
@@ -22,8 +56,16 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
   const [prioridade, setPrioridade] = useState("normal");
   const [disciplina, setDisciplina] = useState("");
   const [professorNome, setProfessorNome] = useState("");
+  const [usandoSugestao, setUsandoSugestao] = useState(false);
 
   const selectedStudent = students.find(s => s.id === studentId);
+  const sugestoes = useMemo(() => sugestoesPorTipo[tipo] || [], [tipo]);
+
+  const handleSugestaoClick = (texto: string) => {
+    setConteudo(prev => prev ? `${prev}\n${texto}` : texto);
+    if (!titulo) setTitulo(texto.substring(0, 60));
+    setUsandoSugestao(false);
+  };
 
   const handleSubmit = () => {
     if (!studentId || !titulo) return;
@@ -48,7 +90,7 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Anotação</DialogTitle>
         </DialogHeader>
@@ -100,7 +142,7 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium mb-1 block">Tipo</label>
-              <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+              <select value={tipo} onChange={(e) => { setTipo(e.target.value); setUsandoSugestao(false); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
                 <option value="positive">Positiva</option>
                 <option value="attention">Atenção</option>
                 <option value="achievement">Conquista</option>
@@ -118,13 +160,43 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
             </div>
           </div>
 
+          {/* Sugestões de conteúdo */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium">Sugestões rápidas</label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs h-6"
+                onClick={() => setUsandoSugestao(!usandoSugestao)}
+              >
+                {usandoSugestao ? "Ocultar" : "Mostrar sugestões"}
+              </Button>
+            </div>
+            {usandoSugestao && (
+              <div className="space-y-2">
+                {sugestoes.map((s, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleSugestaoClick(s)}
+                    className="w-full text-left text-sm px-3 py-2 rounded-lg border border-input bg-muted/30 hover:bg-primary/10 hover:border-primary/30 transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="text-sm font-medium mb-1 block">Título *</label>
             <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título da anotação..." />
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Conteúdo</label>
-            <Textarea value={conteudo} onChange={(e) => setConteudo(e.target.value)} placeholder="Descreva sua observação..." className="min-h-[100px]" />
+            <Textarea value={conteudo} onChange={(e) => setConteudo(e.target.value)} placeholder="Descreva sua observação ou use uma sugestão acima..." className="min-h-[100px]" />
           </div>
           <div className="flex gap-3 justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
