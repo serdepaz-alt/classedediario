@@ -58,10 +58,13 @@ export const NoteFormDialog = ({ open, onOpenChange, allStudents, professorLogad
   const [disciplina, setDisciplina] = useState("");
   const [professorNome, setProfessorNome] = useState("");
 
-  // Auto-set professor logado
+  // Auto-set professor logado and current discipline
   useEffect(() => {
-    if (professorLogado && !professorNome) {
-      setProfessorNome(professorLogado.nome);
+    if (professorLogado && open) {
+      if (!professorNome) setProfessorNome(professorLogado.nome);
+      if (professorLogado.disciplina_atual && !disciplina) {
+        setDisciplina(professorLogado.disciplina_atual);
+      }
     }
   }, [professorLogado, open]);
 
