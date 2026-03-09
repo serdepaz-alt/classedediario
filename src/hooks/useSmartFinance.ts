@@ -221,11 +221,11 @@ export const useSmartFinance = () => {
       });
     }
 
-    const financeData: FinanceTurmaMonth[] = Object.values(byTurmaMonth).map((item) => ({
+    const financeData: FinanceTurmaMonth[] = (Object.values(byTurmaMonth) as FinanceTurmaMonth[]).map((item) => ({
       ...item,
       custo_previsto: Math.round(item.custo_previsto * 100) / 100,
       custo_realizado: Math.round(item.custo_realizado * 100) / 100,
-      desvio: (Math.round((item.custo_realizado - item.custo_previsto) * 100) / 100),
+      desvio: Math.round((item.custo_realizado - item.custo_previsto) * 100) / 100,
       desvio_percent:
         item.custo_previsto > 0
           ? ((item.custo_realizado - item.custo_previsto) / item.custo_previsto) * 100
