@@ -67,7 +67,7 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
   };
 
   const handleSubmit = () => {
-    if (!studentId || !titulo) return;
+    if (!studentId || !titulo || !tipo) return;
     onSave({
       student_id: studentId,
       turma_id: selectedStudent?.turma_id || null,
@@ -193,7 +193,7 @@ export const NoteFormDialog = ({ open, onOpenChange, students, disciplinasPadrao
           </div>
           <div className="flex gap-3 justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button variant="gradient" disabled={!studentId || !titulo} onClick={handleSubmit}>Salvar Anotação</Button>
+            <Button variant="gradient" disabled={!studentId || !titulo || !tipo} onClick={handleSubmit}>Salvar Anotação</Button>
           </div>
         </div>
       </DialogContent>
