@@ -38,14 +38,10 @@ const mainMenuItems = [
 ];
 
 const adminSubMenuItems = [
-  { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
   { icon: Bell, label: "Backlog", path: "/backlog" },
-  { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
   { icon: ShieldAlert, label: "Gestão de Exceções", path: "/gestao-excecoes" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
-  { icon: UserCheck, label: "Professores", path: "/professores" },
-  { icon: Users, label: "Estudantes", path: "/students" },
   { icon: Settings, label: "Configurações", path: "/admin", requiresAuth: true },
 ];
 
@@ -53,6 +49,13 @@ const financeSubMenuItems = [
   { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
   { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
   { icon: Wallet, label: "Pagamentos", path: "/payroll" },
+];
+
+const pedagogicoSubMenuItems = [
+  { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
+  { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
+  { icon: UserCheck, label: "Professores", path: "/professores" },
+  { icon: Users, label: "Estudantes", path: "/students" },
 ];
 
 export const Sidebar = () => {
@@ -63,9 +66,11 @@ export const Sidebar = () => {
   const { unreadCount } = useBacklog();
   
   const isFinanceSectionActive = financeSubMenuItems.some(item => location.pathname === item.path);
-  const isAdminSectionActive = adminSubMenuItems.some(item => location.pathname === item.path) || isFinanceSectionActive;
+  const isPedagogicoSectionActive = pedagogicoSubMenuItems.some(item => location.pathname === item.path);
+  const isAdminSectionActive = adminSubMenuItems.some(item => location.pathname === item.path) || isFinanceSectionActive || isPedagogicoSectionActive;
   const [isAdminOpen, setIsAdminOpen] = useState(isAdminSectionActive);
   const [isFinanceOpen, setIsFinanceOpen] = useState(isFinanceSectionActive);
+  const [isPedagogicoOpen, setIsPedagogicoOpen] = useState(isPedagogicoSectionActive);
 
   const handleSignOut = async () => {
     await signOut();
