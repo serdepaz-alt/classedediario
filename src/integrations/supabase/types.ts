@@ -123,6 +123,69 @@ export type Database = {
         }
         Relationships: []
       }
+      backlog_anotacoes: {
+        Row: {
+          anotacao_id: string
+          created_at: string
+          descricao: string | null
+          id: string
+          lido: boolean
+          prioridade: string
+          professor_id: string | null
+          responsavel_nome: string | null
+          responsavel_tipo: string
+          status: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anotacao_id: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lido?: boolean
+          prioridade?: string
+          professor_id?: string | null
+          responsavel_nome?: string | null
+          responsavel_tipo?: string
+          status?: string
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anotacao_id?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lido?: boolean
+          prioridade?: string
+          professor_id?: string | null
+          responsavel_nome?: string | null
+          responsavel_tipo?: string
+          status?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backlog_anotacoes_anotacao_id_fkey"
+            columns: ["anotacao_id"]
+            isOneToOne: false
+            referencedRelation: "anotacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backlog_anotacoes_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "cad_professores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cad_disciplinas: {
         Row: {
           carga_horaria: number | null
