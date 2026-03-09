@@ -35,11 +35,11 @@ const mainMenuItems = [
   { icon: CalendarCheck, label: "Presença", path: "/attendance" },
   { icon: TrendingUp, label: "Notas", path: "/grades" },
   { icon: StickyNote, label: "Anotações", path: "/notes" },
-  { icon: Bell, label: "Backlog", path: "/backlog" },
   { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
 ];
 
 const adminSubMenuItems = [
+  { icon: Bell, label: "Backlog", path: "/backlog" },
   { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
   { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
   { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
@@ -175,6 +175,11 @@ export const Sidebar = () => {
                 >
                   <Icon className="w-4 h-4" />
                   {item.label}
+                  {item.path === "/backlog" && unreadCount > 0 && (
+                    <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
