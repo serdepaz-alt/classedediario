@@ -38,14 +38,10 @@ const mainMenuItems = [
 ];
 
 const adminSubMenuItems = [
-  { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
   { icon: Bell, label: "Backlog", path: "/backlog" },
-  { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
   { icon: ShieldAlert, label: "Gestão de Exceções", path: "/gestao-excecoes" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
-  { icon: UserCheck, label: "Professores", path: "/professores" },
-  { icon: Users, label: "Estudantes", path: "/students" },
   { icon: Settings, label: "Configurações", path: "/admin", requiresAuth: true },
 ];
 
@@ -53,6 +49,13 @@ const financeSubMenuItems = [
   { icon: BrainCircuit, label: "Análise Preditiva", path: "/predictive" },
   { icon: DollarSign, label: "Smart Finance", path: "/smart-finance" },
   { icon: Wallet, label: "Pagamentos", path: "/payroll" },
+];
+
+const pedagogicoSubMenuItems = [
+  { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
+  { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
+  { icon: UserCheck, label: "Professores", path: "/professores" },
+  { icon: Users, label: "Estudantes", path: "/students" },
 ];
 
 export const Sidebar = () => {
@@ -63,9 +66,11 @@ export const Sidebar = () => {
   const { unreadCount } = useBacklog();
   
   const isFinanceSectionActive = financeSubMenuItems.some(item => location.pathname === item.path);
-  const isAdminSectionActive = adminSubMenuItems.some(item => location.pathname === item.path) || isFinanceSectionActive;
+  const isPedagogicoSectionActive = pedagogicoSubMenuItems.some(item => location.pathname === item.path);
+  const isAdminSectionActive = adminSubMenuItems.some(item => location.pathname === item.path) || isFinanceSectionActive || isPedagogicoSectionActive;
   const [isAdminOpen, setIsAdminOpen] = useState(isAdminSectionActive);
   const [isFinanceOpen, setIsFinanceOpen] = useState(isFinanceSectionActive);
+  const [isPedagogicoOpen, setIsPedagogicoOpen] = useState(isPedagogicoSectionActive);
 
   const handleSignOut = async () => {
     await signOut();
@@ -212,6 +217,51 @@ export const Sidebar = () => {
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-4 mt-1 space-y-1">
                 {financeSubMenuItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-2 rounded-lg transition-smooth text-xs font-medium",
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-card"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      )}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Pedagogico Sub-Collapsible */}
+            <Collapsible open={isPedagogicoOpen} onOpenChange={setIsPedagogicoOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  className={cn(
+                    "flex items-center justify-between w-full px-4 py-2.5 rounded-lg transition-smooth text-sm font-medium",
+                    isPedagogicoSectionActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <GraduationCap className="w-4 h-4" />
+                    Pedagógico
+                  </div>
+                  {isPedagogicoOpen ? (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                {pedagogicoSubMenuItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
                   return (
