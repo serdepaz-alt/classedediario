@@ -156,7 +156,11 @@ export const ProgrammaticContent = () => {
 
         <TabsContent value="registros" className="mt-6 space-y-6">
           {/* Add Button */}
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setIsImportPdfOpen(true)}>
+              <Upload className="w-4 h-4" />
+              Importar PDF com IA
+            </Button>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
