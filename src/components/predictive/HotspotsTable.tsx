@@ -39,41 +39,9 @@ export const HotspotsTable = ({ data, selectedTurmaId }: HotspotsTableProps) => 
     }
   };
 
-  // Filtrar e ordenar dados
-  const filteredData = data
-    ?.filter(item => !selectedTurmaId || item.turma_id === selectedTurmaId)
-    .sort((a, b) => Number(b.impacto_financeiro_estimado) - Number(a.impacto_financeiro_estimado)) || [];
-
-  // Dados mock para demonstração
-  const displayData = filteredData.length > 0 ? filteredData : [
-    {
-      turma_id: "1",
-      turma: "Enf-2025",
-      disciplina: "Anatomia Humana",
-      professor_titular: "Dr. João Silva",
-      percentual_substituicoes: 0.14,
-      impacto_financeiro_estimado: 3420,
-      status_risco: "CRÍTICO" as const,
-    },
-    {
-      turma_id: "2",
-      turma: "Dir-2025",
-      disciplina: "Direito Civil",
-      professor_titular: "Dra. Maria Costa",
-      percentual_substituicoes: 0.08,
-      impacto_financeiro_estimado: 1850,
-      status_risco: "ATENÇÃO" as const,
-    },
-    {
-      turma_id: "3",
-      turma: "Odo-2025",
-      disciplina: "Periodontia",
-      professor_titular: "Dr. Pedro Santos",
-      percentual_substituicoes: 0.03,
-      impacto_financeiro_estimado: 450,
-      status_risco: "ESTÁVEL" as const,
-    },
-  ];
+  const displayData = (data || [])
+    .filter((item) => !selectedTurmaId || item.turma_id === selectedTurmaId)
+    .sort((a, b) => Number(b.impacto_financeiro_estimado) - Number(a.impacto_financeiro_estimado));
 
   return (
     <Card className="p-5 gradient-card shadow-card border-0">
