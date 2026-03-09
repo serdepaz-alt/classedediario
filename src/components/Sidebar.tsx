@@ -41,7 +41,7 @@ const adminSubMenuItems = [
   { icon: Bell, label: "Backlog", path: "/backlog" },
   { icon: ShieldAlert, label: "Gestão de Exceções", path: "/gestao-excecoes" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
-  { icon: Settings, label: "Gestão de Cronogramas/Feriados", path: "/admin", requiresAuth: true },
+  { icon: CalendarRange, label: "Gestão de Cronogramas/Feriados", path: "/admin", requiresAuth: true },
 ];
 
 const financeSubMenuItems = [
@@ -138,7 +138,7 @@ export const Sidebar = () => {
               )}
             >
               <div className="flex items-center gap-3">
-                <Settings className="w-5 h-5" />
+                <Layers className="w-5 h-5" />
                 Administrativo
               </div>
               {isAdminOpen ? (
