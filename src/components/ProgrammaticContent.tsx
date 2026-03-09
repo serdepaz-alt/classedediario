@@ -20,48 +20,6 @@ import { useConteudoProgramaticoAulas } from "@/hooks/useConteudoProgramaticoAul
 import { usePadroesDisciplinas } from "@/hooks/usePadroesDisciplinas";
 import { toast } from "sonner";
 
-const programmaticContent = [
-  {
-    id: 1,
-    date: new Date(2024, 11, 15),
-    subject: "Matemática",
-    topic: "Frações Decimais",
-    objectives: "Compreender e aplicar frações decimais em situações cotidianas",
-    content: "Introdução às frações decimais, conversão entre frações e decimais, operações básicas com decimais",
-    methodology: "Aula expositiva, exercícios práticos, jogos educativos",
-    resources: "Quadro, calculadora, jogos de cartas",
-    assessment: "Exercícios em classe, participação",
-    duration: 50,
-    status: "concluido"
-  },
-  {
-    id: 2,
-    date: new Date(2024, 11, 14),
-    subject: "Português",
-    topic: "Interpretação de Texto",
-    objectives: "Desenvolver habilidades de interpretação e compreensão textual",
-    content: "Análise de textos narrativos, identificação de elementos da narrativa",
-    methodology: "Leitura compartilhada, discussão em grupo, produção textual",
-    resources: "Livro didático, textos impressos",
-    assessment: "Produção de texto, discussão oral",
-    duration: 45,
-    status: "concluido"
-  },
-  {
-    id: 3,
-    date: new Date(2024, 11, 18),
-    subject: "História",
-    topic: "Brasil Colonial",
-    objectives: "Compreender o processo de colonização do Brasil",
-    content: "Chegada dos portugueses, exploração do pau-brasil, capitanias hereditárias",
-    methodology: "Aula expositiva, análise de mapas históricos",
-    resources: "Mapas, documentário, livro didático",
-    assessment: "Questionário, mapa mental",
-    duration: 50,
-    status: "planejado"
-  }
-];
-
 const statusMap = {
   planejado: { label: "Planejado", variant: "secondary" as const },
   concluido: { label: "Concluído", variant: "default" as const },
