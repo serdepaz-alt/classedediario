@@ -16,6 +16,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { DocumentUploadSection } from "@/components/programmatic/DocumentUploadSection";
 import { ImportPdfConteudoDialog, AulaGerada } from "@/components/programmatic/ImportPdfConteudoDialog";
+import { useConteudoProgramaticoAulas } from "@/hooks/useConteudoProgramaticoAulas";
 import { toast } from "sonner";
 
 // Mock data
@@ -84,7 +85,7 @@ export const ProgrammaticContent = () => {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isImportPdfOpen, setIsImportPdfOpen] = useState(false);
-  const [importedAulas, setImportedAulas] = useState<AulaGerada[]>([]);
+  const { aulas: aulasSalvas, isLoading: isLoadingAulas, salvarAulasImportadas } = useConteudoProgramaticoAulas();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [newContent, setNewContent] = useState({
     subject: "",
@@ -124,9 +125,13 @@ export const ProgrammaticContent = () => {
     setSelectedDate(undefined);
   };
 
-  const handleImportComplete = (aulas: AulaGerada[], disciplinaNome: string) => {
-    setImportedAulas(aulas);
-    toast.success(`${aulas.length} aulas importadas para ${disciplinaNome}`);
+  const handleImportComplete = (aulas: AulaGerada[], disciplinaNome: string, disciplinaId?: string, turmaId?: string) => {
+    salvarAulasImportadas.mutate({
+      aulasData: aulas,
+      disciplinaId,
+      turmaId,
+      disciplinaNome,
+    });
   };
 
   return (
@@ -414,16 +419,16 @@ export const ProgrammaticContent = () => {
             ))}
           </div>
 
-          {/* Imported Aulas from PDF */}
-          {importedAulas.length > 0 && (
+          {/* Aulas salvas do banco */}
+          {aulasSalvas.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
-                Aulas Geradas pela IA ({importedAulas.length})
+                Plano de Aulas — IA ({aulasSalvas.length})
               </h2>
               <div className="grid gap-3">
-                {importedAulas.map((aula, idx) => (
-                  <Card key={idx} className="gradient-card">
+                {aulasSalvas.map((aula) => (
+                  <Card key={aula.id} className="gradient-card">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div>
@@ -432,7 +437,8 @@ export const ProgrammaticContent = () => {
                             {aula.topico}
                           </h4>
                           <p className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-                            <CalendarIcon className="w-3 h-3" /> {aula.data}
+                            <CalendarIcon className="w-3 h-3" /> {aula.data_aula}
+                            <Badge variant="outline" className="ml-2 text-[10px]">{aula.disciplina_nome}</Badge>
                           </p>
                         </div>
                         <Badge variant={aula.tipo_avaliacao === "avaliacao" ? "destructive" : aula.tipo_avaliacao === "revisao" ? "secondary" : "default"}>
@@ -463,7 +469,7 @@ export const ProgrammaticContent = () => {
             </div>
           )}
 
-          {filteredContent.length === 0 && importedAulas.length === 0 && (
+          {filteredContent.length === 0 && aulasSalvas.length === 0 && (
             <Card className="gradient-card">
               <CardContent className="text-center py-12">
                 <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />

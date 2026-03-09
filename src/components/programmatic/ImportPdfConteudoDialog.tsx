@@ -30,7 +30,7 @@ export interface AulaGerada {
 interface ImportPdfConteudoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImportComplete: (aulas: AulaGerada[], disciplinaNome: string) => void;
+  onImportComplete: (aulas: AulaGerada[], disciplinaNome: string, disciplinaId?: string, turmaId?: string) => void;
 }
 
 const tipoMap = {
@@ -119,7 +119,7 @@ export const ImportPdfConteudoDialog = ({ open, onOpenChange, onImportComplete }
   };
 
   const handleConfirm = () => {
-    onImportComplete(aulasGeradas, selectedDisc?.nome || "");
+    onImportComplete(aulasGeradas, selectedDisc?.nome || "", selectedDisciplinaId, (selectedDisc as any)?.turma_id || undefined);
     handleReset();
   };
 
