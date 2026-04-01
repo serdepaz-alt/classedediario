@@ -314,61 +314,63 @@ export const AddTurmaDialog = ({
               />
             </div>
 
-            {/* Data de Início */}
-            <FormField
-              control={form.control}
-              name="data_inicio"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Data de Início</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                          ) : (
-                            <span>Selecione a data</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value ?? undefined}
-                        onSelect={(date) => {
-                          field.onChange(date);
-                          if (date) {
-                            form.setValue("ano_letivo", date.getFullYear());
-                          }
-                        }}
-                        disabled={(date) => {
-                          const curso = form.getValues("curso")?.toLowerCase() || "";
-                          const nomenclatura = form.getValues("nomenclatura") || "";
-                          const isTecEnfermagem = curso.includes("técnico em enfermagem") || nomenclatura === "TE";
-                          if (isTecEnfermagem) {
-                            const day = date.getDay();
-                            return day === 0 || day === 6;
-                          }
-                          return false;
-                        }}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Data de Início - only in create mode */}
+            {!isEditing && (
+              <FormField
+                control={form.control}
+                name="data_inicio"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data de Início</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "dd/MM/yyyy", { locale: ptBR })
+                            ) : (
+                              <span>Selecione a data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ?? undefined}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            if (date) {
+                              form.setValue("ano_letivo", date.getFullYear());
+                            }
+                          }}
+                          disabled={(date) => {
+                            const curso = form.getValues("curso")?.toLowerCase() || "";
+                            const nomenclatura = form.getValues("nomenclatura") || "";
+                            const isTecEnfermagem = curso.includes("técnico em enfermagem") || nomenclatura === "TE";
+                            if (isTecEnfermagem) {
+                              const day = date.getDay();
+                              return day === 0 || day === 6;
+                            }
+                            return false;
+                          }}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Horário */}
             <FormField
