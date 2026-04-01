@@ -442,33 +442,16 @@ export const AddTurmaDialog = ({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="curso"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Curso</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Ex: Técnico em Enfermagem"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {!isEditing && (
+            <div className={isEditing ? "grid grid-cols-2 gap-4" : ""}>
               <FormField
                 control={form.control}
-                name="disciplina"
+                name="curso"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Disciplina Principal</FormLabel>
+                    <FormLabel>Curso</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Ex: Enfermagem em Clínica Médica"
+                        placeholder="Ex: Técnico em Enfermagem"
                         {...field}
                       />
                     </FormControl>
@@ -476,7 +459,73 @@ export const AddTurmaDialog = ({
                   </FormItem>
                 )}
               />
-            )}
+
+              {isEditing && (
+                <FormField
+                  control={form.control}
+                  name="data_inicio"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Data de Início</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "dd/MM/yyyy", { locale: ptBR })
+                              ) : (
+                                <span>Selecione a data</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value ?? undefined}
+                            onSelect={(date) => {
+                              field.onChange(date);
+                              if (date) {
+                                form.setValue("ano_letivo", date.getFullYear());
+                              }
+                            }}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {!isEditing && (
+                <FormField
+                  control={form.control}
+                  name="disciplina"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Disciplina Principal</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ex: Enfermagem em Clínica Médica"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
 
             <FormField
               control={form.control}
