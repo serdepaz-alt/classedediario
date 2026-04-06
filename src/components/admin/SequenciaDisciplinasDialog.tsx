@@ -203,19 +203,19 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : sequencia.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="w-[60px] text-center">Ordem</TableHead>
-                    <TableHead>Disciplina</TableHead>
-                    <TableHead className="w-[160px]">Professor</TableHead>
-                    <TableHead className="text-center w-[100px]">Carga (h)</TableHead>
-                    <TableHead className="text-center w-[80px]">Diária</TableHead>
-                    <TableHead className="text-center w-[80px]">Dias</TableHead>
-                    <TableHead className="text-center w-[110px]">Início</TableHead>
-                    <TableHead className="text-center w-[110px]">Término</TableHead>
-                    <TableHead className="text-center w-[80px]">Mover</TableHead>
+                    <TableHead className="w-[50px] text-center">Ord</TableHead>
+                    <TableHead className="min-w-[140px]">Disciplina</TableHead>
+                    <TableHead className="w-[140px]">Professor</TableHead>
+                    <TableHead className="text-center w-[70px]">Carga</TableHead>
+                    <TableHead className="text-center w-[60px]">Diária</TableHead>
+                    <TableHead className="text-center w-[55px]">Dias</TableHead>
+                    <TableHead className="text-center w-[120px]">Início</TableHead>
+                    <TableHead className="text-center w-[120px]">Término</TableHead>
+                    <TableHead className="text-center w-[70px]">Mover</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
