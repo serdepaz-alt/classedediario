@@ -104,7 +104,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] w-[1200px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarDays className="w-5 h-5 text-primary" />
@@ -203,19 +203,19 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : sequencia.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="w-[60px] text-center">Ordem</TableHead>
-                    <TableHead>Disciplina</TableHead>
-                    <TableHead className="w-[160px]">Professor</TableHead>
-                    <TableHead className="text-center w-[100px]">Carga (h)</TableHead>
-                    <TableHead className="text-center w-[80px]">Diária</TableHead>
-                    <TableHead className="text-center w-[80px]">Dias</TableHead>
-                    <TableHead className="text-center w-[110px]">Início</TableHead>
-                    <TableHead className="text-center w-[110px]">Término</TableHead>
-                    <TableHead className="text-center w-[80px]">Mover</TableHead>
+                    <TableHead className="w-[50px] text-center">Ord</TableHead>
+                    <TableHead className="min-w-[140px]">Disciplina</TableHead>
+                    <TableHead className="w-[140px]">Professor</TableHead>
+                    <TableHead className="text-center w-[70px]">Carga</TableHead>
+                    <TableHead className="text-center w-[60px]">Diária</TableHead>
+                    <TableHead className="text-center w-[55px]">Dias</TableHead>
+                    <TableHead className="text-center w-[120px]">Início</TableHead>
+                    <TableHead className="text-center w-[120px]">Término</TableHead>
+                    <TableHead className="text-center w-[70px]">Mover</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -260,7 +260,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                       <TableCell className="text-center">
                         <Input
                           type="date"
-                          className="h-8 text-xs w-[130px] mx-auto"
+                          className="h-7 text-xs w-[115px] mx-auto"
                           value={item.data_inicio}
                           onChange={(e) => setInicio(idx, e.target.value)}
                         />
@@ -268,7 +268,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                       <TableCell className="text-center">
                         <Input
                           type="date"
-                          className="h-8 text-xs w-[130px] mx-auto"
+                          className="h-7 text-xs w-[115px] mx-auto"
                           value={item.data_termino}
                           min={item.data_inicio}
                           onChange={(e) => setTermino(idx, e.target.value)}
