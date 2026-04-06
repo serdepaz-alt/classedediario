@@ -129,7 +129,7 @@ export const ProfessorFormDialog = ({
   });
 
   useEffect(() => {
-    if (professor) {
+    if (open && professor) {
       form.reset({
         nome: professor.nome,
         email: professor.email || "",
@@ -151,10 +151,10 @@ export const ProfessorFormDialog = ({
         turnos_disponiveis: professor.turnos_disponiveis || "",
         senha: professor.senha || "",
       });
-    } else {
+    } else if (open && !professor) {
       form.reset(defaultValues);
     }
-  }, [professor, form]);
+  }, [open, professor, form]);
 
   const handleSubmit = async (data: ProfessorFormData) => {
     await onSubmit(data);
