@@ -257,8 +257,13 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                           {item.qtd_dias}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center text-sm">
-                        {formatDateBR(item.data_inicio)}
+                      <TableCell className="text-center">
+                        <Input
+                          type="date"
+                          className="h-8 text-xs w-[130px] mx-auto"
+                          value={item.data_inicio}
+                          onChange={(e) => setInicio(idx, e.target.value)}
+                        />
                       </TableCell>
                       <TableCell className="text-center">
                         <Input

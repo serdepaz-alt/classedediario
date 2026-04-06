@@ -495,6 +495,7 @@ export const useSequenciaDisciplinas = () => {
     handleSetDataInicio,
     moveItem,
     setProfessor,
+    setInicio,
     setTermino,
     validate,
     salvar,
