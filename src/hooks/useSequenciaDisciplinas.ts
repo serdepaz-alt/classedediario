@@ -297,6 +297,44 @@ export const useSequenciaDisciplinas = () => {
     [holidayDates]
   );
 
+  // Edit the start date of a discipline: recalc its carga/dias and cascade subsequent items
+  const setInicio = useCallback(
+    (idx: number, newInicio: string) => {
+      setSequencia((prev) => {
+        const newArr = [...prev];
+        const item = { ...newArr[idx] };
+        const inicioDate = firstBusinessDay(parseISO(newInicio));
+        
+        // Recalculate end date based on qtd_dias from the new start
+        const terminoDate = advanceBusinessDays(inicioDate, item.qtd_dias - 1);
+        item.data_inicio = format(inicioDate, "yyyy-MM-dd");
+        item.data_termino = format(terminoDate, "yyyy-MM-dd");
+        newArr[idx] = item;
+
+        // Cascade: recalculate start/end dates for all subsequent disciplines
+        let currentStart = firstBusinessDay(addDays(terminoDate, 1));
+        for (let i = idx + 1; i < newArr.length; i++) {
+          const next = { ...newArr[i] };
+          const inicio = currentStart;
+          const termino = advanceBusinessDays(inicio, next.qtd_dias - 1);
+          next.data_inicio = format(inicio, "yyyy-MM-dd");
+          next.data_termino = format(termino, "yyyy-MM-dd");
+          next.ordem = i + 1;
+          newArr[i] = next;
+          currentStart = firstBusinessDay(addDays(termino, 1));
+        }
+
+        // Update dataInicio if first item changed
+        if (idx === 0) {
+          setDataInicio(format(inicioDate, "yyyy-MM-dd"));
+        }
+
+        return newArr;
+      });
+    },
+    [firstBusinessDay, advanceBusinessDays]
+  );
+
   // Edit the end date of a discipline: recalc its carga/dias and cascade subsequent items
   const setTermino = useCallback(
     (idx: number, newTermino: string) => {
@@ -457,6 +495,7 @@ export const useSequenciaDisciplinas = () => {
     handleSetDataInicio,
     moveItem,
     setProfessor,
+    setInicio,
     setTermino,
     validate,
     salvar,
