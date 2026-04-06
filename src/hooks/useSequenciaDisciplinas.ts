@@ -280,6 +280,58 @@ export const useSequenciaDisciplinas = () => {
     setSequencia((prev) => prev.map((item, i) => i === idx ? { ...item, nome_professor: nome } : item));
   }, []);
 
+  // Count business days between two dates (inclusive)
+  const countBusinessDays = useCallback(
+    (startDate: Date, endDate: Date): number => {
+      let count = 0;
+      let current = new Date(startDate);
+      while (current <= endDate) {
+        const ds = format(current, "yyyy-MM-dd");
+        if (!isWeekend(current) && !holidayDates.includes(ds)) {
+          count++;
+        }
+        current = addDays(current, 1);
+      }
+      return count;
+    },
+    [holidayDates]
+  );
+
+  // Edit the end date of a discipline: recalc its carga/dias and cascade subsequent items
+  const setTermino = useCallback(
+    (idx: number, newTermino: string) => {
+      setSequencia((prev) => {
+        const newArr = [...prev];
+        const item = { ...newArr[idx] };
+        const terminoDate = parseISO(newTermino);
+        const inicioDate = parseISO(item.data_inicio);
+
+        // Recalculate business days and carga for this discipline
+        const newDias = countBusinessDays(inicioDate, terminoDate);
+        item.qtd_dias = newDias;
+        item.carga_horaria_total = newDias * item.carga_horaria_diaria;
+        item.data_termino = newTermino;
+        newArr[idx] = item;
+
+        // Cascade: recalculate start/end dates for all subsequent disciplines
+        let currentStart = firstBusinessDay(addDays(terminoDate, 1));
+        for (let i = idx + 1; i < newArr.length; i++) {
+          const next = { ...newArr[i] };
+          const inicio = currentStart;
+          const termino = advanceBusinessDays(inicio, next.qtd_dias - 1);
+          next.data_inicio = format(inicio, "yyyy-MM-dd");
+          next.data_termino = format(termino, "yyyy-MM-dd");
+          next.ordem = i + 1;
+          newArr[i] = next;
+          currentStart = firstBusinessDay(addDays(termino, 1));
+        }
+
+        return newArr;
+      });
+    },
+    [countBusinessDays, firstBusinessDay, advanceBusinessDays]
+  );
+
   const handleSetDataInicio = useCallback(
     (date: string) => {
       setDataInicio(date);
@@ -405,6 +457,7 @@ export const useSequenciaDisciplinas = () => {
     handleSetDataInicio,
     moveItem,
     setProfessor,
+    setTermino,
     validate,
     salvar,
     reset,
