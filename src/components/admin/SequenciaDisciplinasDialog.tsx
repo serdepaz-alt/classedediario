@@ -66,6 +66,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
     handleSetDataInicio,
     moveItem,
     setProfessor,
+    setTermino,
     salvar,
     reset,
   } = useSequenciaDisciplinas();
