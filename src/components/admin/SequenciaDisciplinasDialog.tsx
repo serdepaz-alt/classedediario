@@ -260,7 +260,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                       <TableCell className="text-center">
                         <Input
                           type="date"
-                          className="h-8 text-xs w-[130px] mx-auto"
+                          className="h-7 text-xs w-[115px] mx-auto"
                           value={item.data_inicio}
                           onChange={(e) => setInicio(idx, e.target.value)}
                         />
@@ -268,7 +268,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                       <TableCell className="text-center">
                         <Input
                           type="date"
-                          className="h-8 text-xs w-[130px] mx-auto"
+                          className="h-7 text-xs w-[115px] mx-auto"
                           value={item.data_termino}
                           min={item.data_inicio}
                           onChange={(e) => setTermino(idx, e.target.value)}
