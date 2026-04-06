@@ -259,8 +259,14 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                       <TableCell className="text-center text-sm">
                         {formatDateBR(item.data_inicio)}
                       </TableCell>
-                      <TableCell className="text-center text-sm">
-                        {formatDateBR(item.data_termino)}
+                      <TableCell className="text-center">
+                        <Input
+                          type="date"
+                          className="h-8 text-xs w-[130px] mx-auto"
+                          value={item.data_termino}
+                          min={item.data_inicio}
+                          onChange={(e) => setTermino(idx, e.target.value)}
+                        />
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center gap-0.5">
