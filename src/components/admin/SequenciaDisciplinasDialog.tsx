@@ -225,11 +225,6 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
               <Badge variant="outline" className="h-8 px-3">
                 {sequencia.length} disciplina(s)
               </Badge>
-              {dataInicio && sequencia.length > 0 && sequencia[sequencia.length - 1].data_termino && (
-                <Badge className="h-8 px-3 bg-primary/10 text-primary border-primary/20">
-                  Término: {formatDateBR(sequencia[sequencia.length - 1].data_termino)}
-                </Badge>
-              )}
             </div>
           )}
 
