@@ -282,21 +282,45 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Input
-                          type="date"
-                          className="h-7 text-xs w-[115px] mx-auto"
-                          value={item.data_inicio}
-                          onChange={(e) => setInicio(idx, e.target.value)}
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="h-7 text-xs w-[130px] mx-auto justify-start">
+                              <CalendarIcon className="mr-1 h-3 w-3" />
+                              {item.data_inicio ? format(parseISO(item.data_inicio), "dd/MM/yyyy") : "—"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 z-[60]" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={item.data_inicio ? parseISO(item.data_inicio) : undefined}
+                              onSelect={(date) => date && setInicio(idx, format(date, "yyyy-MM-dd"))}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                              locale={ptBR}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Input
-                          type="date"
-                          className="h-7 text-xs w-[115px] mx-auto"
-                          value={item.data_termino}
-                          min={item.data_inicio}
-                          onChange={(e) => setTermino(idx, e.target.value)}
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="h-7 text-xs w-[130px] mx-auto justify-start">
+                              <CalendarIcon className="mr-1 h-3 w-3" />
+                              {item.data_termino ? format(parseISO(item.data_termino), "dd/MM/yyyy") : "—"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 z-[60]" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={item.data_termino ? parseISO(item.data_termino) : undefined}
+                              onSelect={(date) => date && setTermino(idx, format(date, "yyyy-MM-dd"))}
+                              disabled={(date) => item.data_inicio ? date < parseISO(item.data_inicio) : false}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                              locale={ptBR}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center gap-0.5">
