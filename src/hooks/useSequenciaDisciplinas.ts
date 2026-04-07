@@ -541,6 +541,7 @@ export const useSequenciaDisciplinas = () => {
     setProfessor,
     setInicio,
     setTermino,
+    changeDisciplina,
     validate,
     salvar,
     reset,
