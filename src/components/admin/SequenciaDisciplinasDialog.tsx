@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,9 +26,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   ArrowUp,
   ArrowDown,
   CalendarDays,
+  CalendarIcon,
   Loader2,
   Save,
   Clock,
@@ -38,6 +44,7 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { useSequenciaDisciplinas } from "@/hooks/useSequenciaDisciplinas";
 
 interface Props {
@@ -163,16 +170,33 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
           {/* Step 2: Start Date */}
           {selectedTurmaId && sequencia.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="data_inicio_seq" className="flex items-center gap-2">
+              <Label className="flex items-center gap-2">
                 📅 Data de Início da Turma
               </Label>
-              <Input
-                id="data_inicio_seq"
-                type="date"
-                className="w-[200px]"
-                value={dataInicio}
-                onChange={(e) => handleSetDataInicio(e.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[200px] justify-start text-left font-normal",
+                      !dataInicio && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dataInicio ? format(parseISO(dataInicio), "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 z-[60]" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dataInicio ? parseISO(dataInicio) : undefined}
+                    onSelect={(date) => date && handleSetDataInicio(format(date, "yyyy-MM-dd"))}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           )}
 
@@ -258,21 +282,45 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Input
-                          type="date"
-                          className="h-7 text-xs w-[115px] mx-auto"
-                          value={item.data_inicio}
-                          onChange={(e) => setInicio(idx, e.target.value)}
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="h-7 text-xs w-[130px] mx-auto justify-start">
+                              <CalendarIcon className="mr-1 h-3 w-3" />
+                              {item.data_inicio ? format(parseISO(item.data_inicio), "dd/MM/yyyy") : "—"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 z-[60]" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={item.data_inicio ? parseISO(item.data_inicio) : undefined}
+                              onSelect={(date) => date && setInicio(idx, format(date, "yyyy-MM-dd"))}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                              locale={ptBR}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Input
-                          type="date"
-                          className="h-7 text-xs w-[115px] mx-auto"
-                          value={item.data_termino}
-                          min={item.data_inicio}
-                          onChange={(e) => setTermino(idx, e.target.value)}
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="h-7 text-xs w-[130px] mx-auto justify-start">
+                              <CalendarIcon className="mr-1 h-3 w-3" />
+                              {item.data_termino ? format(parseISO(item.data_termino), "dd/MM/yyyy") : "—"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 z-[60]" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={item.data_termino ? parseISO(item.data_termino) : undefined}
+                              onSelect={(date) => date && setTermino(idx, format(date, "yyyy-MM-dd"))}
+                              disabled={(date) => item.data_inicio ? date < parseISO(item.data_inicio) : false}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                              locale={ptBR}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center gap-0.5">
