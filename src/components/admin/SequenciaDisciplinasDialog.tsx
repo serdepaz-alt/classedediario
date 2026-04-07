@@ -259,7 +259,23 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                       <TableCell className="text-center font-mono font-bold text-muted-foreground">
                         {item.ordem}
                       </TableCell>
-                      <TableCell className="font-medium">{item.nome}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={item.nome}
+                          onValueChange={(val) => changeDisciplina(idx, val, padroesList)}
+                        >
+                          <SelectTrigger className="h-8 text-xs min-w-[140px]">
+                            <SelectValue placeholder="Selecionar disciplina" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background z-50">
+                            {padroesList.map((p) => (
+                              <SelectItem key={p.id} value={p.nome}>
+                                {p.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell>
                         <Select
                           value={item.nome_professor || "sem-professor"}
