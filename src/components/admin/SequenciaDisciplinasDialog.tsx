@@ -46,6 +46,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useSequenciaDisciplinas } from "@/hooks/useSequenciaDisciplinas";
+import { usePadroesDisciplinas } from "@/hooks/usePadroesDisciplinas";
 
 interface Props {
   open: boolean;
@@ -75,9 +76,12 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
     setProfessor,
     setInicio,
     setTermino,
+    changeDisciplina,
     salvar,
     reset,
   } = useSequenciaDisciplinas();
+
+  const { padroes: padroesList } = usePadroesDisciplinas(turno || undefined);
 
   useEffect(() => {
     if (open) {
