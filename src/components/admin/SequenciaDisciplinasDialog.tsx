@@ -167,36 +167,48 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
             )}
           </div>
 
-          {/* Step 2: Start Date */}
+          {/* Step 2: Start Date & End Date */}
           {selectedTurmaId && sequencia.length > 0 && (
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                📅 Data de Início da Turma
-              </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-[200px] justify-start text-left font-normal",
-                      !dataInicio && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataInicio ? format(parseISO(dataInicio), "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-[60]" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dataInicio ? parseISO(dataInicio) : undefined}
-                    onSelect={(date) => date && handleSetDataInicio(format(date, "yyyy-MM-dd"))}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  📅 Data de Início da Turma
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[200px] justify-start text-left font-normal",
+                        !dataInicio && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dataInicio ? format(parseISO(dataInicio), "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[60]" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataInicio ? parseISO(dataInicio) : undefined}
+                      onSelect={(date) => date && handleSetDataInicio(format(date, "yyyy-MM-dd"))}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                      locale={ptBR}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  📅 Previsão de Término da Turma
+                </Label>
+                <div className="h-9 px-3 flex items-center rounded-md border border-input bg-muted/50 w-[200px] text-sm font-medium">
+                  {sequencia.length > 0 && sequencia[sequencia.length - 1].data_termino
+                    ? format(parseISO(sequencia[sequencia.length - 1].data_termino), "dd/MM/yyyy", { locale: ptBR })
+                    : "—"}
+                </div>
+              </div>
             </div>
           )}
 
@@ -213,11 +225,6 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
               <Badge variant="outline" className="h-8 px-3">
                 {sequencia.length} disciplina(s)
               </Badge>
-              {dataInicio && sequencia.length > 0 && sequencia[sequencia.length - 1].data_termino && (
-                <Badge className="h-8 px-3 bg-primary/10 text-primary border-primary/20">
-                  Término: {formatDateBR(sequencia[sequencia.length - 1].data_termino)}
-                </Badge>
-              )}
             </div>
           )}
 
