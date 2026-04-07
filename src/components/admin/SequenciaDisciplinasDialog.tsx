@@ -46,6 +46,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useSequenciaDisciplinas } from "@/hooks/useSequenciaDisciplinas";
+import { usePadroesDisciplinas } from "@/hooks/usePadroesDisciplinas";
 
 interface Props {
   open: boolean;
@@ -75,9 +76,12 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
     setProfessor,
     setInicio,
     setTermino,
+    changeDisciplina,
     salvar,
     reset,
   } = useSequenciaDisciplinas();
+
+  const { padroes: padroesList } = usePadroesDisciplinas(turno || undefined);
 
   useEffect(() => {
     if (open) {
@@ -255,7 +259,23 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                       <TableCell className="text-center font-mono font-bold text-muted-foreground">
                         {item.ordem}
                       </TableCell>
-                      <TableCell className="font-medium">{item.nome}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={item.nome}
+                          onValueChange={(val) => changeDisciplina(idx, val, padroesList)}
+                        >
+                          <SelectTrigger className="h-8 text-xs min-w-[140px]">
+                            <SelectValue placeholder="Selecionar disciplina" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background z-50">
+                            {padroesList.map((p) => (
+                              <SelectItem key={p.id} value={p.nome}>
+                                {p.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell>
                         <Select
                           value={item.nome_professor || "sem-professor"}
