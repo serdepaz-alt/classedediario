@@ -170,16 +170,33 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
           {/* Step 2: Start Date */}
           {selectedTurmaId && sequencia.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="data_inicio_seq" className="flex items-center gap-2">
+              <Label className="flex items-center gap-2">
                 📅 Data de Início da Turma
               </Label>
-              <Input
-                id="data_inicio_seq"
-                type="date"
-                className="w-[200px]"
-                value={dataInicio}
-                onChange={(e) => handleSetDataInicio(e.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[200px] justify-start text-left font-normal",
+                      !dataInicio && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dataInicio ? format(parseISO(dataInicio), "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 z-[60]" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dataInicio ? parseISO(dataInicio) : undefined}
+                    onSelect={(date) => date && handleSetDataInicio(format(date, "yyyy-MM-dd"))}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           )}
 
