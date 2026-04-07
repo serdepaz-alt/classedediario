@@ -280,6 +280,50 @@ export const useSequenciaDisciplinas = () => {
     setSequencia((prev) => prev.map((item, i) => i === idx ? { ...item, nome_professor: nome } : item));
   }, []);
 
+  // Change the discipline at a given index using a pattern from padroes_disciplinas
+  const changeDisciplina = useCallback(
+    (idx: number, novoNome: string, padroes: { nome: string; carga_horaria_total: number; carga_horaria_diaria: number }[]) => {
+      const padrao = padroes.find((p) => p.nome === novoNome);
+      if (!padrao) return;
+
+      setSequencia((prev) => {
+        const newArr = [...prev];
+        const item = { ...newArr[idx] };
+        item.nome = padrao.nome;
+        item.carga_horaria_total = padrao.carga_horaria_total;
+        item.carga_horaria_diaria = padrao.carga_horaria_diaria;
+        item.qtd_dias = calcularQtdDias(padrao.carga_horaria_total, padrao.carga_horaria_diaria);
+        newArr[idx] = item;
+
+        // Recalculate dates from this item onwards
+        const startDate = item.data_inicio || (idx > 0 ? newArr[idx - 1].data_termino : "");
+        if (!startDate) return newArr;
+
+        let currentStart = idx > 0 && item.data_inicio
+          ? firstBusinessDay(parseISO(item.data_inicio))
+          : firstBusinessDay(addDays(parseISO(newArr[idx - 1]?.data_termino || startDate), idx > 0 ? 1 : 0));
+
+        if (item.data_inicio) {
+          currentStart = firstBusinessDay(parseISO(item.data_inicio));
+        }
+
+        for (let i = idx; i < newArr.length; i++) {
+          const cur = { ...newArr[i] };
+          const inicio = currentStart;
+          const termino = advanceBusinessDays(inicio, cur.qtd_dias - 1);
+          cur.data_inicio = format(inicio, "yyyy-MM-dd");
+          cur.data_termino = format(termino, "yyyy-MM-dd");
+          cur.ordem = i + 1;
+          newArr[i] = cur;
+          currentStart = firstBusinessDay(addDays(termino, 1));
+        }
+
+        return newArr;
+      });
+    },
+    [firstBusinessDay, advanceBusinessDays]
+  );
+
   // Count business days between two dates (inclusive)
   const countBusinessDays = useCallback(
     (startDate: Date, endDate: Date): number => {
