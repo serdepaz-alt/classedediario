@@ -3,12 +3,17 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
-  Search, 
   Lock, 
   Unlock, 
-  Send, 
   Check,
   ChevronLeft,
   ChevronRight,
@@ -21,6 +26,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
+  Search,
+  Send,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -74,31 +81,56 @@ interface BatchGradeRow {
   studentId: string;
   studentName: string;
   valor: number | null;
+  existingId?: string;
+  is_locked: boolean;
 }
+
+// Available evaluations
+const EVALUATION_OPTIONS = [
+  "AVALIAÇÃO 1",
+  "AVALIAÇÃO 2",
+  "AVALIAÇÃO 3",
+  "AVALIAÇÃO 4",
+  "AVALIAÇÃO 5",
+  "PROVA PRÁTICA",
+  "TRABALHO",
+  "SEMINÁRIO",
+  "RECUPERAÇÃO",
+];
 
 export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplinaNome }: GradeEntryProps) => {
   const { fetchStudents, fetchStudentGrades, saveGrade } = useGrades();
-  const [searchTerm, setSearchTerm] = useState("");
   const [students, setStudents] = useState<StudentItem[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+
+  // Batch mode is now the default and primary mode
+  const [batchEvaluationName, setBatchEvaluationName] = useState("AVALIAÇÃO 1");
+  const [batchGrades, setBatchGrades] = useState<BatchGradeRow[]>([]);
+  const [savingBatch, setSavingBatch] = useState(false);
+  const [batchSaved, setBatchSaved] = useState(false);
+
+  // Confirmation dialog
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [savedCount, setSavedCount] = useState(0);
+
+  // Individual mode state (kept for secondary access)
+  const [entryMode, setEntryMode] = useState<"batch" | "individual">("batch");
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudentIndex, setSelectedStudentIndex] = useState(0);
   const [grades, setGrades] = useState<GradeRow[]>([]);
   const [bonusGrade, setBonusGrade] = useState<number>(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<"prev" | "next" | number | null>(null);
-  const [loadingStudents, setLoadingStudents] = useState(true);
   const [loadingGrades, setLoadingGrades] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [entryMode, setEntryMode] = useState<"individual" | "batch">("individual");
 
-  // Batch mode state
-  const [batchEvaluationNum, setBatchEvaluationNum] = useState(1);
-  const [batchEvaluationName, setBatchEvaluationName] = useState("AVALIAÇÃO 1");
-  const [batchPeso, setBatchPeso] = useState(1);
-  const [batchGrades, setBatchGrades] = useState<BatchGradeRow[]>([]);
-  const [savingBatch, setSavingBatch] = useState(false);
+  // Edit evaluation name dialog
+  const [editingEvalIndex, setEditingEvalIndex] = useState<number | null>(null);
+  const [editEvalName, setEditEvalName] = useState("");
+  const [editEvalPeso, setEditEvalPeso] = useState(1);
 
-  // Save summary dialog
+  // Save summary dialog (individual)
   const [showSaveSummary, setShowSaveSummary] = useState(false);
   const [saveSummaryData, setSaveSummaryData] = useState<{
     studentName: string;
@@ -107,18 +139,12 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
     distribution: { range: string; count: number }[];
   } | null>(null);
 
-  // Edit evaluation name dialog
-  const [editingEvalIndex, setEditingEvalIndex] = useState<number | null>(null);
-  const [editEvalName, setEditEvalName] = useState("");
-  const [editEvalPeso, setEditEvalPeso] = useState(1);
-
-  // Load students with status
+  // Load students
   useEffect(() => {
     const load = async () => {
       setLoadingStudents(true);
       const data = await fetchStudents(turmaId);
       
-      // Fetch grade status for each student
       const studentsWithStatus: StudentItem[] = [];
       for (const s of data) {
         const gradeData = await fetchStudentGrades(s.id, disciplinaId);
@@ -147,13 +173,99 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
     load();
   }, [turmaId, disciplinaId]);
 
+  // Initialize batch grades when students load or evaluation changes
+  useEffect(() => {
+    if (entryMode === "batch" && students.length > 0) {
+      loadBatchGrades();
+    }
+  }, [entryMode, students, batchEvaluationName]);
+
+  const loadBatchGrades = async () => {
+    const rows: BatchGradeRow[] = [];
+    for (const s of students) {
+      const existingGrades = await fetchStudentGrades(s.id, disciplinaId);
+      const matching = existingGrades.find(g => g.nome_avaliacao === batchEvaluationName);
+      rows.push({
+        studentId: s.id,
+        studentName: s.nome,
+        valor: matching?.valor ?? null,
+        existingId: matching?.id,
+        is_locked: matching?.is_locked ?? false,
+      });
+    }
+    setBatchGrades(rows);
+    setBatchSaved(false);
+  };
+
+  // Progress tracking
+  const filledCount = batchGrades.filter(g => g.valor !== null).length;
+  const totalCount = batchGrades.length;
+  const progressPercent = totalCount > 0 ? (filledCount / totalCount) * 100 : 0;
+
+  // Batch save
+  const handleBatchSave = async () => {
+    setSavingBatch(true);
+    let count = 0;
+
+    try {
+      for (const bg of batchGrades) {
+        if (bg.valor === null) continue;
+
+        // Determine evaluation number from name
+        const numMatch = batchEvaluationName.match(/\d+/);
+        const evalNum = numMatch ? parseInt(numMatch[0]) : 1;
+
+        const result = await saveGrade({
+          studentId: bg.studentId,
+          disciplinaId,
+          numeroAvaliacao: evalNum,
+          nomeAvaliacao: batchEvaluationName,
+          peso: 1,
+          valor: bg.valor,
+          isLocked: bg.is_locked,
+          bonus: 0,
+          existingId: bg.existingId,
+        });
+
+        if (!result?.error) count++;
+      }
+
+      setSavedCount(count);
+      setBatchSaved(true);
+      setShowConfirmation(true);
+    } catch (err) {
+      toast.error("Erro ao salvar notas em lote.");
+    }
+
+    setSavingBatch(false);
+  };
+
+  // After confirmation, redirect back to selector
+  const handleConfirmationClose = () => {
+    setShowConfirmation(false);
+    onBack();
+  };
+
+  // Toggle lock for a batch grade
+  const handleBatchToggleLock = (idx: number) => {
+    const bg = batchGrades[idx];
+    if (bg.is_locked) {
+      toast.info("Nota já travada. Para destravá-la, solicite ao setor administrativo.");
+      return;
+    }
+    if (bg.valor === null) {
+      toast.info("Insira uma nota antes de travar.");
+      return;
+    }
+    setBatchGrades(prev => prev.map((g, i) => i === idx ? { ...g, is_locked: true } : g));
+  };
+
+  // === Individual mode functions ===
   const filteredStudents = students.filter(s =>
     s.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
   const selectedStudent = filteredStudents[selectedStudentIndex] || filteredStudents[0];
 
-  // Load grades when student changes
   const loadGrades = useCallback(async (studentId: string) => {
     setLoadingGrades(true);
     const data = await fetchStudentGrades(studentId, disciplinaId);
@@ -188,14 +300,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
     }
   }, [selectedStudent?.id, loadGrades, entryMode]);
 
-  // Initialize batch grades when switching to batch mode
-  useEffect(() => {
-    if (entryMode === "batch") {
-      setBatchGrades(students.map(s => ({ studentId: s.id, studentName: s.nome, valor: null })));
-    }
-  }, [entryMode, students]);
-
-  // Média parcial: apenas notas travadas + bônus proporcional
   const calculatePartialAverage = () => {
     const lockedGrades = grades.filter(g => g.is_locked && g.valor !== null);
     if (lockedGrades.length === 0) return bonusGrade > 0 ? bonusGrade : 0;
@@ -204,7 +308,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
     return totalWeight > 0 ? (weightedSum / totalWeight) + bonusGrade : 0;
   };
 
-  // Média final: todas as notas com valor (inclui não-travadas) + bônus
   const calculateFinalAverage = () => {
     const allWithValues = grades.filter(g => g.valor !== null);
     if (allWithValues.length === 0) return bonusGrade > 0 ? bonusGrade : 0;
@@ -308,7 +411,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
       toast.success("Notas salvas com sucesso!");
       setHasUnsavedChanges(false);
 
-      // Persist averages to medias_alunos
       const currentFinalAvg = calculateFinalAverage();
       const currentPartialAvg = calculatePartialAverage();
       const currentLockedCount = grades.filter(g => g.is_locked && g.valor !== null).length;
@@ -336,7 +438,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           } as any, { onConflict: "student_id,disciplina_id" } as any);
       }
 
-      // Calculate distribution for summary
       const gradeValues = grades.filter(g => g.valor !== null).map(g => g.valor!);
       const distribution = [
         { range: "9-10", count: gradeValues.filter(v => v >= 9).length },
@@ -352,7 +453,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
         distribution,
       });
 
-      // Send grade notification
       const lockedGradesWithValues = grades.filter(g => g.is_locked && g.valor !== null);
       if (lockedGradesWithValues.length > 0) {
         const { data: studentData } = await supabase
@@ -388,7 +488,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
         }
       }
 
-      // Update student status
       const avg = currentFinalAvg;
       setStudents(prev => prev.map(s => 
         s.id === selectedStudent.id
@@ -402,37 +501,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
       toast.error("Erro inesperado ao salvar notas.");
     }
     setSaving(false);
-  };
-
-  // Batch save
-  const handleBatchSave = async () => {
-    setSavingBatch(true);
-    let savedCount = 0;
-
-    try {
-      for (const bg of batchGrades) {
-        if (bg.valor === null) continue;
-
-        const result = await saveGrade({
-          studentId: bg.studentId,
-          disciplinaId,
-          numeroAvaliacao: batchEvaluationNum,
-          nomeAvaliacao: batchEvaluationName,
-          peso: batchPeso,
-          valor: bg.valor,
-          isLocked: false,
-          bonus: 0,
-        });
-
-        if (!result?.error) savedCount++;
-      }
-
-      toast.success(`${savedCount} nota(s) lançadas em lote com sucesso!`);
-    } catch (err) {
-      toast.error("Erro ao salvar notas em lote.");
-    }
-
-    setSavingBatch(false);
   };
 
   const handleNavigate = (direction: "prev" | "next") => {
@@ -458,7 +526,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
 
   const handleSaveAndNext = async () => {
     await handleSave();
-    // Delay navigation so the save summary dialog can be seen before moving on
     setTimeout(() => {
       setShowSaveSummary(false);
       if (selectedStudentIndex < filteredStudents.length - 1) {
@@ -514,7 +581,7 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-4">
@@ -525,19 +592,29 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <span>Gestão de Notas</span>
               <ChevronRight className="w-4 h-4" />
-              <span className="text-foreground font-medium">Lançamento ({turmaNome} - {disciplinaNome})</span>
+              <span className="text-foreground font-medium">
+                {turmaNome} — {disciplinaNome}
+              </span>
             </div>
           </div>
         </div>
-        <Tabs value={entryMode} onValueChange={(v) => setEntryMode(v as any)}>
-          <TabsList>
-            <TabsTrigger value="individual">Individual</TabsTrigger>
-            <TabsTrigger value="batch">
-              <Users className="w-4 h-4 mr-1" />
-              Em Lote
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={entryMode === "batch" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setEntryMode("batch")}
+          >
+            <Users className="w-4 h-4 mr-1" />
+            Em Lote
+          </Button>
+          <Button
+            variant={entryMode === "individual" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setEntryMode("individual")}
+          >
+            Individual
+          </Button>
+        </div>
       </div>
 
       {students.length === 0 ? (
@@ -545,45 +622,41 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           <p className="text-muted-foreground">Nenhum aluno ativo encontrado nesta turma.</p>
         </Card>
       ) : entryMode === "batch" ? (
-        /* Batch Mode */
+        /* ========== BATCH MODE (DEFAULT) ========== */
         <Card className="gradient-card shadow-card border-0 p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Lançamento em Lote</h3>
-          
-          <div className="flex items-center gap-4 mb-6 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Avaliação:</span>
-              <Input
-                value={batchEvaluationName}
-                onChange={(e) => setBatchEvaluationName(e.target.value)}
-                className="w-48"
-              />
+          {/* Progress bar and counter at top */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-foreground">Lançamento em Lote</h3>
+              <span className="text-sm font-medium text-muted-foreground">
+                {filledCount} de {totalCount} preenchidas
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Nº:</span>
-              <Input
-                type="number"
-                value={batchEvaluationNum}
-                onChange={(e) => setBatchEvaluationNum(parseInt(e.target.value) || 1)}
-                className="w-16"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Peso:</span>
-              <Input
-                type="number"
-                value={batchPeso}
-                onChange={(e) => setBatchPeso(parseInt(e.target.value) || 1)}
-                className="w-16"
-              />
-            </div>
+            <Progress value={progressPercent} className="h-2" />
+          </div>
+
+          {/* Evaluation dropdown selector - no Peso, no Nº */}
+          <div className="flex items-center gap-4 mb-6">
+            <span className="text-sm font-medium text-foreground">Avaliação:</span>
+            <Select value={batchEvaluationName} onValueChange={setBatchEvaluationName}>
+              <SelectTrigger className="w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EVALUATION_OPTIONS.map(opt => (
+                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <ScrollArea className="h-[400px]">
-            <div className="space-y-2">
+            <div className="space-y-1">
               {batchGrades.map((bg, idx) => (
                 <div key={bg.studentId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-                  <span className="text-sm text-muted-foreground w-6">{idx + 1}</span>
-                  <span className="flex-1 font-medium text-sm">{bg.studentName}</span>
+                  <span className="text-sm text-muted-foreground w-6 text-right">{idx + 1}</span>
+                  <span className="flex-1 font-medium text-sm truncate">{bg.studentName}</span>
+                  
                   <Input
                     type="number"
                     step="0.1"
@@ -592,25 +665,57 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                     placeholder="Nota"
                     value={bg.valor ?? ""}
                     onChange={(e) => {
+                      if (bg.is_locked) {
+                        toast.info("Nota travada.");
+                        return;
+                      }
                       const val = e.target.value === "" ? null : parseFloat(e.target.value);
                       setBatchGrades(prev => prev.map((g, i) => i === idx ? { ...g, valor: val } : g));
+                      setBatchSaved(false);
                     }}
-                    className="w-20"
+                    className={`w-20 ${bg.is_locked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    readOnly={bg.is_locked}
                   />
+
+                  {/* Colored lock: red = locked, green = open */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleBatchToggleLock(idx)}
+                    className="p-1 h-8 w-8"
+                  >
+                    {bg.is_locked ? (
+                      <Lock className="w-4 h-4 text-red-500" />
+                    ) : (
+                      <Unlock className="w-4 h-4 text-green-500" />
+                    )}
+                  </Button>
                 </div>
               ))}
             </div>
           </ScrollArea>
 
+          {/* Save button: white and disabled after save */}
           <div className="mt-4 flex justify-end">
-            <Button onClick={handleBatchSave} disabled={savingBatch}>
-              {savingBatch ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              Salvar Lote ({batchGrades.filter(g => g.valor !== null).length} notas)
+            <Button
+              onClick={handleBatchSave}
+              disabled={savingBatch || batchSaved || filledCount === 0}
+              variant={batchSaved ? "outline" : "default"}
+              className={batchSaved ? "bg-background text-muted-foreground border cursor-not-allowed" : ""}
+            >
+              {savingBatch ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : batchSaved ? (
+                <Check className="w-4 h-4 mr-2" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              {batchSaved ? "Notas Salvas" : `Salvar Lote (${filledCount} notas)`}
             </Button>
           </div>
         </Card>
       ) : (
-        /* Individual Mode */
+        /* ========== INDIVIDUAL MODE ========== */
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Student Selection */}
           <Card className="gradient-card shadow-card border-0 p-6">
@@ -675,7 +780,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                   </div>
                 ) : (
                   <>
-                    {/* Student Header */}
                     <div className="flex items-center gap-3 mb-6 pb-4 border-b">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                         <span className="text-primary font-semibold">
@@ -690,12 +794,11 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                       </div>
                     </div>
 
-                    {/* Grades Section */}
                     <div className="space-y-4">
                       <div>
                         <h4 className="font-semibold text-foreground mb-1">NOTAS INTERMEDIÁRIAS (AVALIAÇÕES)</h4>
                         <p className="text-xs text-muted-foreground mb-4">
-                          *Use o cadeado para definir se a nota compõe a média final. Clique no lápis para renomear.*
+                          *Use o cadeado para definir se a nota compõe a média final.*
                         </p>
                       </div>
 
@@ -703,7 +806,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                         <div key={index} className="flex items-center gap-2 flex-wrap">
                           <div className="flex items-center gap-1 min-w-[140px]">
                             <span className="text-sm font-medium truncate">{grade.nome_avaliacao}</span>
-                            <span className="text-xs text-muted-foreground">(P{grade.peso})</span>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -731,12 +833,12 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                             variant="ghost"
                             size="sm"
                             onClick={() => handleToggleLock(index)}
-                            className={`gap-1 ${grade.is_locked ? 'text-primary' : 'text-muted-foreground'}`}
+                            className="gap-1"
                           >
                             {grade.is_locked ? (
-                              <><Lock className="w-4 h-4" /><span className="text-xs">Travado</span></>
+                              <><Lock className="w-4 h-4 text-red-500" /><span className="text-xs text-red-500">Travado</span></>
                             ) : (
-                              <><Unlock className="w-4 h-4" /><span className="text-xs">Aberto</span></>
+                              <><Unlock className="w-4 h-4 text-green-500" /><span className="text-xs text-green-500">Aberto</span></>
                             )}
                           </Button>
 
@@ -751,7 +853,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                         </div>
                       ))}
 
-                      {/* Add Evaluation + Bonus */}
                       <div className="flex items-center gap-3 pt-2">
                         <Button 
                           variant="outline" 
@@ -774,7 +875,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                         </div>
                       </div>
 
-                      {/* Performance Summary */}
                       <div className="mt-6 pt-4 border-t space-y-3">
                         <h4 className="font-semibold text-foreground mb-2">RESUMO DO DESEMPENHO</h4>
                         <p className="text-lg">
@@ -810,7 +910,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex items-center justify-between mt-6 pt-4 border-t">
                       <Button 
                         variant="ghost" 
@@ -843,6 +942,26 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           </Card>
         </div>
       )}
+
+      {/* Confirmation Dialog - centered message after batch save */}
+      <Dialog open={showConfirmation} onOpenChange={() => {}}>
+        <DialogContent className="max-w-sm text-center">
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-10 h-10 text-green-500" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-foreground mb-1">Notas Salvas!</h3>
+              <p className="text-muted-foreground text-sm">
+                {savedCount} nota{savedCount !== 1 ? "s" : ""} de <strong>{batchEvaluationName}</strong> {savedCount !== 1 ? "foram salvas" : "foi salva"} e enviada{savedCount !== 1 ? "s" : ""} aos alunos com sucesso.
+              </p>
+            </div>
+            <Button onClick={handleConfirmationClose} className="w-full mt-2">
+              Voltar para Seleção
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Evaluation Dialog */}
       <Dialog open={editingEvalIndex !== null} onOpenChange={(open) => !open && setEditingEvalIndex(null)}>
@@ -877,7 +996,7 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
         </DialogContent>
       </Dialog>
 
-      {/* Save Summary Dialog */}
+      {/* Save Summary Dialog (Individual) */}
       <Dialog open={showSaveSummary} onOpenChange={setShowSaveSummary}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -904,7 +1023,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                 </Badge>
               </div>
 
-              {/* Distribution */}
               <div>
                 <p className="text-sm font-medium mb-2">Distribuição das Notas</p>
                 <div className="space-y-1">
