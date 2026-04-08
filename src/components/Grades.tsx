@@ -200,6 +200,55 @@ export const Grades = () => {
     setViewMode("selector");
   };
 
+  // Filtered data (already scoped to selected turma)
+  const filteredByTurma = dashboardStudents;
+
+  const filteredData = filteredByTurma.filter(item =>
+    item.student.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // KPIs
+  const classAverage = filteredByTurma.length > 0
+    ? filteredByTurma.reduce((sum, student) => sum + calculateStudentOverallAverage(student.grades), 0) / filteredByTurma.length
+    : 0;
+  
+  const studentsApproved = filteredByTurma.filter(student => 
+    calculateStudentOverallAverage(student.grades) >= 6.0).length;
+  
+  const percentApproved = filteredByTurma.length > 0
+    ? Math.round((studentsApproved / filteredByTurma.length) * 100)
+    : 0;
+  
+  const allGradeValues = filteredByTurma.flatMap(student => Object.values(student.grades).flat());
+  const highestGrade = allGradeValues.length > 0 ? Math.max(...allGradeValues) : 0;
+
+  const studentsInAvaliacaoFinal = filteredByTurma.filter(s => {
+    const avg = calculateStudentOverallAverage(s.grades);
+    return avg >= 5.0 && avg < 6.0;
+  }).length;
+
+  const studentsMantido = filteredByTurma.filter(s => {
+    const avg = calculateStudentOverallAverage(s.grades);
+    return avg > 0 && avg < 5.0;
+  }).length;
+
+  // Ranking (hook must be before early returns)
+  const rankedStudents = useMemo(() => {
+    return [...filteredByTurma]
+      .map(s => ({
+        ...s,
+        average: calculateStudentOverallAverage(s.grades),
+      }))
+      .filter(s => s.average > 0)
+      .sort((a, b) => b.average - a.average)
+      .map((s, i) => ({ ...s, rank: i + 1 }));
+  }, [filteredByTurma]);
+
+  const getRank = (studentId: string) => {
+    const found = rankedStudents.find(s => s.id === studentId);
+    return found ? found.rank : null;
+  };
+
   // Show selector (using fetched disciplinas for the turma)
   if (viewMode === "selector" && selectedTurmaForSelector) {
     return (
@@ -237,57 +286,6 @@ export const Grades = () => {
       />
     );
   }
-
-  // Filtered data (already scoped to selected turma)
-  const filteredByTurma = dashboardStudents;
-
-  const filteredData = filteredByTurma.filter(item =>
-    item.student.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // KPIs
-  const classAverage = filteredByTurma.length > 0
-    ? filteredByTurma.reduce((sum, student) => sum + calculateStudentOverallAverage(student.grades), 0) / filteredByTurma.length
-    : 0;
-  
-  const studentsApproved = filteredByTurma.filter(student => 
-    calculateStudentOverallAverage(student.grades) >= 6.0).length;
-  
-  const percentApproved = filteredByTurma.length > 0
-    ? Math.round((studentsApproved / filteredByTurma.length) * 100)
-    : 0;
-  
-  const allGradeValues = filteredByTurma.flatMap(student => Object.values(student.grades).flat());
-  const highestGrade = allGradeValues.length > 0 ? Math.max(...allGradeValues) : 0;
-
-  // Avaliação Final: avg >= 5.0 && < 6.0
-  const studentsInAvaliacaoFinal = filteredByTurma.filter(s => {
-    const avg = calculateStudentOverallAverage(s.grades);
-    return avg >= 5.0 && avg < 6.0;
-  }).length;
-
-  // Mantido: avg > 0 && < 5.0
-  const studentsMantido = filteredByTurma.filter(s => {
-    const avg = calculateStudentOverallAverage(s.grades);
-    return avg > 0 && avg < 5.0;
-  }).length;
-
-  // Ranking
-  const rankedStudents = useMemo(() => {
-    return [...filteredByTurma]
-      .map(s => ({
-        ...s,
-        average: calculateStudentOverallAverage(s.grades),
-      }))
-      .filter(s => s.average > 0)
-      .sort((a, b) => b.average - a.average)
-      .map((s, i) => ({ ...s, rank: i + 1 }));
-  }, [filteredByTurma]);
-
-  const getRank = (studentId: string) => {
-    const found = rankedStudents.find(s => s.id === studentId);
-    return found ? found.rank : null;
-  };
 
   // Export PDF
   const handleExportPDF = () => {
