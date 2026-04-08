@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,37 +28,39 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/students" element={<ProtectedRoute><StudentsPage /></ProtectedRoute>} />
-            <Route path="/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
-            <Route path="/grades" element={<ProtectedRoute><GradesPage /></ProtectedRoute>} />
-            <Route path="/notes" element={<ProtectedRoute><NotesPage /></ProtectedRoute>} />
-            <Route path="/backlog" element={<ProtectedRoute><BacklogPage /></ProtectedRoute>} />
-            <Route path="/programmatic-content" element={<ProtectedRoute><ProgrammaticContentPage /></ProtectedRoute>} />
-            <Route path="/turmas" element={<ProtectedRoute><TurmasPage /></ProtectedRoute>} />
-            <Route path="/predictive" element={<ProtectedRoute><PredictivePage /></ProtectedRoute>} />
-            <Route path="/smart-finance" element={<ProtectedRoute><SmartFinancePage /></ProtectedRoute>} />
-            <Route path="/professores" element={<ProtectedRoute><ProfessoresPage /></ProtectedRoute>} />
-            <Route path="/cronograma" element={<ProtectedRoute><CronogramaPage /></ProtectedRoute>} />
-            <Route path="/aceite-cronograma" element={<ProtectedRoute><AceiteCronogramaPage /></ProtectedRoute>} />
-            <Route path="/gestao-excecoes" element={<ProtectedRoute><GestaoExcecoesPage /></ProtectedRoute>} />
-            <Route path="/payroll" element={<ProtectedRoute><PayrollPage /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/students" element={<ProtectedRoute><StudentsPage /></ProtectedRoute>} />
+              <Route path="/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
+              <Route path="/grades" element={<ProtectedRoute><GradesPage /></ProtectedRoute>} />
+              <Route path="/notes" element={<ProtectedRoute><NotesPage /></ProtectedRoute>} />
+              <Route path="/backlog" element={<ProtectedRoute><BacklogPage /></ProtectedRoute>} />
+              <Route path="/programmatic-content" element={<ProtectedRoute><ProgrammaticContentPage /></ProtectedRoute>} />
+              <Route path="/turmas" element={<ProtectedRoute><TurmasPage /></ProtectedRoute>} />
+              <Route path="/predictive" element={<ProtectedRoute><PredictivePage /></ProtectedRoute>} />
+              <Route path="/smart-finance" element={<ProtectedRoute><SmartFinancePage /></ProtectedRoute>} />
+              <Route path="/professores" element={<ProtectedRoute><ProfessoresPage /></ProtectedRoute>} />
+              <Route path="/cronograma" element={<ProtectedRoute><CronogramaPage /></ProtectedRoute>} />
+              <Route path="/aceite-cronograma" element={<ProtectedRoute><AceiteCronogramaPage /></ProtectedRoute>} />
+              <Route path="/gestao-excecoes" element={<ProtectedRoute><GestaoExcecoesPage /></ProtectedRoute>} />
+              <Route path="/payroll" element={<ProtectedRoute><PayrollPage /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

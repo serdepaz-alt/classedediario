@@ -114,11 +114,14 @@ export const Grades = () => {
           if (!studentData) continue;
 
           const key = nota.student_id;
+          // Safety: ensure studentData fields are strings (not objects)
+          const studentName = typeof studentData.nome === "string" ? studentData.nome : String(studentData.nome ?? "Aluno");
+          const studentMatricula = typeof studentData.matricula === "string" ? studentData.matricula : String(studentData.matricula ?? "—");
           if (!studentMap.has(key)) {
             studentMap.set(key, {
               id: key,
-              student: studentData.nome,
-              matricula: studentData.matricula,
+              student: studentName,
+              matricula: studentMatricula,
               grades: {},
               turmaId: turma.turma_id,
             });
