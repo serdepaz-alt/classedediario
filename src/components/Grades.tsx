@@ -505,6 +505,14 @@ ${filteredByTurma.map(s => {
         <div className="flex items-center justify-center h-32">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
+      ) : filterTurmaId === "all" ? (
+        <Card className="p-8 text-center border-dashed">
+          <GraduationCap className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-lg font-medium text-foreground mb-1">Selecione uma turma</p>
+          <p className="text-muted-foreground text-sm">
+            Escolha uma turma no filtro acima para visualizar as notas dos alunos.
+          </p>
+        </Card>
       ) : dashboardStudents.length === 0 ? (
         <Card className="p-8 text-center border-dashed">
           <Award className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
