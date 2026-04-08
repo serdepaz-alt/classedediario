@@ -238,10 +238,8 @@ export const Grades = () => {
     );
   }
 
-  // Filtered data
-  const filteredByTurma = filterTurmaId === "all"
-    ? dashboardStudents
-    : dashboardStudents.filter(s => s.turmaId === filterTurmaId);
+  // Filtered data (already scoped to selected turma)
+  const filteredByTurma = dashboardStudents;
 
   const filteredData = filteredByTurma.filter(item =>
     item.student.toLowerCase().includes(searchTerm.toLowerCase())
