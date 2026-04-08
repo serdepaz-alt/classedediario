@@ -342,6 +342,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                             <Calendar
                               mode="single"
                               selected={item.data_termino ? parseISO(item.data_termino) : undefined}
+                              defaultMonth={item.data_termino ? parseISO(item.data_termino) : undefined}
                               onSelect={(date) => date && setTermino(idx, format(date, "yyyy-MM-dd"))}
                               disabled={(date) => item.data_inicio ? date < parseISO(item.data_inicio) : false}
                               initialFocus
