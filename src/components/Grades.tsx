@@ -287,11 +287,6 @@ export const Grades = () => {
     );
   }
 
-  const getRank = (studentId: string) => {
-    const found = rankedStudents.find(s => s.id === studentId);
-    return found ? found.rank : null;
-  };
-
   // Export PDF
   const handleExportPDF = () => {
     const turmaName = filterTurmaId === "all"
