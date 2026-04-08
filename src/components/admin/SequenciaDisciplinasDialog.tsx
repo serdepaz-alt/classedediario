@@ -195,6 +195,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                     <Calendar
                       mode="single"
                       selected={dataInicio ? parseISO(dataInicio) : undefined}
+                      defaultMonth={dataInicio ? parseISO(dataInicio) : undefined}
                       onSelect={(date) => date && handleSetDataInicio(format(date, "yyyy-MM-dd"))}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
