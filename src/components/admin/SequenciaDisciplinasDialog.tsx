@@ -195,6 +195,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                     <Calendar
                       mode="single"
                       selected={dataInicio ? parseISO(dataInicio) : undefined}
+                      defaultMonth={dataInicio ? parseISO(dataInicio) : undefined}
                       onSelect={(date) => date && handleSetDataInicio(format(date, "yyyy-MM-dd"))}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
@@ -320,6 +321,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                             <Calendar
                               mode="single"
                               selected={item.data_inicio ? parseISO(item.data_inicio) : undefined}
+                              defaultMonth={item.data_inicio ? parseISO(item.data_inicio) : undefined}
                               onSelect={(date) => date && setInicio(idx, format(date, "yyyy-MM-dd"))}
                               initialFocus
                               className={cn("p-3 pointer-events-auto")}
@@ -340,6 +342,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                             <Calendar
                               mode="single"
                               selected={item.data_termino ? parseISO(item.data_termino) : undefined}
+                              defaultMonth={item.data_termino ? parseISO(item.data_termino) : undefined}
                               onSelect={(date) => date && setTermino(idx, format(date, "yyyy-MM-dd"))}
                               disabled={(date) => item.data_inicio ? date < parseISO(item.data_inicio) : false}
                               initialFocus
