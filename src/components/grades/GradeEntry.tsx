@@ -659,6 +659,7 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                   <span className="flex-1 font-medium text-sm truncate">{bg.studentName}</span>
                   
                   <Input
+                    id={`batch-nota-${idx}`}
                     type="number"
                     step="0.1"
                     min="0"
@@ -673,6 +674,22 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                       const val = e.target.value === "" ? null : parseFloat(e.target.value);
                       setBatchGrades(prev => prev.map((g, i) => i === idx ? { ...g, valor: val } : g));
                       setBatchSaved(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === "Tab") {
+                        e.preventDefault();
+                        // Find next unlocked input
+                        for (let next = idx + 1; next < batchGrades.length; next++) {
+                          if (!batchGrades[next].is_locked) {
+                            const nextInput = document.getElementById(`batch-nota-${next}`);
+                            if (nextInput) {
+                              nextInput.focus();
+                              (nextInput as HTMLInputElement).select();
+                            }
+                            break;
+                          }
+                        }
+                      }
                     }}
                     className={`w-20 ${bg.is_locked ? 'opacity-60 cursor-not-allowed' : ''}`}
                     readOnly={bg.is_locked}
