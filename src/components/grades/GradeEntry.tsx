@@ -211,6 +211,13 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
       for (const bg of batchGrades) {
         if (bg.valor === null) continue;
 
+        // Validate 0-10
+        if (bg.valor < 0 || bg.valor > 10) {
+          toast.error(`Nota de ${bg.studentName} fora do esperado (0-10). Registro de notas não esperado!`);
+          setSavingBatch(false);
+          return;
+        }
+
         // Determine evaluation number from name
         const numMatch = batchEvaluationName.match(/\d+/);
         const evalNum = numMatch ? parseInt(numMatch[0]) : 1;
@@ -227,7 +234,37 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           existingId: bg.existingId,
         });
 
-        if (!result?.error) count++;
+        if (!result?.error) {
+          count++;
+
+          // Update historico_disciplinas based on grade
+          let statusText = "";
+          if (bg.valor >= 6) {
+            statusText = `Aprovado na disciplina ${disciplinaNome}`;
+          } else if (bg.valor >= 5) {
+            statusText = `Realizou Final da disciplina ${disciplinaNome}`;
+          } else {
+            statusText = `A aluna(o) ficou mantida(o)`;
+          }
+
+          // Fetch current historico and append
+          const { data: studentData } = await supabase
+            .from("students")
+            .select("historico_disciplinas")
+            .eq("id", bg.studentId)
+            .single();
+
+          const currentHistorico = (studentData as any)?.historico_disciplinas || "";
+          // Only append if not already containing same text for this discipline
+          if (!currentHistorico.includes(statusText)) {
+            const separator = currentHistorico ? " | " : "";
+            const newHistorico = currentHistorico + separator + statusText;
+            await supabase
+              .from("students")
+              .update({ historico_disciplinas: newHistorico } as any)
+              .eq("id", bg.studentId);
+          }
+        }
       }
 
       setSavedCount(count);
@@ -331,7 +368,18 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
       toast.info("Nota travada. Para alterar, solicite a modificação ao setor administrativo.");
       return;
     }
-    const numValue = value === "" ? null : parseFloat(value);
+    if (value === "") {
+      setGrades(prev => prev.map((g, i) => 
+        i === index ? { ...g, valor: null, notificacao_status: "Não Enviado" } : g
+      ));
+      setHasUnsavedChanges(true);
+      return;
+    }
+    const numValue = parseFloat(value);
+    if (isNaN(numValue) || numValue < 0 || numValue > 10) {
+      toast.error("Registro de notas não esperado! A nota deve ser entre 0 e 10.");
+      return;
+    }
     setGrades(prev => prev.map((g, i) => 
       i === index ? { ...g, valor: numValue, notificacao_status: "Não Enviado" } : g
     ));
@@ -671,12 +719,35 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                         toast.info("Nota travada.");
                         return;
                       }
-                      const val = e.target.value === "" ? null : parseFloat(e.target.value);
+                      const raw = e.target.value;
+                      if (raw === "") {
+                        setBatchGrades(prev => prev.map((g, i) => i === idx ? { ...g, valor: null } : g));
+                        setBatchSaved(false);
+                        return;
+                      }
+                      const val = parseFloat(raw);
+                      if (isNaN(val) || val < 0 || val > 10) {
+                        toast.error("Registro de notas não esperado! A nota deve ser entre 0 e 10.");
+                        return;
+                      }
                       setBatchGrades(prev => prev.map((g, i) => i === idx ? { ...g, valor: val } : g));
                       setBatchSaved(false);
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === "Tab") {
+                      if (e.key === "Tab" && e.shiftKey) {
+                        e.preventDefault();
+                        // Go to previous unlocked input
+                        for (let prev = idx - 1; prev >= 0; prev--) {
+                          if (!batchGrades[prev].is_locked) {
+                            const prevInput = document.getElementById(`batch-nota-${prev}`);
+                            if (prevInput) {
+                              prevInput.focus();
+                              (prevInput as HTMLInputElement).select();
+                            }
+                            break;
+                          }
+                        }
+                      } else if (e.key === "Enter" || e.key === "Tab") {
                         e.preventDefault();
                         // Find next unlocked input
                         for (let next = idx + 1; next < batchGrades.length; next++) {

@@ -1050,6 +1050,7 @@ export type Database = {
           email: string | null
           endereco: string | null
           estado_nascimento: string | null
+          historico_disciplinas: string | null
           id: string
           local_nascimento: string | null
           matricula: string
@@ -1072,6 +1073,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado_nascimento?: string | null
+          historico_disciplinas?: string | null
           id?: string
           local_nascimento?: string | null
           matricula: string
@@ -1094,6 +1096,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado_nascimento?: string | null
+          historico_disciplinas?: string | null
           id?: string
           local_nascimento?: string | null
           matricula?: string
