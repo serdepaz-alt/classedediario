@@ -232,6 +232,7 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
 
       setSavedCount(count);
       setBatchSaved(true);
+      setBatchGrades(prev => prev.map(bg => bg.valor !== null ? { ...bg, is_locked: true } : bg));
       setShowConfirmation(true);
     } catch (err) {
       toast.error("Erro ao salvar notas em lote.");
