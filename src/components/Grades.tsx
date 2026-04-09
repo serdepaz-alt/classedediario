@@ -436,67 +436,21 @@ ${filteredByTurma.map(s => {
         )}
       </div>
 
-      {/* Stats Overview - 5 KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Award className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{classAverage.toFixed(1)}</p>
-              <p className="text-xs text-muted-foreground">Média Geral</p>
-            </div>
+      {/* KPI Strip */}
+      <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
+        {[
+          { icon: <Award className="w-5 h-5 text-primary" />, value: classAverage.toFixed(1), label: "Média Geral", bg: "bg-primary/10" },
+          { icon: <TrendingUp className="w-5 h-5 text-green-600" />, value: `${percentApproved}%`, label: "Aprovados", bg: "bg-green-100 dark:bg-green-900/30" },
+          { icon: <AlertTriangle className="w-5 h-5 text-yellow-600" />, value: String(studentsInAvaliacaoFinal), label: "Avaliação Final", bg: "bg-yellow-100 dark:bg-yellow-900/30" },
+          { icon: <TrendingDown className="w-5 h-5 text-red-600" />, value: String(studentsMantido), label: "Mantidos", bg: "bg-red-100 dark:bg-red-900/30" },
+          { icon: <Trophy className="w-5 h-5 text-amber-600" />, value: highestGrade.toFixed(1), label: "Maior Nota", bg: "bg-amber-100 dark:bg-amber-900/30" },
+        ].map((kpi, i) => (
+          <div key={i} className="flex-1 min-w-[80px] flex flex-col items-center text-center gap-1 rounded-lg border bg-card p-2">
+            <div className={`w-8 h-8 ${kpi.bg} rounded-lg flex items-center justify-center`}>{kpi.icon}</div>
+            <span className="text-lg font-bold text-foreground leading-none">{kpi.value}</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">{kpi.label}</span>
           </div>
-        </Card>
-
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{percentApproved}%</p>
-              <p className="text-xs text-muted-foreground">Aprovados</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{studentsInAvaliacaoFinal}</p>
-              <p className="text-xs text-muted-foreground">Avaliação Final</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
-              <TrendingDown className="w-5 h-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{studentsMantido}</p>
-              <p className="text-xs text-muted-foreground">Mantidos</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{highestGrade.toFixed(1)}</p>
-              <p className="text-xs text-muted-foreground">Maior Nota</p>
-            </div>
-          </div>
-        </Card>
+        ))}
       </div>
 
       {loadingDashboard ? (
@@ -542,19 +496,19 @@ ${filteredByTurma.map(s => {
                 </Badge>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
+              <div className="overflow-auto max-h-[60vh]">
+                <table className="w-full border-collapse">
+                  <thead className="sticky top-0 z-20 bg-background">
                     <tr className="border-b bg-muted/30">
-                      <th className="text-center p-4 font-semibold text-foreground w-12">#</th>
-                      <th className="text-left p-4 font-semibold text-foreground">Estudante</th>
+                      <th className="text-center p-3 font-semibold text-foreground w-10 sticky left-0 z-30 bg-muted/30">#</th>
+                      <th className="text-left p-3 font-semibold text-foreground min-w-[160px] sticky left-10 z-30 bg-muted/30">Estudante</th>
                       {subjects.map(subject => (
-                        <th key={subject} className="text-center p-4 font-semibold text-foreground min-w-[140px]">
+                        <th key={subject} className="text-center p-3 font-semibold text-foreground min-w-[120px]">
                           {subject}
                         </th>
                       ))}
-                      <th className="text-center p-4 font-semibold text-foreground w-[80px]">Média</th>
-                      <th className="text-center p-4 font-semibold text-foreground w-[100px]">Situação</th>
+                      <th className="text-center p-3 font-semibold text-foreground w-[70px]">Média</th>
+                      <th className="text-center p-3 font-semibold text-foreground w-[90px]">Situação</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -573,9 +527,9 @@ ${filteredByTurma.map(s => {
                           }`}
                           onClick={() => setSelectedStudent(selectedStudent?.id === item.id ? null : item)}
                         >
-                          <td className="p-4 text-center">
+                          <td className="p-3 text-center sticky left-0 z-10 bg-card">
                             {rank && rank <= 3 ? (
-                              <div className={`w-7 h-7 rounded-full flex items-center justify-center mx-auto text-xs font-bold ${
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center mx-auto text-xs font-bold ${
                                 rank === 1 ? "bg-amber-100 text-amber-700" :
                                 rank === 2 ? "bg-gray-100 text-gray-700" :
                                 "bg-orange-100 text-orange-700"
@@ -583,20 +537,20 @@ ${filteredByTurma.map(s => {
                                 {rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}
                               </div>
                             ) : (
-                              <span className="text-sm text-muted-foreground">{rank || "—"}</span>
+                              <span className="text-xs text-muted-foreground">{rank || "—"}</span>
                             )}
                           </td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
+                          <td className="p-3 sticky left-10 z-10 bg-card">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 ${
                                 getGradeColor(avg) === 'success' ? 'bg-green-500' :
                                 getGradeColor(avg) === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
                               }`}>
                                 {item.student.split(' ').map(n => n[0]).join('').substring(0, 2)}
                               </div>
-                              <div>
-                                <span className="font-medium text-foreground">{item.student}</span>
-                                <p className="text-xs text-muted-foreground">{item.matricula}</p>
+                              <div className="min-w-0">
+                                <span className="font-medium text-foreground text-sm truncate block">{item.student}</span>
+                                <p className="text-[10px] text-muted-foreground">{item.matricula}</p>
                               </div>
                             </div>
                           </td>
@@ -605,7 +559,7 @@ ${filteredByTurma.map(s => {
                             const subjectGrades = item.grades[subject] || [];
                             if (subjectGrades.length === 0) {
                               return (
-                                <td key={subject} className="p-4 text-center text-muted-foreground text-xs">
+                                <td key={subject} className="p-3 text-center text-muted-foreground text-xs">
                                   —
                                 </td>
                               );
@@ -614,7 +568,7 @@ ${filteredByTurma.map(s => {
                             const color = getGradeColor(average);
                             
                             return (
-                              <td key={subject} className="p-4">
+                              <td key={subject} className="p-3">
                                 <GradeBarChart 
                                   grades={subjectGrades} 
                                   color={color}
@@ -623,19 +577,19 @@ ${filteredByTurma.map(s => {
                             );
                           })}
 
-                          <td className="p-4 text-center">
-                            <span className={`text-lg font-bold ${
+                          <td className="p-3 text-center">
+                            <span className={`text-base font-bold ${
                               avg >= 6.0 ? "text-green-600" : avg >= 5.0 ? "text-yellow-600" : avg > 0 ? "text-red-600" : "text-muted-foreground"
                             }`}>
                               {avg > 0 ? avg.toFixed(1) : "—"}
                             </span>
                           </td>
 
-                          <td className="p-4 text-center">
+                          <td className="p-3 text-center">
                             {status !== "—" && (
                               <Badge
                                 variant={status === "Aprovado" ? "default" : status === "Avaliação Final" ? "secondary" : "destructive"}
-                                className="text-xs"
+                                className="text-[10px]"
                               >
                                 {status}
                               </Badge>
