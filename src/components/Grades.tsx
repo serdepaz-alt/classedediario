@@ -436,67 +436,21 @@ ${filteredByTurma.map(s => {
         )}
       </div>
 
-      {/* Stats Overview - 5 KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Award className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{classAverage.toFixed(1)}</p>
-              <p className="text-xs text-muted-foreground">Média Geral</p>
-            </div>
+      {/* KPI Strip */}
+      <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
+        {[
+          { icon: <Award className="w-5 h-5 text-primary" />, value: classAverage.toFixed(1), label: "Média Geral", bg: "bg-primary/10" },
+          { icon: <TrendingUp className="w-5 h-5 text-green-600" />, value: `${percentApproved}%`, label: "Aprovados", bg: "bg-green-100 dark:bg-green-900/30" },
+          { icon: <AlertTriangle className="w-5 h-5 text-yellow-600" />, value: String(studentsInAvaliacaoFinal), label: "Avaliação Final", bg: "bg-yellow-100 dark:bg-yellow-900/30" },
+          { icon: <TrendingDown className="w-5 h-5 text-red-600" />, value: String(studentsMantido), label: "Mantidos", bg: "bg-red-100 dark:bg-red-900/30" },
+          { icon: <Trophy className="w-5 h-5 text-amber-600" />, value: highestGrade.toFixed(1), label: "Maior Nota", bg: "bg-amber-100 dark:bg-amber-900/30" },
+        ].map((kpi, i) => (
+          <div key={i} className="flex-1 min-w-[80px] flex flex-col items-center text-center gap-1 rounded-lg border bg-card p-2">
+            <div className={`w-8 h-8 ${kpi.bg} rounded-lg flex items-center justify-center`}>{kpi.icon}</div>
+            <span className="text-lg font-bold text-foreground leading-none">{kpi.value}</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">{kpi.label}</span>
           </div>
-        </Card>
-
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{percentApproved}%</p>
-              <p className="text-xs text-muted-foreground">Aprovados</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{studentsInAvaliacaoFinal}</p>
-              <p className="text-xs text-muted-foreground">Avaliação Final</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
-              <TrendingDown className="w-5 h-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{studentsMantido}</p>
-              <p className="text-xs text-muted-foreground">Mantidos</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 gradient-card shadow-card border-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{highestGrade.toFixed(1)}</p>
-              <p className="text-xs text-muted-foreground">Maior Nota</p>
-            </div>
-          </div>
-        </Card>
+        ))}
       </div>
 
       {loadingDashboard ? (
