@@ -368,7 +368,18 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
       toast.info("Nota travada. Para alterar, solicite a modificação ao setor administrativo.");
       return;
     }
-    const numValue = value === "" ? null : parseFloat(value);
+    if (value === "") {
+      setGrades(prev => prev.map((g, i) => 
+        i === index ? { ...g, valor: null, notificacao_status: "Não Enviado" } : g
+      ));
+      setHasUnsavedChanges(true);
+      return;
+    }
+    const numValue = parseFloat(value);
+    if (isNaN(numValue) || numValue < 0 || numValue > 10) {
+      toast.error("Registro de notas não esperado! A nota deve ser entre 0 e 10.");
+      return;
+    }
     setGrades(prev => prev.map((g, i) => 
       i === index ? { ...g, valor: numValue, notificacao_status: "Não Enviado" } : g
     ));
