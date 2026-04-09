@@ -671,12 +671,35 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                         toast.info("Nota travada.");
                         return;
                       }
-                      const val = e.target.value === "" ? null : parseFloat(e.target.value);
+                      const raw = e.target.value;
+                      if (raw === "") {
+                        setBatchGrades(prev => prev.map((g, i) => i === idx ? { ...g, valor: null } : g));
+                        setBatchSaved(false);
+                        return;
+                      }
+                      const val = parseFloat(raw);
+                      if (isNaN(val) || val < 0 || val > 10) {
+                        toast.error("Registro de notas não esperado! A nota deve ser entre 0 e 10.");
+                        return;
+                      }
                       setBatchGrades(prev => prev.map((g, i) => i === idx ? { ...g, valor: val } : g));
                       setBatchSaved(false);
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === "Tab") {
+                      if (e.key === "Tab" && e.shiftKey) {
+                        e.preventDefault();
+                        // Go to previous unlocked input
+                        for (let prev = idx - 1; prev >= 0; prev--) {
+                          if (!batchGrades[prev].is_locked) {
+                            const prevInput = document.getElementById(`batch-nota-${prev}`);
+                            if (prevInput) {
+                              prevInput.focus();
+                              (prevInput as HTMLInputElement).select();
+                            }
+                            break;
+                          }
+                        }
+                      } else if (e.key === "Enter" || e.key === "Tab") {
                         e.preventDefault();
                         // Find next unlocked input
                         for (let next = idx + 1; next < batchGrades.length; next++) {
