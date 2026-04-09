@@ -222,7 +222,7 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           nomeAvaliacao: batchEvaluationName,
           peso: 1,
           valor: bg.valor,
-          isLocked: bg.is_locked,
+          isLocked: true,
           bonus: 0,
           existingId: bg.existingId,
         });
