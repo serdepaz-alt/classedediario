@@ -553,7 +553,7 @@ ${filteredByTurma.map(s => {
                             const subjectGrades = item.grades[subject] || [];
                             if (subjectGrades.length === 0) {
                               return (
-                                <td key={subject} className="p-3 text-center text-muted-foreground text-xs">
+                                <td key={subject} className="p-2 text-center text-muted-foreground text-xs">
                                   —
                                 </td>
                               );
@@ -562,7 +562,7 @@ ${filteredByTurma.map(s => {
                             const color = getGradeColor(average);
                             
                             return (
-                              <td key={subject} className="p-3">
+                              <td key={subject} className="p-2">
                                 <GradeBarChart 
                                   grades={subjectGrades} 
                                   color={color}
@@ -571,19 +571,19 @@ ${filteredByTurma.map(s => {
                             );
                           })}
 
-                          <td className="p-3 text-center">
-                            <span className={`text-base font-bold ${
+                          <td className="p-2 text-center">
+                            <span className={`text-sm font-bold ${
                               avg >= 6.0 ? "text-green-600" : avg >= 5.0 ? "text-yellow-600" : avg > 0 ? "text-red-600" : "text-muted-foreground"
                             }`}>
                               {avg > 0 ? avg.toFixed(1) : "—"}
                             </span>
                           </td>
 
-                          <td className="p-3 text-center">
+                          <td className="p-2 text-center">
                             {status !== "—" && (
                               <Badge
                                 variant={status === "Aprovado" ? "default" : status === "Avaliação Final" ? "secondary" : "destructive"}
-                                className="text-[10px]"
+                                className="text-[9px] px-1.5"
                               >
                                 {status}
                               </Badge>
