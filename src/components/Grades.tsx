@@ -527,30 +527,24 @@ ${filteredByTurma.map(s => {
                           }`}
                           onClick={() => setSelectedStudent(selectedStudent?.id === item.id ? null : item)}
                         >
-                          <td className="p-3 text-center sticky left-0 z-10 bg-card">
+                          <td className="p-2 text-center sticky left-0 z-10 bg-card">
                             {rank && rank <= 3 ? (
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center mx-auto text-xs font-bold ${
-                                rank === 1 ? "bg-amber-100 text-amber-700" :
-                                rank === 2 ? "bg-gray-100 text-gray-700" :
-                                "bg-orange-100 text-orange-700"
-                              }`}>
-                                {rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}
-                              </div>
+                              <span className="text-xs">{rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}</span>
                             ) : (
-                              <span className="text-xs text-muted-foreground">{rank || "—"}</span>
+                              <span className="text-[10px] text-muted-foreground">{rank || "—"}</span>
                             )}
                           </td>
-                          <td className="p-3 sticky left-10 z-10 bg-card">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 ${
+                          <td className="p-2 sticky left-8 z-10 bg-card border-r">
+                            <div className="flex items-center gap-1.5">
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-semibold text-[10px] shrink-0 ${
                                 getGradeColor(avg) === 'success' ? 'bg-green-500' :
                                 getGradeColor(avg) === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
                               }`}>
                                 {item.student.split(' ').map(n => n[0]).join('').substring(0, 2)}
                               </div>
                               <div className="min-w-0">
-                                <span className="font-medium text-foreground text-sm truncate block">{item.student}</span>
-                                <p className="text-[10px] text-muted-foreground">{item.matricula}</p>
+                                <span className="font-medium text-foreground text-xs truncate block max-w-[120px]">{item.student}</span>
+                                <p className="text-[9px] text-muted-foreground">{item.matricula}</p>
                               </div>
                             </div>
                           </td>
