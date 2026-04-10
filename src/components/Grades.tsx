@@ -503,12 +503,12 @@ ${filteredByTurma.map(s => {
                       <th className="text-center p-2 font-semibold text-foreground w-8 sticky left-0 z-30 bg-muted">#</th>
                       <th className="text-left p-2 font-semibold text-foreground min-w-[140px] max-w-[180px] sticky left-8 z-30 bg-muted border-r">Estudante</th>
                       {subjects.map(subject => (
-                        <th key={subject} className="text-center p-3 font-semibold text-foreground min-w-[120px]">
+                        <th key={subject} className="text-center p-2 font-semibold text-foreground min-w-[100px] text-xs">
                           {subject}
                         </th>
                       ))}
-                      <th className="text-center p-3 font-semibold text-foreground w-[70px]">Média</th>
-                      <th className="text-center p-3 font-semibold text-foreground w-[90px]">Situação</th>
+                      <th className="text-center p-2 font-semibold text-foreground w-[60px] text-xs">Média</th>
+                      <th className="text-center p-2 font-semibold text-foreground w-[80px] text-xs">Situação</th>
                     </tr>
                   </thead>
                   <tbody>
