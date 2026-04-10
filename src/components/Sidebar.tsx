@@ -7,27 +7,10 @@ import { AdminPasswordDialog } from "@/components/admin/AdminPasswordDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useBacklog } from "@/hooks/useBacklog";
 import { 
-  BookOpen, 
-  Users, 
-  CalendarCheck, 
-  TrendingUp, 
-  StickyNote,
-  Home,
-  GraduationCap,
-  FileText,
-  LogOut,
-  Layers,
-  BrainCircuit,
-  UserCheck,
-  CalendarClock,
-  CalendarRange,
-  ChevronDown,
-  ChevronRight,
-  DollarSign,
-  ClipboardCheck,
-  ShieldAlert,
-  Wallet,
-  Bell
+  BookOpen, Users, CalendarCheck, TrendingUp, StickyNote,
+  Home, GraduationCap, FileText, LogOut, Layers, BrainCircuit,
+  UserCheck, CalendarClock, CalendarRange, ChevronDown, ChevronRight,
+  DollarSign, ClipboardCheck, ShieldAlert, Wallet, Bell
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -41,7 +24,7 @@ const adminSubMenuItems = [
   { icon: Bell, label: "Backlog", path: "/backlog" },
   { icon: ShieldAlert, label: "Gestão de Exceções", path: "/gestao-excecoes" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
-  { icon: CalendarRange, label: "Gestão de Cronogramas/Feriados", path: "/admin", requiresAuth: true },
+  { icon: CalendarRange, label: "Cronogramas/Feriados", path: "/admin", requiresAuth: true },
 ];
 
 const financeSubMenuItems = [
@@ -58,7 +41,11 @@ const pedagogicoSubMenuItems = [
   { icon: Users, label: "Estudantes", path: "/students" },
 ];
 
-export const Sidebar = () => {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export const Sidebar = ({ onNavigate }: SidebarProps) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const [showAdminDialog, setShowAdminDialog] = useState(false);
@@ -84,38 +71,41 @@ export const Sidebar = () => {
     }
   };
 
+  const handleLinkClick = () => {
+    onNavigate?.();
+  };
+
   return (
-    <div className="fixed left-0 top-0 h-full w-64 gradient-card border-r border-border shadow-elevated flex flex-col">
+    <div className="h-full w-64 bg-card border-r border-border flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 p-6 pb-4">
-        <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center">
-          <GraduationCap className="w-6 h-6 text-white" />
+      <div className="flex items-center gap-3 p-5 pb-3">
+        <div className="w-9 h-9 gradient-primary rounded-xl flex items-center justify-center">
+          <GraduationCap className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-foreground">Diário de Classe</h1>
-          <p className="text-sm text-muted-foreground">Sistema Educacional</p>
+          <h1 className="text-lg font-bold text-foreground leading-tight">Diário de Classe</h1>
+          <p className="text-xs text-muted-foreground">Sistema Educacional</p>
         </div>
       </div>
 
-      {/* Navigation - Scrollable */}
-      <nav className="flex-1 overflow-y-auto px-6 space-y-2">
-        {/* Main Menu Items */}
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-4 space-y-1 pb-2">
         {mainMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
-          
           return (
             <Link
               key={item.path}
               to={item.path}
+              onClick={handleLinkClick}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg transition-smooth text-sm font-medium",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium",
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-card"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent"
               )}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="w-4 h-4 shrink-0" />
               {item.label}
               {item.path === "/backlog" && unreadCount > 0 && (
                 <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -126,63 +116,50 @@ export const Sidebar = () => {
           );
         })}
 
-        {/* Admin Collapsible Menu */}
+        {/* Admin Collapsible */}
         <Collapsible open={isAdminOpen} onOpenChange={setIsAdminOpen}>
           <CollapsibleTrigger asChild>
-            <button
-              className={cn(
-                "flex items-center justify-between w-full px-4 py-3 rounded-lg transition-smooth text-sm font-medium",
-                isAdminSectionActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
-              )}
-            >
+            <button className={cn(
+              "flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-all text-sm font-medium",
+              isAdminSectionActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}>
               <div className="flex items-center gap-3">
-                <Layers className="w-5 h-5" />
+                <Layers className="w-4 h-4" />
                 Administrativo
               </div>
-              {isAdminOpen ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronRight className="w-4 h-4" />
-              )}
+              {isAdminOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </button>
           </CollapsibleTrigger>
-          <CollapsibleContent className="pl-4 mt-1 space-y-1">
+          <CollapsibleContent className="pl-3 mt-0.5 space-y-0.5">
             {adminSubMenuItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
-              
               if (item.requiresAuth) {
                 return (
                   <button
                     key={item.path}
-                    onClick={(e) => handleAdminItemClick(item, e)}
+                    onClick={(e) => { handleAdminItemClick(item, e); handleLinkClick(); }}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-smooth text-sm font-medium w-full text-left",
-                      isActive
-                        ? "bg-primary text-primary-foreground shadow-card"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm font-medium w-full text-left",
+                      isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-accent"
                     )}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-3.5 h-3.5" />
                     {item.label}
                   </button>
                 );
               }
-              
               return (
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={handleLinkClick}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-smooth text-sm font-medium",
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-card"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm font-medium",
+                    isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3.5 h-3.5" />
                   {item.label}
                   {item.path === "/backlog" && unreadCount > 0 && (
                     <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -193,43 +170,29 @@ export const Sidebar = () => {
               );
             })}
 
-            {/* Finance Sub-Collapsible */}
+            {/* Finance */}
             <Collapsible open={isFinanceOpen} onOpenChange={setIsFinanceOpen}>
               <CollapsibleTrigger asChild>
-                <button
-                  className={cn(
-                    "flex items-center justify-between w-full px-4 py-2.5 rounded-lg transition-smooth text-sm font-medium",
-                    isFinanceSectionActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  )}
-                >
+                <button className={cn(
+                  "flex items-center justify-between w-full px-3 py-2 rounded-lg transition-all text-sm font-medium",
+                  isFinanceSectionActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                )}>
                   <div className="flex items-center gap-3">
-                    <DollarSign className="w-4 h-4" />
+                    <DollarSign className="w-3.5 h-3.5" />
                     Financeiro
                   </div>
-                  {isFinanceOpen ? (
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  )}
+                  {isFinanceOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="pl-4 mt-1 space-y-1">
+              <CollapsibleContent className="pl-3 mt-0.5 space-y-0.5">
                 {financeSubMenuItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
                   return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-2 rounded-lg transition-smooth text-xs font-medium",
-                        isActive
-                          ? "bg-primary text-primary-foreground shadow-card"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                      )}
-                    >
+                    <Link key={item.path} to={item.path} onClick={handleLinkClick} className={cn(
+                      "flex items-center gap-3 px-3 py-1.5 rounded-lg transition-all text-xs font-medium",
+                      isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    )}>
                       <Icon className="w-3.5 h-3.5" />
                       {item.label}
                     </Link>
@@ -238,43 +201,29 @@ export const Sidebar = () => {
               </CollapsibleContent>
             </Collapsible>
 
-            {/* Pedagogico Sub-Collapsible */}
+            {/* Pedagógico */}
             <Collapsible open={isPedagogicoOpen} onOpenChange={setIsPedagogicoOpen}>
               <CollapsibleTrigger asChild>
-                <button
-                  className={cn(
-                    "flex items-center justify-between w-full px-4 py-2.5 rounded-lg transition-smooth text-sm font-medium",
-                    isPedagogicoSectionActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  )}
-                >
+                <button className={cn(
+                  "flex items-center justify-between w-full px-3 py-2 rounded-lg transition-all text-sm font-medium",
+                  isPedagogicoSectionActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                )}>
                   <div className="flex items-center gap-3">
-                    <GraduationCap className="w-4 h-4" />
+                    <GraduationCap className="w-3.5 h-3.5" />
                     Pedagógico
                   </div>
-                  {isPedagogicoOpen ? (
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  )}
+                  {isPedagogicoOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="pl-4 mt-1 space-y-1">
+              <CollapsibleContent className="pl-3 mt-0.5 space-y-0.5">
                 {pedagogicoSubMenuItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
                   return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-2 rounded-lg transition-smooth text-xs font-medium",
-                        isActive
-                          ? "bg-primary text-primary-foreground shadow-card"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                      )}
-                    >
+                    <Link key={item.path} to={item.path} onClick={handleLinkClick} className={cn(
+                      "flex items-center gap-3 px-3 py-1.5 rounded-lg transition-all text-xs font-medium",
+                      isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    )}>
                       <Icon className="w-3.5 h-3.5" />
                       {item.label}
                     </Link>
@@ -286,35 +235,25 @@ export const Sidebar = () => {
         </Collapsible>
       </nav>
 
-      <AdminPasswordDialog 
-        open={showAdminDialog} 
-        onOpenChange={setShowAdminDialog} 
-      />
+      <AdminPasswordDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} />
 
-      {/* Footer - Professor Panel */}
-      <div className="p-6 pt-4 space-y-3 border-t border-border mt-auto">
-        <div className="gradient-card p-4 rounded-lg border">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
+      {/* Footer */}
+      <div className="p-4 pt-2 space-y-2 border-t border-border mt-auto">
+        <div className="bg-accent/30 p-3 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-accent rounded-full flex items-center justify-center shrink-0">
               <span className="text-xs font-semibold text-accent-foreground">
                 {user?.email?.charAt(0).toUpperCase() || 'P'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {user?.email || 'Professor'}
-              </p>
-              <p className="text-xs text-muted-foreground">Sistema Ativo</p>
+              <p className="text-xs font-medium text-foreground truncate">{user?.email || 'Professor'}</p>
+              <p className="text-[10px] text-muted-foreground">Sistema Ativo</p>
             </div>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="w-full justify-start text-muted-foreground hover:text-destructive"
-          onClick={handleSignOut}
-        >
-          <LogOut className="w-4 h-4 mr-2" />
+        <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-destructive text-xs" onClick={handleSignOut}>
+          <LogOut className="w-3.5 h-3.5 mr-2" />
           Sair
         </Button>
       </div>
