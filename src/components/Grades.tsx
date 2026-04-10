@@ -488,20 +488,20 @@ ${filteredByTurma.map(s => {
           {/* Main Content */}
           <div className="flex gap-6">
             <Card className={`gradient-card shadow-card border-0 overflow-hidden flex-1 transition-all duration-300 ${selectedStudent ? 'max-w-[calc(100%-380px)]' : ''}`}>
-              <div className="p-4 border-b flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">Boletim</h3>
+              <div className="p-3 border-b flex items-center justify-between">
+                <h3 className="text-base font-semibold text-foreground">Boletim</h3>
                 <Badge variant="outline" className="text-xs">
                   <Users className="w-3 h-3 mr-1" />
                   {filteredData.length} alunos
                 </Badge>
               </div>
 
-              <div className="overflow-auto max-h-[60vh]">
-                <table className="w-full border-collapse">
-                  <thead className="sticky top-0 z-20 bg-background">
-                    <tr className="border-b bg-muted/30">
-                      <th className="text-center p-3 font-semibold text-foreground w-10 sticky left-0 z-30 bg-muted/30">#</th>
-                      <th className="text-left p-3 font-semibold text-foreground min-w-[160px] sticky left-10 z-30 bg-muted/30">Estudante</th>
+              <div className="overflow-x-auto overflow-y-auto max-h-[55vh]">
+                <table className="w-full border-collapse min-w-max">
+                  <thead className="sticky top-0 z-20">
+                    <tr className="border-b bg-muted">
+                      <th className="text-center p-2 font-semibold text-foreground w-8 sticky left-0 z-30 bg-muted">#</th>
+                      <th className="text-left p-2 font-semibold text-foreground min-w-[140px] max-w-[180px] sticky left-8 z-30 bg-muted border-r">Estudante</th>
                       {subjects.map(subject => (
                         <th key={subject} className="text-center p-3 font-semibold text-foreground min-w-[120px]">
                           {subject}
