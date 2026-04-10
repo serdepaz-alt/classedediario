@@ -436,19 +436,19 @@ ${filteredByTurma.map(s => {
         )}
       </div>
 
-      {/* KPI Strip */}
-      <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
+      {/* KPI Strip - equal distribution */}
+      <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
         {[
-          { icon: <Award className="w-5 h-5 text-primary" />, value: classAverage.toFixed(1), label: "Média Geral", bg: "bg-primary/10" },
-          { icon: <TrendingUp className="w-5 h-5 text-green-600" />, value: `${percentApproved}%`, label: "Aprovados", bg: "bg-green-100 dark:bg-green-900/30" },
-          { icon: <AlertTriangle className="w-5 h-5 text-yellow-600" />, value: String(studentsInAvaliacaoFinal), label: "Avaliação Final", bg: "bg-yellow-100 dark:bg-yellow-900/30" },
-          { icon: <TrendingDown className="w-5 h-5 text-red-600" />, value: String(studentsMantido), label: "Mantidos", bg: "bg-red-100 dark:bg-red-900/30" },
-          { icon: <Trophy className="w-5 h-5 text-amber-600" />, value: highestGrade.toFixed(1), label: "Maior Nota", bg: "bg-amber-100 dark:bg-amber-900/30" },
+          { icon: <Award className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />, value: classAverage.toFixed(1), label: "Média", bg: "bg-primary/10" },
+          { icon: <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />, value: `${percentApproved}%`, label: "Aprovados", bg: "bg-green-100 dark:bg-green-900/30" },
+          { icon: <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />, value: String(studentsInAvaliacaoFinal), label: "Final", bg: "bg-yellow-100 dark:bg-yellow-900/30" },
+          { icon: <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />, value: String(studentsMantido), label: "Mantidos", bg: "bg-red-100 dark:bg-red-900/30" },
+          { icon: <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />, value: highestGrade.toFixed(1), label: "Maior", bg: "bg-amber-100 dark:bg-amber-900/30" },
         ].map((kpi, i) => (
-          <div key={i} className="flex-1 min-w-[80px] flex flex-col items-center text-center gap-1 rounded-lg border bg-card p-2">
-            <div className={`w-8 h-8 ${kpi.bg} rounded-lg flex items-center justify-center`}>{kpi.icon}</div>
-            <span className="text-lg font-bold text-foreground leading-none">{kpi.value}</span>
-            <span className="text-[10px] text-muted-foreground leading-tight">{kpi.label}</span>
+          <div key={i} className="flex flex-col items-center text-center gap-0.5 rounded-lg border bg-card p-1.5 sm:p-2">
+            <div className={`w-6 h-6 sm:w-8 sm:h-8 ${kpi.bg} rounded-md flex items-center justify-center`}>{kpi.icon}</div>
+            <span className="text-sm sm:text-lg font-bold text-foreground leading-none">{kpi.value}</span>
+            <span className="text-[8px] sm:text-[10px] text-muted-foreground leading-tight">{kpi.label}</span>
           </div>
         ))}
       </div>
