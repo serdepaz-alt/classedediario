@@ -700,11 +700,11 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           </div>
 
           <ScrollArea className="h-[400px]">
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {batchGrades.map((bg, idx) => (
-                <div key={bg.studentId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-                  <span className="text-sm text-muted-foreground w-6 text-right">{idx + 1}</span>
-                  <span className="flex-1 font-medium text-sm truncate">{bg.studentName}</span>
+                <div key={bg.studentId} className="flex items-center gap-1.5 sm:gap-3 px-1 sm:px-2 py-1.5 rounded-lg hover:bg-muted/50">
+                  <span className="text-[10px] sm:text-sm text-muted-foreground w-4 sm:w-6 text-right shrink-0">{idx + 1}</span>
+                  <span className="flex-1 font-medium text-[11px] sm:text-sm truncate min-w-0">{bg.studentName}</span>
                   
                   <Input
                     id={`batch-nota-${idx}`}
@@ -736,7 +736,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                     onKeyDown={(e) => {
                       if (e.key === "Tab" && e.shiftKey) {
                         e.preventDefault();
-                        // Go to previous unlocked input
                         for (let prev = idx - 1; prev >= 0; prev--) {
                           if (!batchGrades[prev].is_locked) {
                             const prevInput = document.getElementById(`batch-nota-${prev}`);
@@ -749,7 +748,6 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                         }
                       } else if (e.key === "Enter" || e.key === "Tab") {
                         e.preventDefault();
-                        // Find next unlocked input
                         for (let next = idx + 1; next < batchGrades.length; next++) {
                           if (!batchGrades[next].is_locked) {
                             const nextInput = document.getElementById(`batch-nota-${next}`);
@@ -762,21 +760,20 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                         }
                       }
                     }}
-                    className={`w-20 ${bg.is_locked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    className={`w-16 sm:w-20 h-8 text-xs sm:text-sm shrink-0 ${bg.is_locked ? 'opacity-60 cursor-not-allowed' : ''}`}
                     readOnly={bg.is_locked}
                   />
 
-                  {/* Colored lock: red = locked, green = open */}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleBatchToggleLock(idx)}
-                    className="p-1 h-8 w-8"
+                    className="p-0.5 h-7 w-7 sm:h-8 sm:w-8 shrink-0"
                   >
                     {bg.is_locked ? (
-                      <Lock className="w-4 h-4 text-red-500" />
+                      <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500" />
                     ) : (
-                      <Unlock className="w-4 h-4 text-green-500" />
+                      <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" />
                     )}
                   </Button>
                 </div>
