@@ -199,7 +199,7 @@ export const Students = () => {
           const performanceBadge = getPerformanceBadge(student.average);
           
           return (
-            <Card key={student.id} className="p-6 gradient-card shadow-card border-0 hover:shadow-elevated transition-smooth">
+            <Card key={student.id} className={`p-6 gradient-card shadow-card border-0 hover:shadow-elevated transition-smooth ${student.status === "Inativo" ? "opacity-60 grayscale" : ""}`}>
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="w-12 h-12 bg-primary/10">
