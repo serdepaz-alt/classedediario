@@ -130,6 +130,7 @@ export const Students = () => {
       email: studentRaw.email,
       endereco: studentRaw.endereco,
       data_matricula: studentRaw.data_matricula,
+      status: studentRaw.status,
     };
     setEditingStudent(studentData);
     setIsDialogOpen(true);
