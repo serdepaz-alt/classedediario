@@ -208,9 +208,17 @@ export const Students = () => {
                   </Avatar>
                   <div>
                     <h3 className="text-lg font-semibold text-foreground">{student.name}</h3>
-                    <Badge variant={performanceBadge.variant} className="text-xs">
-                      {performanceBadge.label}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge variant={performanceBadge.variant} className="text-xs">
+                        {performanceBadge.label}
+                      </Badge>
+                      <Badge
+                        variant={student.status === "Ativo" ? "default" : "outline"}
+                        className={`text-xs ${student.status === "Ativo" ? "bg-success text-success-foreground hover:bg-success/90" : "text-muted-foreground"}`}
+                      >
+                        {student.status === "Ativo" ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
                 <Button variant="ghost" size="icon">
