@@ -580,6 +580,17 @@ export const Attendance = () => {
   };
 
   const handleSelectTurma = (turma: TurmaGroup) => {
+    // Block weekend chamada unless turma is a Saturday class
+    const dow = new Date().getDay(); // 0 = Sunday, 6 = Saturday
+    const isSaturdayTurma = turma.turno === "Sábado";
+    if (dow === 0) {
+      toast.error("Não é permitido realizar chamada aos domingos.");
+      return;
+    }
+    if (dow === 6 && !isSaturdayTurma) {
+      toast.error("Esta turma não tem aula aos sábados. Chamada bloqueada.");
+      return;
+    }
     setSelectedTurmaId(turma.turmaId);
     // Always update selectedDisciplina when switching turmas — clear if no active discipline
     setSelectedDisciplina(turma.disciplinaAtual ?? null);
