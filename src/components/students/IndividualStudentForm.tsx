@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 const ESTADOS_BR = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
@@ -49,6 +50,7 @@ const studentSchema = z.object({
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   endereco: z.string().optional(),
   data_matricula: z.date(),
+  status: z.enum(["Ativo", "Inativo"]).default("Ativo"),
 });
 
 type StudentFormData = z.infer<typeof studentSchema>;
@@ -70,6 +72,7 @@ export interface StudentData {
   email?: string | null;
   endereco?: string | null;
   data_matricula: string;
+  status?: string | null;
 }
 
 interface IndividualStudentFormProps {
@@ -118,6 +121,7 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       endereco: student?.endereco || "",
       data_nascimento: student?.data_nascimento ? new Date(student.data_nascimento) : undefined,
       data_matricula: student?.data_matricula ? new Date(student.data_matricula) : new Date(),
+      status: (student?.status as "Ativo" | "Inativo") || "Ativo",
     },
   });
 
@@ -145,6 +149,7 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
         email: data.email || null,
         endereco: data.endereco || null,
         data_matricula: format(data.data_matricula, "yyyy-MM-dd"),
+        status: data.status,
       };
 
       if (isEditing && student) {
@@ -450,6 +455,28 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
             </PopoverContent>
           </Popover>
         </div>
+
+        {isEditing && (
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label>Status do Estudante</Label>
+              <p className="text-xs text-muted-foreground">
+                {form.watch("status") === "Ativo"
+                  ? "Aparece no lançamento de notas e na chamada"
+                  : "Não aparece no lançamento de notas nem na chamada"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={cn("text-sm font-medium", form.watch("status") === "Ativo" ? "text-success" : "text-muted-foreground")}>
+                {form.watch("status") === "Ativo" ? "Ativo" : "Inativo"}
+              </span>
+              <Switch
+                checked={form.watch("status") === "Ativo"}
+                onCheckedChange={(checked) => form.setValue("status", checked ? "Ativo" : "Inativo")}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
