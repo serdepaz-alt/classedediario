@@ -157,6 +157,7 @@ export const Attendance = () => {
   const [observacoesAula, setObservacoesAula] = useState("");
 
   const classStartTimeRef = useRef<Date | null>(null);
+  const listaChamadaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!classStartTimeRef.current) {
@@ -582,6 +583,14 @@ export const Attendance = () => {
     setSelectedTurmaId(turma.turmaId);
     // Always update selectedDisciplina when switching turmas — clear if no active discipline
     setSelectedDisciplina(turma.disciplinaAtual ?? null);
+    // Scroll to the Lista de Chamada section after the section renders
+    if (turma.disciplinaAtual) {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          listaChamadaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+      });
+    }
   };
 
   const setStatus = (studentId: string, status: string) => {
