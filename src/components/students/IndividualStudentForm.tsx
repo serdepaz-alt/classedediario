@@ -455,6 +455,28 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
             </PopoverContent>
           </Popover>
         </div>
+
+        {isEditing && (
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label>Status do Estudante</Label>
+              <p className="text-xs text-muted-foreground">
+                {form.watch("status") === "Ativo"
+                  ? "Aparece no lançamento de notas e na chamada"
+                  : "Não aparece no lançamento de notas nem na chamada"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={cn("text-sm font-medium", form.watch("status") === "Ativo" ? "text-success" : "text-muted-foreground")}>
+                {form.watch("status") === "Ativo" ? "Ativo" : "Inativo"}
+              </span>
+              <Switch
+                checked={form.watch("status") === "Ativo"}
+                onCheckedChange={(checked) => form.setValue("status", checked ? "Ativo" : "Inativo")}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
