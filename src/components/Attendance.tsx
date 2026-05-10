@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -505,23 +505,23 @@ export const Attendance = () => {
   }, [user, selectedDisciplina]);
 
   // Fetch all attendance records for chart
-  useEffect(() => {
-    const fetchAllRecords = async () => {
-      if (!user || !selectedDisciplina) return;
+  const fetchAllRecords = useCallback(async () => {
+    if (!user || !selectedDisciplina) return;
 
-      const { data } = await supabase
-        .from("presencas")
-        .select("data, status")
-        .eq("user_id", user.id)
-        .eq("disciplina_id", selectedDisciplina.id);
+    const { data } = await supabase
+      .from("presencas")
+      .select("data, status")
+      .eq("user_id", user.id)
+      .eq("disciplina_id", selectedDisciplina.id);
 
-      if (data) {
-        setAllAttendanceRecords(data);
-      }
-    };
-
-    fetchAllRecords();
+    if (data) {
+      setAllAttendanceRecords(data);
+    }
   }, [user, selectedDisciplina]);
+
+  useEffect(() => {
+    fetchAllRecords();
+  }, [fetchAllRecords]);
 
   // Fetch students at risk
   useEffect(() => {
@@ -821,6 +821,8 @@ export const Attendance = () => {
 
       classStartTimeRef.current = new Date();
       setShowSummaryDialog(true);
+      // Refresh chart data after saving attendance
+      fetchAllRecords();
     } catch (error: any) {
       toast.error("Erro ao salvar chamada: " + error.message);
     } finally {
