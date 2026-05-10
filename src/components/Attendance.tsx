@@ -1569,6 +1569,19 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdminAuthDialog
+        open={showDateAuthDialog}
+        onOpenChange={(open) => {
+          setShowDateAuthDialog(open);
+          if (!open) setPendingDate(undefined);
+        }}
+        onSuccess={() => {
+          if (pendingDate) setSelectedDate(pendingDate);
+          setPendingDate(undefined);
+          setShowDateAuthDialog(false);
+        }}
+      />
     </div>
   );
 };
