@@ -60,6 +60,7 @@ import { AttendanceFrequencyChart } from "./attendance/AttendanceFrequencyChart"
 import { AttendanceTableView } from "./attendance/AttendanceTableView";
 import { AttendanceSaveSummary } from "./attendance/AttendanceSaveSummary";
 import { AttendanceLessonPlanSelector } from "./attendance/AttendanceLessonPlanSelector";
+import { AdminAuthDialog } from "./attendance/AdminAuthDialog";
 
 interface Disciplina {
   id: string;
@@ -116,6 +117,8 @@ interface ActiveAula {
 export const Attendance = () => {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [pendingDate, setPendingDate] = useState<Date | undefined>(undefined);
+  const [showDateAuthDialog, setShowDateAuthDialog] = useState(false);
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [selectedDisciplina, setSelectedDisciplina] = useState<Disciplina | null>(null);
   const [selectedTurmaId, setSelectedTurmaId] = useState<string | null>(null);
@@ -1435,7 +1438,12 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={setSelectedDate}
+                onSelect={(d) => {
+                  if (!d) return;
+                  if (selectedDate && format(d, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd")) return;
+                  setPendingDate(d);
+                  setShowDateAuthDialog(true);
+                }}
                 locale={ptBR}
                 modifiers={calendarModifiers}
                 modifiersStyles={calendarModifiersStyles}
@@ -1561,6 +1569,19 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdminAuthDialog
+        open={showDateAuthDialog}
+        onOpenChange={(open) => {
+          setShowDateAuthDialog(open);
+          if (!open) setPendingDate(undefined);
+        }}
+        onSuccess={() => {
+          if (pendingDate) setSelectedDate(pendingDate);
+          setPendingDate(undefined);
+          setShowDateAuthDialog(false);
+        }}
+      />
     </div>
   );
 };
