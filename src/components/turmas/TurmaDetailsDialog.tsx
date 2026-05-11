@@ -198,28 +198,37 @@ export const TurmaDetailsDialog = ({
       
       <h2>Alunos (${students.length})</h2>
       <table>
-        <tr><th>#</th><th>Nome</th><th>Matrícula</th><th>Média</th><th>Frequência</th><th>Situação</th></tr>
+        <tr><th>#</th><th>Nome do Aluno</th><th>Média</th><th>Frequência</th><th>Status</th></tr>
     `);
 
     students.forEach((s, i) => {
       const media = getStudentMedia(s.id);
       const freq = getStudentFreq(s.id);
-      const sit = getStudentSituacao(s.id);
+      const statusAluno = s.status === "Inativo" ? "Inativo" : "Ativo";
       printWindow.document.write(`
         <tr>
-          <td>${i + 1}</td><td>${s.nome}</td><td>${s.matricula}</td>
+          <td>${i + 1}</td><td>${s.nome}</td>
           <td>${media !== null ? media.toFixed(1) : "—"}</td>
           <td>${freq !== null ? freq + "%" : "—"}</td>
-          <td>${sit}</td>
+          <td>${statusAluno}</td>
         </tr>
       `);
     });
 
-    printWindow.document.write(`</table><h2>Disciplinas (${disciplinas.length})</h2><table>
+    // Deduplicate disciplinas by nome + data_inicio to avoid duplicates in report
+    const seen = new Set<string>();
+    const uniqueDisciplinas = disciplinas.filter((d) => {
+      const key = `${d.nome}__${d.data_inicio}__${d.data_termino}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    printWindow.document.write(`</table><h2>Disciplinas (${uniqueDisciplinas.length})</h2><table>
       <tr><th>#</th><th>Disciplina</th><th>Professor</th><th>Início</th><th>Término</th><th>Status</th></tr>
     `);
 
-    disciplinas.forEach((d, i) => {
+    uniqueDisciplinas.forEach((d, i) => {
       const isPast = d.data_termino < today;
       let isCurrent = false;
       try { isCurrent = d.data_inicio <= today && d.data_termino >= today; } catch {}
