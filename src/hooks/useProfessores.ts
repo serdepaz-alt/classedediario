@@ -112,9 +112,23 @@ export const useProfessores = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (created) => {
       queryClient.invalidateQueries({ queryKey: ["professores"] });
       toast.success("Professor cadastrado com sucesso!");
+      if (created?.email) {
+        try {
+          const { data, error } = await supabase.functions.invoke("create-professor-account", {
+            body: { professor_id: created.id },
+          });
+          if (error) throw error;
+          if (data?.ok) {
+            toast.success(`Acesso criado: ${data.email} / ${data.senha}`, { duration: 8000 });
+          }
+        } catch (e: any) {
+          console.error(e);
+          toast.error(`Não foi possível criar o login do professor: ${e.message ?? e}`);
+        }
+      }
     },
     onError: (error) => {
       console.error("Erro ao cadastrar professor:", error);
@@ -154,9 +168,18 @@ export const useProfessores = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (updated) => {
       queryClient.invalidateQueries({ queryKey: ["professores"] });
       toast.success("Professor atualizado com sucesso!");
+      if (updated?.email) {
+        try {
+          await supabase.functions.invoke("create-professor-account", {
+            body: { professor_id: updated.id },
+          });
+        } catch (e) {
+          console.error("Falha ao sincronizar acesso:", e);
+        }
+      }
     },
     onError: (error) => {
       console.error("Erro ao atualizar professor:", error);
