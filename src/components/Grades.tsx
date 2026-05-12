@@ -42,6 +42,7 @@ import { TurmaDisciplinaSelector } from "@/components/grades/TurmaDisciplinaSele
 import { useAceiteCronograma } from "@/hooks/useAceiteCronograma";
 import { useGrades } from "@/hooks/useGrades";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -65,6 +66,7 @@ export const Grades = () => {
   const [turmaDisciplinas, setTurmaDisciplinas] = useState<{ turma_id: string; turma_nome: string; disciplina_id: string; disciplina_nome: string }[]>([]);
   const { hasPending, pendingCount } = useAceiteCronograma();
   const { user } = useAuth();
+  const ownerId = useEffectiveUserId();
   const { professorNome, turmasDisponiveis, loading: loadingProfessor, fetchAllGradesForDisciplina } = useGrades();
 
   // Filter by turma
@@ -79,7 +81,7 @@ export const Grades = () => {
       const { data } = await supabase
         .from("turmas")
         .select("id, nome, curso")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("status", "Ativa")
         .order("nome");
       setActiveTurmas(data || []);

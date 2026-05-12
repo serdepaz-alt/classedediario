@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AdminPasswordDialog } from "@/components/admin/AdminPasswordDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useBacklog } from "@/hooks/useBacklog";
+import { useUserRole } from "@/hooks/useUserRole";
 import { 
   BookOpen, Users, CalendarCheck, TrendingUp, StickyNote,
   Home, GraduationCap, FileText, LogOut, Layers, BrainCircuit,
@@ -48,6 +49,7 @@ interface SidebarProps {
 export const Sidebar = ({ onNavigate }: SidebarProps) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { isProfessor } = useUserRole();
   const [showAdminDialog, setShowAdminDialog] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const { unreadCount } = useBacklog();
@@ -90,7 +92,10 @@ export const Sidebar = ({ onNavigate }: SidebarProps) => {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-4 space-y-1 pb-2">
-        {mainMenuItems.map((item) => {
+        {(isProfessor
+          ? mainMenuItems.filter((i) => i.path === "/attendance" || i.path === "/grades")
+          : mainMenuItems
+        ).map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
           return (
@@ -116,7 +121,8 @@ export const Sidebar = ({ onNavigate }: SidebarProps) => {
           );
         })}
 
-        {/* Admin Collapsible */}
+        {/* Admin Collapsible — oculto para professores */}
+        {!isProfessor && (
         <Collapsible open={isAdminOpen} onOpenChange={setIsAdminOpen}>
           <CollapsibleTrigger asChild>
             <button className={cn(
@@ -233,6 +239,7 @@ export const Sidebar = ({ onNavigate }: SidebarProps) => {
             </Collapsible>
           </CollapsibleContent>
         </Collapsible>
+        )}
       </nav>
 
       <AdminPasswordDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} />
