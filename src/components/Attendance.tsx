@@ -28,6 +28,7 @@ import { format, isBefore, isAfter, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
@@ -116,6 +117,7 @@ interface ActiveAula {
 
 export const Attendance = () => {
   const { user } = useAuth();
+  const ownerId = useEffectiveUserId();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [pendingDate, setPendingDate] = useState<Date | undefined>(undefined);
   const [showDateAuthDialog, setShowDateAuthDialog] = useState(false);

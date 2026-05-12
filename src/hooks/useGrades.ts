@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 
 interface ProfessorTurmaInfo {
   turma_id: string;
@@ -27,6 +28,7 @@ interface StudentWithGrades {
 
 export const useGrades = () => {
   const { user } = useAuth();
+  const ownerId = useEffectiveUserId();
   const [professorId, setProfessorId] = useState<string | null>(null);
   const [professorNome, setProfessorNome] = useState<string | null>(null);
   const [turmasDisponiveis, setTurmasDisponiveis] = useState<ProfessorTurmaInfo[]>([]);
