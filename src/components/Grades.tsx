@@ -79,7 +79,7 @@ export const Grades = () => {
       const { data } = await supabase
         .from("turmas")
         .select("id, nome, curso")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("status", "Ativa")
         .order("nome");
       setActiveTurmas(data || []);

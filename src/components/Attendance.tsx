@@ -183,7 +183,7 @@ export const Attendance = () => {
       const { data } = await supabase
         .from("cad_professores")
         .select("id, nome")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("email", user.email)
         .eq("status", "Ativo")
         .maybeSingle();
@@ -208,7 +208,7 @@ export const Attendance = () => {
           professor:cad_professores(id, nome, email),
           disciplina_cad:cad_disciplinas(id, nome)
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("data_aula", todayStr)
         .order("hora_inicio", { ascending: true });
 
@@ -371,7 +371,7 @@ export const Attendance = () => {
       const { data, error } = await supabase
         .from("disciplinas")
         .select("*, turmas (nome)")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       if (!error && data) {
         setDisciplinas(data);
@@ -396,7 +396,7 @@ export const Attendance = () => {
       const { data } = await supabase
         .from("presencas")
         .select("disciplina_id")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("data", dateStr);
 
       if (data && data.length > 0) {
@@ -430,7 +430,7 @@ export const Attendance = () => {
       const { data, error } = await supabase
         .from("students")
         .select("id, nome, matricula, email")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("turma_id", selectedDisciplina.turma_id)
         .eq("status", "Ativo")
         .order("nome", { ascending: true });
@@ -457,7 +457,7 @@ export const Attendance = () => {
       const { data, error } = await supabase
         .from("presencas")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id)
         .eq("data", format(selectedDate, "yyyy-MM-dd"));
 
@@ -496,7 +496,7 @@ export const Attendance = () => {
       const { data } = await supabase
         .from("presencas")
         .select("data")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id);
 
       if (data) {
@@ -514,7 +514,7 @@ export const Attendance = () => {
     const { data } = await supabase
       .from("presencas")
       .select("data, status")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .eq("disciplina_id", selectedDisciplina.id);
 
     if (data) {
@@ -534,7 +534,7 @@ export const Attendance = () => {
       const { data } = await supabase
         .from("presencas")
         .select("student_id, status")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id);
 
       if (data && students.length > 0) {
@@ -572,7 +572,7 @@ export const Attendance = () => {
 
   const refreshDisciplinas = async () => {
     if (!user) return;
-    const { data } = await supabase.from("disciplinas").select("*, turmas (nome)").eq("user_id", user.id);
+    const { data } = await supabase.from("disciplinas").select("*, turmas (nome)").eq("user_id", ownerId);
     if (data) {
       setDisciplinas(data);
       if (selectedDisciplina) {
@@ -683,7 +683,7 @@ export const Attendance = () => {
       const { data: previousData } = await supabase
         .from("presencas")
         .select("status")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id)
         .lt("data", dateStr)
         .order("data", { ascending: false })
@@ -701,14 +701,14 @@ export const Attendance = () => {
       await supabase
         .from("presencas")
         .delete()
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id)
         .eq("data", dateStr);
 
       const records = Array.from(presencas.entries())
         .filter(([_, status]) => status !== "pending")
         .map(([studentId, status]) => ({
-          user_id: user.id,
+          user_id: ownerId,
           disciplina_id: selectedDisciplina.id,
           student_id: studentId,
           data: dateStr,
@@ -756,7 +756,7 @@ export const Attendance = () => {
       const { data: allPresencas } = await supabase
         .from("presencas")
         .select("student_id, status")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id);
 
       let issuesCount = 0;

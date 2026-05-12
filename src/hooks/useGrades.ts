@@ -40,7 +40,7 @@ export const useGrades = () => {
       const { data } = await supabase
         .from("cad_professores")
         .select("id, nome")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("email", user.email!)
         .maybeSingle();
 
@@ -72,7 +72,7 @@ export const useGrades = () => {
             turmas!cronograma_mestre_turma_id_fkey(nome),
             cad_disciplinas!cronograma_mestre_disciplina_id_fkey(nome)
           `)
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .eq("professor_id", professorId);
 
         if (aulas) {
@@ -99,7 +99,7 @@ export const useGrades = () => {
         const { data: discs } = await supabase
           .from("disciplinas")
           .select("id, nome, turma_id, turmas(nome)")
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .not("turma_id", "is", null);
 
         if (discs) {
@@ -175,7 +175,7 @@ export const useGrades = () => {
     if (!user) return null;
 
     const payload = {
-      user_id: user.id,
+      user_id: ownerId,
       student_id: params.studentId,
       disciplina_id: params.disciplinaId,
       numero_avaliacao: params.numeroAvaliacao,
