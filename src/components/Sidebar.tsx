@@ -52,6 +52,7 @@ const financeSubMenuItems = [
 
 const pedagogicoSubMenuItems = [
   { icon: FileText, label: "Conteúdo Programático", path: "/programmatic-content" },
+  { icon: Bell, label: "Central de Notificações", path: "/notification-center" },
   { icon: ClipboardCheck, label: "Aceite Cronograma", path: "/aceite-cronograma" },
   { icon: Layers, label: "Turmas", path: "/turmas" },
   { icon: UserCheck, label: "Professores", path: "/professores" },
