@@ -22,6 +22,7 @@ import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
 import PayrollPage from "./pages/PayrollPage";
 import BacklogPage from "./pages/BacklogPage";
+import NotificationCenterPage from "./pages/NotificationCenterPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/gestao-excecoes" element={<ProtectedRoute><GestaoExcecoesPage /></ProtectedRoute>} />
             <Route path="/payroll" element={<ProtectedRoute><PayrollPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+            <Route path="/notification-center" element={<ProtectedRoute><NotificationCenterPage /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
