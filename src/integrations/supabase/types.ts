@@ -1041,6 +1041,27 @@ export type Database = {
           },
         ]
       }
+      professor_logins: {
+        Row: {
+          admin_user_id: string
+          auth_user_id: string
+          created_at: string
+          professor_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          auth_user_id: string
+          created_at?: string
+          professor_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          auth_user_id?: string
+          created_at?: string
+          professor_id?: string
+        }
+        Relationships: []
+      }
       students: {
         Row: {
           cpf: string | null
@@ -1050,6 +1071,7 @@ export type Database = {
           email: string | null
           endereco: string | null
           estado_nascimento: string | null
+          historico_disciplinas: string | null
           id: string
           local_nascimento: string | null
           matricula: string
@@ -1072,6 +1094,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado_nascimento?: string | null
+          historico_disciplinas?: string | null
           id?: string
           local_nascimento?: string | null
           matricula: string
@@ -1094,6 +1117,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado_nascimento?: string | null
+          historico_disciplinas?: string | null
           id?: string
           local_nascimento?: string | null
           matricula?: string
@@ -1206,6 +1230,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       valores_estagio: {
         Row: {
           ativo: boolean
@@ -1296,10 +1341,21 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      get_admin_for_professor: {
+        Args: { _auth_user_id: string }
+        Returns: string
+      }
+      get_professor_nome: { Args: { _auth_user_id: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "professor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1426,6 +1482,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "professor"],
+    },
   },
 } as const
