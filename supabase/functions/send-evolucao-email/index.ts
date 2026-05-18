@@ -22,13 +22,14 @@ Deno.serve(async (req) => {
     const SMTP_USER = Deno.env.get('SMTP_USER')!
     const SMTP_PASS = Deno.env.get('SMTP_PASS')!
     const SMTP_HOST = Deno.env.get('SMTP_HOST') ?? 'smtp.gmail.com'
-    const SMTP_PORT = Number(Deno.env.get('SMTP_PORT') ?? '587')
+    // Use implicit TLS on 465 for Gmail — STARTTLS on 587 is unreliable in edge runtime
+    const SMTP_PORT = 465
 
     const client = new SMTPClient({
       connection: {
         hostname: SMTP_HOST,
         port: SMTP_PORT,
-        tls: false,
+        tls: true,
         auth: { username: SMTP_USER, password: SMTP_PASS },
       },
     })
