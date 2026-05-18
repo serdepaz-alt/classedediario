@@ -20,7 +20,8 @@ Deno.serve(async (req) => {
     const subject = evolucaoTemplate.subject(data)
 
     const SMTP_USER = Deno.env.get('SMTP_USER')!
-    const SMTP_PASS = Deno.env.get('SMTP_PASS')!
+    // Gmail app passwords are often pasted with spaces — strip them
+    const SMTP_PASS = (Deno.env.get('SMTP_PASS') ?? '').replace(/\s+/g, '')
     const SMTP_HOST = Deno.env.get('SMTP_HOST') ?? 'smtp.gmail.com'
     // Use implicit TLS on 465 for Gmail — STARTTLS on 587 is unreliable in edge runtime
     const SMTP_PORT = 465
