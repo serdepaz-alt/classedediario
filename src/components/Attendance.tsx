@@ -1055,10 +1055,8 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
         </div>
 
         {(() => {
-          // When cronograma has entries for today, show ONLY those turmas
-          const turmasToShow = todayAulas.length > 0
-            ? turmaGroups.filter((t) => todayTurmaIds.has(t.turmaId))
-            : turmaGroups;
+          // Always show all available turmas/disciplinas, even during an ongoing class slot
+          const turmasToShow = turmaGroups;
 
           if (turmasToShow.length === 0) {
             return (
