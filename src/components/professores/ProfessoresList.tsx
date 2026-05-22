@@ -24,10 +24,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Users, Loader2, LayoutGrid, List, FileDown } from "lucide-react";
+import { Plus, Search, Users, Loader2, LayoutGrid, List, FileDown, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 export const ProfessoresList = () => {
   const { professores, isLoading, createProfessor, updateProfessor, deleteProfessor } = useProfessores();
@@ -41,6 +42,7 @@ export const ProfessoresList = () => {
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterFuncao, setFilterFuncao] = useState<string>("all");
+  const [provisioning, setProvisioning] = useState(false);
 
   const professorIds = useMemo(() => professores.map((p) => p.id), [professores]);
   const { data: statsMap = {} } = useProfessorStats(professorIds);
@@ -134,6 +136,39 @@ export const ProfessoresList = () => {
     w.print();
   };
 
+  const handleAtribuirLogins = async () => {
+    const elegiveis = professores.filter(
+      (p) => p.email && p.senha && (p.status || "Ativo") === "Ativo"
+    );
+    if (elegiveis.length === 0) {
+      toast.error("Nenhum professor ativo com email e senha cadastrados");
+      return;
+    }
+    setProvisioning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "create-professor-account",
+        { body: { professorIds: elegiveis.map((p) => p.id) } }
+      );
+      if (error) throw error;
+      const results = (data?.results ?? []) as Array<{ status: string; nome: string; message?: string }>;
+      const created = results.filter((r) => r.status === "created").length;
+      const exists = results.filter((r) => r.status === "exists").length;
+      const skipped = results.filter((r) => r.status === "skipped").length;
+      const errors = results.filter((r) => r.status === "error");
+      toast.success(
+        `Logins atribuídos: ${created} criados, ${exists} já existentes${
+          skipped ? `, ${skipped} ignorados` : ""
+        }${errors.length ? `, ${errors.length} com erro` : ""}`
+      );
+      errors.forEach((e) => toast.error(`${e.nome}: ${e.message}`));
+    } catch (e: any) {
+      toast.error(`Falha ao atribuir logins: ${e.message ?? e}`);
+    } finally {
+      setProvisioning(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -205,6 +240,19 @@ export const ProfessoresList = () => {
           </div>
           <Button variant="outline" onClick={handleExportPDF} className="gap-2">
             <FileDown className="h-4 w-4" /> PDF
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleAtribuirLogins}
+            disabled={provisioning}
+            className="gap-2"
+          >
+            {provisioning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <KeyRound className="h-4 w-4" />
+            )}
+            Atribuir Logins
           </Button>
           <Button onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" /> Novo Professor
