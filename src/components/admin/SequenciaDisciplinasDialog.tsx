@@ -236,7 +236,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                           <SelectContent className="bg-background z-50 max-h-[300px]">
                             {sequencia.map((s) => (
                               <SelectItem key={s.nome} value={s.nome}>
-                                {s.ordem}. {s.nome}
+                                {s.nome}
                               </SelectItem>
                             ))}
                           </SelectContent>
