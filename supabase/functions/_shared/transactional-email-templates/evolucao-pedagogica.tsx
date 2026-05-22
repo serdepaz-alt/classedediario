@@ -40,6 +40,24 @@ interface EvolucaoPedagogicaProps {
     concluidas: number
     total: number
   }
+  cabecalhoTurma?: {
+    turmaNome: string
+    qtdDisciplinas: number | string
+    turno: string
+    horario: string
+    dataInicioTurma: string
+  }
+  gestaoCronograma?: Array<{
+    id: number | string
+    disciplina: string
+    professor: string
+    chTotal: number | string
+    chDiaria: number | string
+    dias: number | string
+    inicio: string
+    termino: string
+    status: 'Concluído' | 'Atual' | 'Futuro' | string
+  }>
   alerta?: { texto: string }
   hardSkills?: Array<{ label: string; percent: number; color: 'blue' | 'green' | 'yellow' }>
   softSkills?: Array<{ label: string; percent: number; color: 'blue' | 'green' | 'yellow' }>
