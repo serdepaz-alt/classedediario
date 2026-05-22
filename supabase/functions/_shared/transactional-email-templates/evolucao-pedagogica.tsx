@@ -174,6 +174,16 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
               Olá, <strong>{studentName}</strong>! 👋 Confira o resumo da sua evolução pedagógica na disciplina atual:
             </Text>
 
+            {/* 1b. Cabeçalho Geral da Turma */}
+            <Section style={{ ...cardStyle, marginBottom: '16px', backgroundColor: '#f9fafb' }}>
+              <Text style={{ ...sectionTitle, marginBottom: '8px' }}>📋 Cabeçalho Geral da Turma</Text>
+              <Text style={headerLine}><strong>Turma:</strong> {cabecalhoTurma.turmaNome}</Text>
+              <Text style={headerLine}><strong>Quantidade de Disciplinas:</strong> {cabecalhoTurma.qtdDisciplinas}</Text>
+              <Text style={headerLine}><strong>Turno:</strong> {cabecalhoTurma.turno}</Text>
+              <Text style={headerLine}><strong>Horário:</strong> {cabecalhoTurma.horario}</Text>
+              <Text style={headerLine}><strong>Data de Início da Turma:</strong> {cabecalhoTurma.dataInicioTurma}</Text>
+            </Section>
+
             {/* 2. Card de Perfil */}
             <Section style={cardStyle}>
               <Row>
