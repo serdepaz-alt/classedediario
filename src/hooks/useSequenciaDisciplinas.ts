@@ -334,6 +334,20 @@ export const useSequenciaDisciplinas = () => {
     setSequencia((prev) => prev.map((item, i) => i === idx ? { ...item, nome_professor: nome } : item));
   }, []);
 
+  // Swap the discipline at idx with another discipline currently in the sequence (by name)
+  const swapDisciplina = useCallback(
+    (idx: number, novoNome: string) => {
+      setSequencia((prev) => {
+        const targetIdx = prev.findIndex((p) => p.nome === novoNome);
+        if (targetIdx === -1 || targetIdx === idx) return prev;
+        const newArr = [...prev];
+        [newArr[idx], newArr[targetIdx]] = [newArr[targetIdx], newArr[idx]];
+        return recalcularDatas(newArr, dataInicio);
+      });
+    },
+    [dataInicio, recalcularDatas]
+  );
+
   // Edit a single item's start date — preserves qtd_dias, recomputes término and cascades forward
   const setItemDataInicio = useCallback(
     (idx: number, date: string) => {
@@ -489,6 +503,7 @@ export const useSequenciaDisciplinas = () => {
     setProfessor,
     setItemDataInicio,
     setItemDataTermino,
+    swapDisciplina,
     validate,
     salvar,
     reset,

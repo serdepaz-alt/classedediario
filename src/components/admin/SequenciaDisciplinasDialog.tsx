@@ -68,6 +68,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
     setProfessor,
     setItemDataInicio,
     setItemDataTermino,
+    swapDisciplina,
     salvar,
     reset,
   } = useSequenciaDisciplinas();
@@ -224,7 +225,23 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                       <TableCell className="text-center font-mono font-bold text-muted-foreground">
                         {item.ordem}
                       </TableCell>
-                      <TableCell className="font-medium">{item.nome}</TableCell>
+                      <TableCell className="font-medium">
+                        <Select
+                          value={item.nome}
+                          onValueChange={(val) => swapDisciplina(idx, val)}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background z-50 max-h-[300px]">
+                            {sequencia.map((s) => (
+                              <SelectItem key={s.nome} value={s.nome}>
+                                {s.ordem}. {s.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell>
                         <Select
                           value={item.nome_professor || "sem-professor"}
