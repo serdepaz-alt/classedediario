@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AdminPasswordDialog } from "@/components/admin/AdminPasswordDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useBacklog } from "@/hooks/useBacklog";
+import { useUserRole } from "@/hooks/useUserRole";
 import { 
   BookOpen, 
   Users, 
@@ -65,6 +66,12 @@ export const Sidebar = () => {
   const [showAdminDialog, setShowAdminDialog] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const { unreadCount } = useBacklog();
+  const { isProfessor } = useUserRole();
+
+  // Professor sees only Presença and Notas
+  const visibleMainMenuItems = isProfessor
+    ? mainMenuItems.filter((i) => i.path === "/attendance" || i.path === "/grades")
+    : mainMenuItems;
   
   const isFinanceSectionActive = financeSubMenuItems.some(item => location.pathname === item.path);
   const isPedagogicoSectionActive = pedagogicoSubMenuItems.some(item => location.pathname === item.path);
@@ -101,7 +108,7 @@ export const Sidebar = () => {
       {/* Navigation - Scrollable */}
       <nav className="flex-1 overflow-y-auto px-6 space-y-2">
         {/* Main Menu Items */}
-        {mainMenuItems.map((item) => {
+        {visibleMainMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
           
@@ -127,7 +134,8 @@ export const Sidebar = () => {
           );
         })}
 
-        {/* Admin Collapsible Menu */}
+        {/* Admin Collapsible Menu — hidden for professors */}
+        {!isProfessor && (
         <Collapsible open={isAdminOpen} onOpenChange={setIsAdminOpen}>
           <CollapsibleTrigger asChild>
             <button
@@ -285,6 +293,7 @@ export const Sidebar = () => {
             </Collapsible>
           </CollapsibleContent>
         </Collapsible>
+        )}
       </nav>
 
       <AdminPasswordDialog 
