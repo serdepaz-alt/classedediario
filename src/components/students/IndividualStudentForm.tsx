@@ -815,23 +815,23 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t">
         {isEditing && (
           <>
-            <Button type="button" variant="secondary" onClick={handlePrintFicha} className="mr-auto">
+            <Button type="button" variant="secondary" onClick={handlePrintFicha} className="w-full">
               <Printer className="h-4 w-4 mr-2" />
               Imprimir Ficha de Matrícula
             </Button>
-            <Button type="button" variant="secondary" onClick={handlePrintContrato}>
+            <Button type="button" variant="secondary" onClick={handlePrintContrato} className="w-full">
               <FileText className="h-4 w-4 mr-2" />
               Imprimir Contrato
             </Button>
           </>
         )}
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} className="w-full">
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} className="w-full">
           {isLoading ? "Salvando..." : isEditing ? "Atualizar Estudante" : "Salvar Estudante"}
         </Button>
       </div>
