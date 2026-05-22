@@ -268,6 +268,10 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
                   initialFocus
                   locale={ptBR}
                   className="pointer-events-auto"
+                  captionLayout="dropdown-buttons"
+                  fromYear={1940}
+                  toYear={new Date().getFullYear()}
+                  defaultMonth={form.watch("data_nascimento") || new Date(2005, 0, 1)}
                 />
               </PopoverContent>
             </Popover>
