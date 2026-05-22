@@ -111,53 +111,64 @@ export const Grades = () => {
     fetchActiveTurmas();
   }, [user]);
 
-  // Build dashboard from all professor's disciplinas
-  useEffect(() => {
-    if (loadingProfessor || turmasDisponiveis.length === 0) {
+  // Load grades for a selected turma only
+  const loadTurmaData = useCallback(async (turmaId: string) => {
+    setLoadingDashboard(true);
+    const studentMap = new Map<string, DashboardStudent>();
+    const subjectSet = new Set<string>();
+
+    const { data: disciplinas } = await supabase
+      .from("disciplinas")
+      .select("id, nome")
+      .eq("turma_id", turmaId);
+
+    if (!disciplinas || disciplinas.length === 0) {
+      setDashboardStudents([]);
+      setSubjects([]);
       setLoadingDashboard(false);
       return;
     }
 
-    const buildDashboard = async () => {
-      setLoadingDashboard(true);
-      const studentMap = new Map<string, DashboardStudent>();
-      const subjectSet = new Set<string>();
+    for (const disc of disciplinas) {
+      const allGrades = await fetchAllGradesForDisciplina(disc.id);
+      subjectSet.add(disc.nome);
 
-      for (const turma of turmasDisponiveis) {
-        const allGrades = await fetchAllGradesForDisciplina(turma.disciplina_id);
-        const discName = turma.disciplina_nome;
-        subjectSet.add(discName);
+      for (const nota of allGrades) {
+        const studentData = (nota as any).students;
+        if (!studentData) continue;
 
-        for (const nota of allGrades) {
-          const studentData = (nota as any).students;
-          if (!studentData) continue;
+        const key = nota.student_id;
+        if (!studentMap.has(key)) {
+          studentMap.set(key, {
+            id: key,
+            student: studentData.nome,
+            matricula: studentData.matricula,
+            grades: {},
+            turmaId: turmaId,
+          });
+        }
 
-          const key = nota.student_id;
-          if (!studentMap.has(key)) {
-            studentMap.set(key, {
-              id: key,
-              student: studentData.nome,
-              matricula: studentData.matricula,
-              grades: {},
-              turmaId: turma.turma_id,
-            });
-          }
-
-          const s = studentMap.get(key)!;
-          if (!s.grades[discName]) s.grades[discName] = [];
-          if (nota.valor !== null) {
-            s.grades[discName].push(nota.valor);
-          }
+        const s = studentMap.get(key)!;
+        if (!s.grades[disc.nome]) s.grades[disc.nome] = [];
+        if (nota.valor !== null) {
+          s.grades[disc.nome].push(nota.valor);
         }
       }
+    }
 
-      setSubjects(Array.from(subjectSet));
-      setDashboardStudents(Array.from(studentMap.values()));
-      setLoadingDashboard(false);
-    };
+    setSubjects(Array.from(subjectSet));
+    setDashboardStudents(Array.from(studentMap.values()));
+    setLoadingDashboard(false);
+  }, [fetchAllGradesForDisciplina]);
 
-    buildDashboard();
-  }, [loadingProfessor, turmasDisponiveis]);
+  useEffect(() => {
+    if (filterTurmaId === "all") {
+      setDashboardStudents([]);
+      setSubjects([]);
+      return;
+    }
+    loadTurmaData(filterTurmaId);
+  }, [filterTurmaId, loadTurmaData]);
 
   const calculateAverage = (grades: number[]) => {
     if (grades.length === 0) return 0;
