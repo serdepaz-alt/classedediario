@@ -507,10 +507,11 @@ ${filteredByTurma.map(s => {
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       ) : dashboardStudents.length === 0 ? (
-        <Card className="p-8 text-center border-dashed">
-          <Award className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground">
-            Nenhuma nota lançada ainda. Clique em "Lançar Notas" para começar.
+        <Card className="p-12 text-center border-dashed">
+          <GraduationCap className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">Nenhuma turma selecionada</h3>
+          <p className="text-muted-foreground max-w-md mx-auto mb-4">
+            Selecione uma turma no filtro acima para carregar os boletins dos alunos.
           </p>
         </Card>
       ) : (
