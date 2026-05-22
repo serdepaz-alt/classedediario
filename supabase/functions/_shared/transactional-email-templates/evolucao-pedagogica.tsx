@@ -40,6 +40,24 @@ interface EvolucaoPedagogicaProps {
     concluidas: number
     total: number
   }
+  cabecalhoTurma?: {
+    turmaNome: string
+    qtdDisciplinas: number | string
+    turno: string
+    horario: string
+    dataInicioTurma: string
+  }
+  gestaoCronograma?: Array<{
+    id: number | string
+    disciplina: string
+    professor: string
+    chTotal: number | string
+    chDiaria: number | string
+    dias: number | string
+    inicio: string
+    termino: string
+    status: 'Concluído' | 'Atual' | 'Futuro' | string
+  }>
   alerta?: { texto: string }
   hardSkills?: Array<{ label: string; percent: number; color: 'blue' | 'green' | 'yellow' }>
   softSkills?: Array<{ label: string; percent: number; color: 'blue' | 'green' | 'yellow' }>
@@ -114,6 +132,18 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
     concluidas: 22,
     total: 28,
   },
+  cabecalhoTurma = {
+    turmaNome: 'TE M02 - Enfermagem',
+    qtdDisciplinas: 28,
+    turno: 'Manhã',
+    horario: '07:30 - 11:30',
+    dataInicioTurma: '06/12/2024',
+  },
+  gestaoCronograma = [
+    { id: 1, disciplina: 'Anatomia', professor: 'Prof. Ana', chTotal: 60, chDiaria: 3, dias: 20, inicio: '06/12/2024', termino: '10/01/2025', status: 'Concluído' },
+    { id: 2, disciplina: 'Fisiologia', professor: 'Prof. Bruno', chTotal: 40, chDiaria: 3, dias: 14, inicio: '13/01/2025', termino: '31/01/2025', status: 'Atual' },
+    { id: 3, disciplina: 'Farmacologia', professor: 'Prof. Carla', chTotal: 60, chDiaria: 3, dias: 20, inicio: '03/02/2025', termino: '28/02/2025', status: 'Futuro' },
+  ],
   alerta = {
     texto: 'AÇÃO REQUERIDA: SECRETARIA - Aluno deve regularizar documentação de estágio pendente até 20/05.',
   },
@@ -143,6 +173,16 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
             <Text style={{ fontSize: '16px', color: '#111827', margin: '0 0 20px', lineHeight: '1.5' }}>
               Olá, <strong>{studentName}</strong>! 👋 Confira o resumo da sua evolução pedagógica na disciplina atual:
             </Text>
+
+            {/* 1b. Cabeçalho Geral da Turma */}
+            <Section style={{ ...cardStyle, marginBottom: '16px', backgroundColor: '#f9fafb' }}>
+              <Text style={{ ...sectionTitle, marginBottom: '8px' }}>📋 Cabeçalho Geral da Turma</Text>
+              <Text style={headerLine}><strong>Turma:</strong> {cabecalhoTurma.turmaNome}</Text>
+              <Text style={headerLine}><strong>Quantidade de Disciplinas:</strong> {cabecalhoTurma.qtdDisciplinas}</Text>
+              <Text style={headerLine}><strong>Turno:</strong> {cabecalhoTurma.turno}</Text>
+              <Text style={headerLine}><strong>Horário:</strong> {cabecalhoTurma.horario}</Text>
+              <Text style={headerLine}><strong>Data de Início da Turma:</strong> {cabecalhoTurma.dataInicioTurma}</Text>
+            </Section>
 
             {/* 2. Card de Perfil */}
             <Section style={cardStyle}>
@@ -245,6 +285,51 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
               <Text style={{ fontSize: '11px', color: '#6b7280', margin: '4px 0 0', textAlign: 'right' }}>
                 {cronograma.concluidas}/{cronograma.total} concluídas ({cronogramaPercent}%)
               </Text>
+
+              {/* Tabela detalhada de disciplinas */}
+              {gestaoCronograma && gestaoCronograma.length > 0 && (
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '14px', fontSize: '11px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f3f4f6' }}>
+                      <th style={thStyle}>#</th>
+                      <th style={{ ...thStyle, textAlign: 'left' }}>Disciplina</th>
+                      <th style={thStyle}>CH</th>
+                      <th style={thStyle}>Diária</th>
+                      <th style={thStyle}>Dias</th>
+                      <th style={thStyle}>Início</th>
+                      <th style={thStyle}>Término</th>
+                      <th style={thStyle}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {gestaoCronograma.map((d) => {
+                      const statusColor =
+                        d.status === 'Concluído' ? { bg: '#dcfce7', fg: '#166534' } :
+                        d.status === 'Atual' ? { bg: '#dbeafe', fg: '#1e40af' } :
+                        { bg: '#fef3c7', fg: '#92400e' }
+                      return (
+                        <tr key={String(d.id)} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                          <td style={tdStyle}>{d.id}</td>
+                          <td style={{ ...tdStyle, textAlign: 'left' }}>
+                            <strong style={{ color: '#111827' }}>{d.disciplina}</strong>
+                            <div style={{ fontStyle: 'italic', color: '#6b7280', fontSize: '10px' }}>Prof: {d.professor}</div>
+                          </td>
+                          <td style={tdStyle}>{d.chTotal}</td>
+                          <td style={tdStyle}>{d.chDiaria}</td>
+                          <td style={tdStyle}>{d.dias}</td>
+                          <td style={tdStyle}>{d.inicio}</td>
+                          <td style={tdStyle}>{d.termino}</td>
+                          <td style={tdStyle}>
+                            <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '9999px', backgroundColor: statusColor.bg, color: statusColor.fg, fontSize: '10px', fontWeight: 600 }}>
+                              {d.status}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
             </Section>
 
             {/* 5. Alertas */}
@@ -359,6 +444,32 @@ const tagStyle: React.CSSProperties = {
   fontWeight: 600,
   padding: '3px 8px',
   borderRadius: '9999px',
+}
+
+const headerLine: React.CSSProperties = {
+  fontSize: '12px',
+  color: '#374151',
+  margin: '2px 0',
+  lineHeight: '1.5',
+}
+
+const thStyle: React.CSSProperties = {
+  fontSize: '10px',
+  fontWeight: 700,
+  color: '#374151',
+  padding: '6px 4px',
+  textAlign: 'center',
+  textTransform: 'uppercase',
+  letterSpacing: '0.3px',
+  borderBottom: '1px solid #d1d5db',
+}
+
+const tdStyle: React.CSSProperties = {
+  fontSize: '11px',
+  color: '#374151',
+  padding: '6px 4px',
+  textAlign: 'center',
+  verticalAlign: 'top',
 }
 
 export const template = {
