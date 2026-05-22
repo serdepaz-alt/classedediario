@@ -19,7 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Phone, Mail, MapPin, GraduationCap } from "lucide-react";
+import { CalendarIcon, Phone, Mail, MapPin, GraduationCap, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -99,6 +99,128 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
     },
     enabled: !!user,
   });
+
+  const handlePrintFicha = () => {
+    const v = form.getValues();
+    const turma = turmas.find((t) => t.id === v.turma_id);
+    const fmt = (d?: Date) => (d ? format(d, "dd/MM/yyyy", { locale: ptBR }) : "");
+    const dataNasc = v.data_nascimento ? fmt(v.data_nascimento) : "";
+    const dataMat = v.data_matricula ? fmt(v.data_matricula) : "";
+    const hoje = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    const logoUrl = `${window.location.origin}/logo-irma-dulce.jpeg`;
+    const cursoNome = (turma as any)?.curso || "";
+    const turmaNome = (turma as any)?.nome || "";
+    const turno = (turma as any)?.periodo || "";
+    const horario = (turma as any)?.horario || "";
+
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/>
+<title>Ficha de Matrícula - ${v.nome}</title>
+<style>
+  @page { size: A4; margin: 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Times New Roman', serif; color:#000; margin:0; font-size:12pt; }
+  .header { text-align:center; margin-bottom:10px; }
+  .header img { width:110px; height:110px; object-fit:contain; display:block; margin:0 auto 6px; }
+  .header h1 { font-size:14pt; margin:0; font-weight:bold; }
+  .title { text-align:center; font-size:13pt; font-weight:bold; margin:14px 0 8px; text-decoration:underline; }
+  table { width:100%; border-collapse:collapse; margin-bottom:8px; }
+  td, th { border:1px solid #000; padding:5px 7px; vertical-align:top; text-align:left; font-size:11pt; }
+  th { background:#eee; }
+  .section { font-weight:bold; background:#ddd; padding:4px 7px; border:1px solid #000; border-bottom:none; font-size:11pt; }
+  .declaracao { border:1px solid #000; padding:10px; font-size:11pt; text-align:justify; margin-top:8px; line-height:1.5; }
+  .assinaturas { margin-top:50px; display:flex; justify-content:space-between; gap:40px; }
+  .assinatura { flex:1; text-align:center; border-top:1px solid #000; padding-top:5px; font-size:11pt; }
+  .local-data { margin-top:24px; font-size:11pt; }
+  @media print { .no-print { display:none; } }
+  .actions { text-align:center; padding:12px; }
+  .actions button { padding:8px 18px; font-size:13px; cursor:pointer; }
+</style></head><body>
+<div class="actions no-print">
+  <button onclick="window.print()">Imprimir</button>
+  <button onclick="window.close()">Fechar</button>
+</div>
+<div class="header">
+  <img src="${logoUrl}" alt="Logo"/>
+  <h1>Centro de Formação Técnica em Enfermagem Irmã Dulce</h1>
+</div>
+<div class="title">Ficha de Matrícula</div>
+
+<table><tr>
+  <th style="width:60%">Curso: ${cursoNome}</th>
+  <th>Matrícula: ${v.matricula || ""}</th>
+</tr></table>
+
+<div class="section">Dados de Identificação do Aluno</div>
+<table>
+  <tr><td colspan="3">Nome: ${v.nome || ""}</td></tr>
+  <tr>
+    <td style="width:50%">Data de Nascimento: ${dataNasc}</td>
+    <td colspan="2">Naturalidade: ${v.local_nascimento || ""}${v.estado_nascimento ? " / " + v.estado_nascimento : ""}</td>
+  </tr>
+  <tr><td colspan="3">Endereço Residencial: ${v.endereco || ""}</td></tr>
+  <tr>
+    <td>Bairro: </td>
+    <td>CEP: </td>
+    <td>Telefone: ${v.telefone || ""}</td>
+  </tr>
+  <tr>
+    <td>Município: ${v.local_nascimento || ""}</td>
+    <td colspan="2">UF: ${v.estado_nascimento || ""}</td>
+  </tr>
+  <tr>
+    <td>CPF: ${v.cpf || ""}</td>
+    <td>Identidade: ${v.rg || ""}</td>
+    <td>Título: ${v.titulo_eleitoral || ""}</td>
+  </tr>
+  <tr><td colspan="3">Estabelecimento em que estudou anteriormente: </td></tr>
+  <tr><td colspan="3">Endereço do Estabelecimento: </td></tr>
+  <tr><td colspan="3">Formação: Geral</td></tr>
+</table>
+
+<div class="section">Filiação</div>
+<table>
+  <tr><td>Nome do Pai: ${v.nome_pai || ""}</td></tr>
+  <tr><td>Nome da Mãe: ${v.nome_mae || ""}</td></tr>
+</table>
+
+<div class="section">Dados Funcionais do Aluno</div>
+<table>
+  <tr>
+    <td style="width:50%">Empresa: </td>
+    <td>Tempo de serviço: </td>
+  </tr>
+  <tr><td colspan="2">Função: </td></tr>
+  <tr><td colspan="2">Endereço Comercial: </td></tr>
+  <tr>
+    <td>Município: </td>
+    <td>Estado: / Telefone: </td>
+  </tr>
+  <tr><td colspan="2">Telefone de referência: ${v.telefone || ""}</td></tr>
+</table>
+
+<div class="section">Declaração</div>
+<div class="declaracao">
+  Vem requerer matrícula regular nesta Unidade de Ensino, no turno <b>${turno}</b> ${horario ? horario : ""}, na turma <b>${turmaNome}</b>, curso de <b>${cursoNome}</b>, declarando estar ciente do estágio para o efeito de conclusão do curso.
+</div>
+
+<div class="local-data">Salvador, ${hoje}.</div>
+
+<div class="assinaturas">
+  <div class="assinatura">Assinatura do Aluno</div>
+  <div class="assinatura">Assinatura do Funcionário</div>
+</div>
+
+<script>window.addEventListener('load', () => setTimeout(() => window.print(), 400));</script>
+</body></html>`;
+
+    const w = window.open("", "_blank", "width=900,height=1000");
+    if (!w) {
+      toast.error("Permita pop-ups para imprimir a ficha");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+  };
 
   const form = useForm<StudentFormData>({
     resolver: zodResolver(studentSchema),
@@ -458,6 +580,12 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
 
       {/* Actions */}
       <div className="flex justify-end gap-3 pt-4 border-t">
+        {isEditing && (
+          <Button type="button" variant="secondary" onClick={handlePrintFicha} className="mr-auto">
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimir Ficha de Matrícula
+          </Button>
+        )}
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
