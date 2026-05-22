@@ -170,20 +170,34 @@ export const Attendance = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Detect professor by matching logged-in user email to cad_professores
-  const [professorMatch, setProfessorMatch] = useState<{ id: string; nome: string } | null>(null);
+  // Detect professor by matching logged-in user email to cad_professores.
+  // Also resolve the admin (owner) user_id so we can query admin-owned data via RLS.
+  const [professorMatch, setProfessorMatch] = useState<{ id: string; nome: string; adminUserId: string } | null>(null);
+  const ownerId = professorMatch?.adminUserId ?? user?.id ?? "";
 
   useEffect(() => {
     const findProfessor = async () => {
       if (!user?.email) return;
-      const { data } = await supabase
+      // Look up via professor_logins (RLS lets the professor read their own link)
+      const { data: link } = await supabase
+        .from("professor_logins")
+        .select("professor_id, admin_user_id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+      if (!link) {
+        setProfessorMatch(null);
+        return;
+      }
+      const { data: prof } = await supabase
         .from("cad_professores")
         .select("id, nome")
-        .eq("user_id", user.id)
-        .eq("email", user.email)
-        .eq("status", "Ativo")
+        .eq("id", link.professor_id)
         .maybeSingle();
-      setProfessorMatch(data || null);
+      if (prof) {
+        setProfessorMatch({ id: prof.id, nome: prof.nome, adminUserId: link.admin_user_id });
+      } else {
+        setProfessorMatch(null);
+      }
     };
     findProfessor();
   }, [user]);
@@ -195,7 +209,9 @@ export const Attendance = () => {
       const todayStr = format(new Date(), "yyyy-MM-dd");
       const nowTime = format(new Date(), "HH:mm:ss");
 
-      // Build query for today's aulas
+      // Build query for today's aulas. When a professor is logged in, scope to
+      // the admin (owner) that holds the data; otherwise scope to the user.
+      const ownerId = professorMatch?.adminUserId ?? user.id;
       let query = supabase
         .from("cronograma_mestre")
         .select(`
@@ -204,7 +220,7 @@ export const Attendance = () => {
           professor:cad_professores(id, nome, email),
           disciplina_cad:cad_disciplinas(id, nome)
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("data_aula", todayStr)
         .order("hora_inicio", { ascending: true });
 
@@ -364,10 +380,11 @@ export const Attendance = () => {
     const fetchDisciplinas = async () => {
       if (!user) return;
 
+      const ownerId = professorMatch?.adminUserId ?? user.id;
       const { data, error } = await supabase
         .from("disciplinas")
         .select("*, turmas (nome)")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       if (!error && data) {
         let filtered = data;
@@ -403,7 +420,7 @@ export const Attendance = () => {
       const { data } = await supabase
         .from("presencas")
         .select("disciplina_id")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("data", dateStr);
 
       if (data && data.length > 0) {
@@ -437,7 +454,7 @@ export const Attendance = () => {
       const { data, error } = await supabase
         .from("students")
         .select("id, nome, matricula, email")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("turma_id", selectedDisciplina.turma_id)
         .eq("status", "Ativo")
         .order("nome", { ascending: true });
@@ -464,7 +481,7 @@ export const Attendance = () => {
       const { data, error } = await supabase
         .from("presencas")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id)
         .eq("data", format(selectedDate, "yyyy-MM-dd"));
 
@@ -503,7 +520,7 @@ export const Attendance = () => {
       const { data } = await supabase
         .from("presencas")
         .select("data")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id);
 
       if (data) {
@@ -522,7 +539,7 @@ export const Attendance = () => {
       const { data } = await supabase
         .from("presencas")
         .select("data, status")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id);
 
       if (data) {
@@ -541,7 +558,7 @@ export const Attendance = () => {
       const { data } = await supabase
         .from("presencas")
         .select("student_id, status")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id);
 
       if (data && students.length > 0) {
@@ -579,7 +596,7 @@ export const Attendance = () => {
 
   const refreshDisciplinas = async () => {
     if (!user) return;
-    const { data } = await supabase.from("disciplinas").select("*, turmas (nome)").eq("user_id", user.id);
+    const { data } = await supabase.from("disciplinas").select("*, turmas (nome)").eq("user_id", ownerId);
     if (data) {
       setDisciplinas(data);
       if (selectedDisciplina) {
@@ -671,7 +688,7 @@ export const Attendance = () => {
       const { data: previousData } = await supabase
         .from("presencas")
         .select("status")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id)
         .lt("data", dateStr)
         .order("data", { ascending: false })
@@ -689,14 +706,14 @@ export const Attendance = () => {
       await supabase
         .from("presencas")
         .delete()
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id)
         .eq("data", dateStr);
 
       const records = Array.from(presencas.entries())
         .filter(([_, status]) => status !== "pending")
         .map(([studentId, status]) => ({
-          user_id: user.id,
+          user_id: ownerId,
           disciplina_id: selectedDisciplina.id,
           student_id: studentId,
           data: dateStr,
@@ -744,7 +761,7 @@ export const Attendance = () => {
       const { data: allPresencas } = await supabase
         .from("presencas")
         .select("student_id, status")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id);
 
       let issuesCount = 0;
