@@ -73,6 +73,25 @@ export const Grades = () => {
   // Active turmas for dropdown
   const [activeTurmas, setActiveTurmas] = useState<{ id: string; nome: string; curso: string | null }[]>([]);
 
+  // Ranking (must be declared before any conditional early return to keep hook order stable)
+  const filteredByTurmaMemo = useMemo(() => {
+    return filterTurmaId === "all"
+      ? dashboardStudents
+      : dashboardStudents.filter(s => s.turmaId === filterTurmaId);
+  }, [dashboardStudents, filterTurmaId]);
+
+  const rankedStudents = useMemo(() => {
+    const calcAvg = (g: number[]) => g.length === 0 ? 0 : g.reduce((a, b) => a + b, 0) / g.length;
+    return [...filteredByTurmaMemo]
+      .map(s => ({
+        ...s,
+        average: calcAvg(Object.values(s.grades).flat()),
+      }))
+      .filter(s => s.average > 0)
+      .sort((a, b) => b.average - a.average)
+      .map((s, i) => ({ ...s, rank: i + 1 }));
+  }, [filteredByTurmaMemo]);
+
   useEffect(() => {
     if (!user) return;
     const fetchActiveTurmas = async () => {
@@ -254,18 +273,6 @@ export const Grades = () => {
     const avg = calculateStudentOverallAverage(s.grades);
     return avg > 0 && avg < 5.0;
   }).length;
-
-  // Ranking
-  const rankedStudents = useMemo(() => {
-    return [...filteredByTurma]
-      .map(s => ({
-        ...s,
-        average: calculateStudentOverallAverage(s.grades),
-      }))
-      .filter(s => s.average > 0)
-      .sort((a, b) => b.average - a.average)
-      .map((s, i) => ({ ...s, rank: i + 1 }));
-  }, [filteredByTurma]);
 
   const getRank = (studentId: string) => {
     const found = rankedStudents.find(s => s.id === studentId);
