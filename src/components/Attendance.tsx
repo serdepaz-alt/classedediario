@@ -173,6 +173,7 @@ export const Attendance = () => {
   // Detect professor by matching logged-in user email to cad_professores.
   // Also resolve the admin (owner) user_id so we can query admin-owned data via RLS.
   const [professorMatch, setProfessorMatch] = useState<{ id: string; nome: string; adminUserId: string } | null>(null);
+  const ownerId = professorMatch?.adminUserId ?? user?.id ?? "";
 
   useEffect(() => {
     const findProfessor = async () => {
