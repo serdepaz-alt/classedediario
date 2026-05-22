@@ -285,6 +285,51 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
               <Text style={{ fontSize: '11px', color: '#6b7280', margin: '4px 0 0', textAlign: 'right' }}>
                 {cronograma.concluidas}/{cronograma.total} concluídas ({cronogramaPercent}%)
               </Text>
+
+              {/* Tabela detalhada de disciplinas */}
+              {gestaoCronograma && gestaoCronograma.length > 0 && (
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '14px', fontSize: '11px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f3f4f6' }}>
+                      <th style={thStyle}>#</th>
+                      <th style={{ ...thStyle, textAlign: 'left' }}>Disciplina</th>
+                      <th style={thStyle}>CH</th>
+                      <th style={thStyle}>Diária</th>
+                      <th style={thStyle}>Dias</th>
+                      <th style={thStyle}>Início</th>
+                      <th style={thStyle}>Término</th>
+                      <th style={thStyle}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {gestaoCronograma.map((d) => {
+                      const statusColor =
+                        d.status === 'Concluído' ? { bg: '#dcfce7', fg: '#166534' } :
+                        d.status === 'Atual' ? { bg: '#dbeafe', fg: '#1e40af' } :
+                        { bg: '#fef3c7', fg: '#92400e' }
+                      return (
+                        <tr key={String(d.id)} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                          <td style={tdStyle}>{d.id}</td>
+                          <td style={{ ...tdStyle, textAlign: 'left' }}>
+                            <strong style={{ color: '#111827' }}>{d.disciplina}</strong>
+                            <div style={{ fontStyle: 'italic', color: '#6b7280', fontSize: '10px' }}>Prof: {d.professor}</div>
+                          </td>
+                          <td style={tdStyle}>{d.chTotal}</td>
+                          <td style={tdStyle}>{d.chDiaria}</td>
+                          <td style={tdStyle}>{d.dias}</td>
+                          <td style={tdStyle}>{d.inicio}</td>
+                          <td style={tdStyle}>{d.termino}</td>
+                          <td style={tdStyle}>
+                            <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '9999px', backgroundColor: statusColor.bg, color: statusColor.fg, fontSize: '10px', fontWeight: 600 }}>
+                              {d.status}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
             </Section>
 
             {/* 5. Alertas */}
