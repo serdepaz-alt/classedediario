@@ -251,6 +251,38 @@ export const useSequenciaDisciplinas = () => {
     [holidayDates]
   );
 
+  // Find last business day on or before a date
+  const lastBusinessDay = useCallback(
+    (date: Date): Date => {
+      let current = date;
+      while (
+        isWeekend(current) ||
+        holidayDates.includes(format(current, "yyyy-MM-dd"))
+      ) {
+        current = addDays(current, -1);
+      }
+      return current;
+    },
+    [holidayDates]
+  );
+
+  // Rewind N business days from an end date
+  const rewindBusinessDays = useCallback(
+    (end: Date, days: number): Date => {
+      let current = end;
+      let remaining = days;
+      while (remaining > 0) {
+        current = addDays(current, -1);
+        const ds = format(current, "yyyy-MM-dd");
+        if (!isWeekend(current) && !holidayDates.includes(ds)) {
+          remaining--;
+        }
+      }
+      return current;
+    },
+    [holidayDates]
+  );
+
   const recalcularDatas = useCallback(
     (items: SequenciaItem[], startDate: string): SequenciaItem[] => {
       if (!startDate) return items.map((i) => ({ ...i, data_inicio: "", data_termino: "" }));
@@ -276,9 +308,59 @@ export const useSequenciaDisciplinas = () => {
     [advanceBusinessDays, firstBusinessDay]
   );
 
+  // Recalculate dates starting from a given index (preserves earlier items, cascades forward)
+  const recalcularDatasDe = useCallback(
+    (items: SequenciaItem[], fromIdx: number, startDate: string): SequenciaItem[] => {
+      const result = items.map((item, i) => ({ ...item, ordem: i + 1 }));
+      if (!startDate) return result;
+
+      let currentStart = firstBusinessDay(parseISO(startDate));
+      for (let i = fromIdx; i < result.length; i++) {
+        const inicio = currentStart;
+        const termino = advanceBusinessDays(inicio, result[i].qtd_dias - 1);
+        result[i] = {
+          ...result[i],
+          data_inicio: format(inicio, "yyyy-MM-dd"),
+          data_termino: format(termino, "yyyy-MM-dd"),
+        };
+        currentStart = firstBusinessDay(advanceBusinessDays(termino, 1));
+      }
+      return result;
+    },
+    [advanceBusinessDays, firstBusinessDay]
+  );
+
   const setProfessor = useCallback((idx: number, nome: string) => {
     setSequencia((prev) => prev.map((item, i) => i === idx ? { ...item, nome_professor: nome } : item));
   }, []);
+
+  // Edit a single item's start date — preserves qtd_dias, recomputes término and cascades forward
+  const setItemDataInicio = useCallback(
+    (idx: number, date: string) => {
+      if (!date) return;
+      setSequencia((prev) => recalcularDatasDe(prev, idx, date));
+      if (idx === 0) setDataInicio(date);
+    },
+    [recalcularDatasDe]
+  );
+
+  // Edit a single item's end date — preserves qtd_dias, recomputes início and cascades forward
+  const setItemDataTermino = useCallback(
+    (idx: number, date: string) => {
+      if (!date) return;
+      setSequencia((prev) => {
+        const item = prev[idx];
+        if (!item) return prev;
+        const terminoSnap = lastBusinessDay(parseISO(date));
+        const inicio = rewindBusinessDays(terminoSnap, item.qtd_dias - 1);
+        const inicioStr = format(inicio, "yyyy-MM-dd");
+        const updated = recalcularDatasDe(prev, idx, inicioStr);
+        if (idx === 0) setDataInicio(inicioStr);
+        return updated;
+      });
+    },
+    [recalcularDatasDe, lastBusinessDay, rewindBusinessDays]
+  );
 
   const handleSetDataInicio = useCallback(
     (date: string) => {
@@ -405,6 +487,8 @@ export const useSequenciaDisciplinas = () => {
     handleSetDataInicio,
     moveItem,
     setProfessor,
+    setItemDataInicio,
+    setItemDataTermino,
     validate,
     salvar,
     reset,
