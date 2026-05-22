@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Professor, ProfessorFormData } from "@/hooks/useProfessores";
-import { Loader2, ChevronDown } from "lucide-react";
+import { Loader2, ChevronDown, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -105,6 +105,15 @@ export const ProfessorFormDialog = ({
   const isEditing = !!professor;
   const [disciplinasList, setDisciplinasList] = useState<string[]>([]);
 
+  // Generates default password: firstName (lowercase) + birth year
+  const buildDefaultSenha = (nome?: string, data_nascimento?: string) => {
+    if (!nome || !data_nascimento) return "";
+    const firstName = nome.trim().split(/\s+/)[0]?.toLowerCase() || "";
+    const year = data_nascimento.slice(0, 4);
+    if (!firstName || !year) return "";
+    return `${firstName}${year}`;
+  };
+
   // Fetch distinct discipline names from padroes_disciplinas
   const fetchDisciplinas = useCallback(async () => {
     if (!user?.id) return;
@@ -149,7 +158,9 @@ export const ProfessorFormDialog = ({
         coren: professor.coren || "",
         disciplinas_lecionar: professor.disciplinas_lecionar || "",
         turnos_disponiveis: professor.turnos_disponiveis || "",
-        senha: professor.senha || "",
+        senha:
+          professor.senha ||
+          buildDefaultSenha(professor.nome, professor.data_nascimento || ""),
       });
     } else {
       form.reset(defaultValues);
@@ -535,20 +546,63 @@ export const ProfessorFormDialog = ({
               />
             </div>
 
-            {/* Senha */}
-            <FormField
-              control={form.control}
-              name="senha"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Senha de Acesso</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Senha padrão: PrimeiroNome+Ano" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Credenciais de Acesso ao App */}
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                <KeyRound className="h-4 w-4" />
+                Credenciais de Acesso ao Aplicativo
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Login (Email)</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="email@exemplo.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="senha"
+                  render={({ field }) => {
+                    const nome = form.watch("nome");
+                    const dn = form.watch("data_nascimento");
+                    const suggested = buildDefaultSenha(nome, dn || "");
+                    return (
+                      <FormItem>
+                        <FormLabel className="flex items-center justify-between">
+                          <span>Senha</span>
+                          {suggested && suggested !== field.value && (
+                            <button
+                              type="button"
+                              className="text-[11px] text-primary hover:underline"
+                              onClick={() => field.onChange(suggested)}
+                            >
+                              usar padrão: {suggested}
+                            </button>
+                          )}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={suggested || "PrimeiroNome+AnoNascimento"}
+                            {...field}
+                          />
+                        </FormControl>
+                        <p className="text-[11px] text-muted-foreground">
+                          Padrão: primeiro nome (minúsculo) + ano de nascimento. Ex.: luciano1971
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              </div>
+            </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button
