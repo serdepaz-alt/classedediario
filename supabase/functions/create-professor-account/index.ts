@@ -38,6 +38,12 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+    // Emails cujas senhas NÃO devem ser sobrescritas (mantidas como cadastradas pelo próprio usuário)
+    const PROTECTED_EMAILS = new Set([
+      "serdepaz@gmail.com",
+      "luciano.ribeiro@irmadulceoficial.com.br",
+    ]);
+
     const { data: professores, error: profErr } = await admin
       .from("cad_professores")
       .select("id, nome, email, senha, data_nascimento")
@@ -74,18 +80,22 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (existingLink) {
-        // Sincroniza a senha caso tenha mudado
-        try {
-          await admin.auth.admin.updateUserById(existingLink.auth_user_id, {
-            password: p.senha,
-          });
-        } catch (_) { /* ignore */ }
+        const isProtected = PROTECTED_EMAILS.has(p.email.toLowerCase());
+        if (!isProtected) {
+          try {
+            await admin.auth.admin.updateUserById(existingLink.auth_user_id, {
+              password: p.senha,
+            });
+          } catch (_) { /* ignore */ }
+        }
         results.push({
           professor_id: p.id,
           nome: p.nome,
           email: p.email,
           status: "exists",
-          message: "Login já existente (senha sincronizada)",
+          message: isProtected
+            ? "Login já existente (senha preservada)"
+            : "Login já existente (senha sincronizada)",
         });
         continue;
       }
@@ -107,7 +117,9 @@ Deno.serve(async (req) => {
         );
         if (found) {
           authUserId = found.id;
-          await admin.auth.admin.updateUserById(found.id, { password: p.senha });
+          if (!PROTECTED_EMAILS.has(p.email.toLowerCase())) {
+            await admin.auth.admin.updateUserById(found.id, { password: p.senha });
+          }
         } else {
           results.push({
             professor_id: p.id,
