@@ -73,6 +73,11 @@ export const Grades = () => {
   // Active turmas for dropdown
   const [activeTurmas, setActiveTurmas] = useState<{ id: string; nome: string; curso: string | null }[]>([]);
 
+  // Real dashboard data
+  const [dashboardStudents, setDashboardStudents] = useState<DashboardStudent[]>([]);
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [loadingDashboard, setLoadingDashboard] = useState(true);
+
   // Ranking (must be declared before any conditional early return to keep hook order stable)
   const filteredByTurmaMemo = useMemo(() => {
     return filterTurmaId === "all"
@@ -105,11 +110,6 @@ export const Grades = () => {
     };
     fetchActiveTurmas();
   }, [user]);
-
-  // Real dashboard data
-  const [dashboardStudents, setDashboardStudents] = useState<DashboardStudent[]>([]);
-  const [subjects, setSubjects] = useState<string[]>([]);
-  const [loadingDashboard, setLoadingDashboard] = useState(true);
 
   // Build dashboard from all professor's disciplinas
   useEffect(() => {
