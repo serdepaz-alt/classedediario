@@ -132,6 +132,18 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
     concluidas: 22,
     total: 28,
   },
+  cabecalhoTurma = {
+    turmaNome: 'TE M02 - Enfermagem',
+    qtdDisciplinas: 28,
+    turno: 'Manhã',
+    horario: '07:30 - 11:30',
+    dataInicioTurma: '06/12/2024',
+  },
+  gestaoCronograma = [
+    { id: 1, disciplina: 'Anatomia', professor: 'Prof. Ana', chTotal: 60, chDiaria: 3, dias: 20, inicio: '06/12/2024', termino: '10/01/2025', status: 'Concluído' },
+    { id: 2, disciplina: 'Fisiologia', professor: 'Prof. Bruno', chTotal: 40, chDiaria: 3, dias: 14, inicio: '13/01/2025', termino: '31/01/2025', status: 'Atual' },
+    { id: 3, disciplina: 'Farmacologia', professor: 'Prof. Carla', chTotal: 60, chDiaria: 3, dias: 20, inicio: '03/02/2025', termino: '28/02/2025', status: 'Futuro' },
+  ],
   alerta = {
     texto: 'AÇÃO REQUERIDA: SECRETARIA - Aluno deve regularizar documentação de estágio pendente até 20/05.',
   },
