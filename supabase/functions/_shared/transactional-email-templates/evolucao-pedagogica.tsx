@@ -446,6 +446,32 @@ const tagStyle: React.CSSProperties = {
   borderRadius: '9999px',
 }
 
+const headerLine: React.CSSProperties = {
+  fontSize: '12px',
+  color: '#374151',
+  margin: '2px 0',
+  lineHeight: '1.5',
+}
+
+const thStyle: React.CSSProperties = {
+  fontSize: '10px',
+  fontWeight: 700,
+  color: '#374151',
+  padding: '6px 4px',
+  textAlign: 'center',
+  textTransform: 'uppercase',
+  letterSpacing: '0.3px',
+  borderBottom: '1px solid #d1d5db',
+}
+
+const tdStyle: React.CSSProperties = {
+  fontSize: '11px',
+  color: '#374151',
+  padding: '6px 4px',
+  textAlign: 'center',
+  verticalAlign: 'top',
+}
+
 export const template = {
   component: EvolucaoPedagogicaEmail,
   subject: (data: Record<string, any>) =>
