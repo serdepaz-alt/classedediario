@@ -66,6 +66,8 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
     handleSetDataInicio,
     moveItem,
     setProfessor,
+    setItemDataInicio,
+    setItemDataTermino,
     salvar,
     reset,
   } = useSequenciaDisciplinas();
@@ -255,11 +257,21 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                           {item.qtd_dias}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center text-sm">
-                        {formatDateBR(item.data_inicio)}
+                      <TableCell className="text-center">
+                        <Input
+                          type="date"
+                          value={item.data_inicio || ""}
+                          onChange={(e) => setItemDataInicio(idx, e.target.value)}
+                          className="h-8 text-xs px-1 w-[120px] mx-auto"
+                        />
                       </TableCell>
-                      <TableCell className="text-center text-sm">
-                        {formatDateBR(item.data_termino)}
+                      <TableCell className="text-center">
+                        <Input
+                          type="date"
+                          value={item.data_termino || ""}
+                          onChange={(e) => setItemDataTermino(idx, e.target.value)}
+                          className="h-8 text-xs px-1 w-[120px] mx-auto"
+                        />
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center gap-0.5">
