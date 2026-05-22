@@ -370,18 +370,29 @@ export const Attendance = () => {
         .eq("user_id", user.id);
 
       if (!error && data) {
-        setDisciplinas(data);
+        let filtered = data;
+        // When a professor is logged in, show ONLY the discipline currently active for them
+        if (professorMatch) {
+          const todayStr = format(new Date(), "yyyy-MM-dd");
+          filtered = data.filter(
+            (d: any) =>
+              d.nome_professor === professorMatch.nome &&
+              d.data_inicio <= todayStr &&
+              d.data_termino >= todayStr
+          );
+        }
+        setDisciplinas(filtered);
         // Validate selectedDisciplina still exists in the loaded list; clear if stale/phantom
         setSelectedDisciplina((prev) => {
           if (!prev) return null;
-          const found = data.find((d) => d.id === prev.id);
+          const found = filtered.find((d) => d.id === prev.id);
           return found ?? null;
         });
       }
     };
 
     fetchDisciplinas();
-  }, [user]);
+  }, [user, professorMatch]);
 
   // Check which turmas already have attendance today
   useEffect(() => {
