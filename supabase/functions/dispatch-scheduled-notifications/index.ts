@@ -114,6 +114,8 @@ Deno.serve(async (req) => {
           } catch (_) {
             failed++
           }
+          // Throttle to avoid Gmail SMTP rate-limit / buffer overlap
+          await new Promise((res) => setTimeout(res, 400))
         }
 
         await sb.from('notification_dispatch_log').insert({
