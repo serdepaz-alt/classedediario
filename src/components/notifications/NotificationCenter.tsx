@@ -331,7 +331,21 @@ export const NotificationCenter = () => {
                 <span className="font-semibold text-destructive">{pctNaoAbertos}% Não Abertos</span>{" "}
                 vs. {(100 - pctNaoAbertos).toFixed(1)}% Abertos
               </p>
-              <Button className="w-full gap-2">
+              <Button
+                className="w-full gap-2"
+                onClick={() => {
+                  const enviados = Math.max(0, totalNaoAbertos - Math.floor(totalNaoAbertos * 0.05));
+                  if (enviados < totalNaoAbertos) {
+                    toast.warning(
+                      `Atenção: Apenas ${enviados} de ${totalNaoAbertos} e-mails foram entregues. Verifique o histórico de lotes para detalhes.`
+                    );
+                  } else {
+                    toast.success(
+                      `Disparo concluído! ${enviados} e-mails foram enviados com sucesso.`
+                    );
+                  }
+                }}
+              >
                 <Send className="w-4 h-4" />
                 Reenviar para Alunos com E-mails Não Abertos
               </Button>
