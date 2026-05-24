@@ -70,12 +70,14 @@ Deno.serve(async (req) => {
         const diff = nowMinutes - schedMinutes
         if (diff < 0 || diff >= 5) continue
 
-        // Idempotency: skip if already dispatched today for this user+turno
-        const dedupeKey = `notify-${s.user_id}-${name}-${todayKey}`
+        // Idempotency: skip if already dispatched today for this user+turno via cron
         const { data: existing } = await sb
-          .from('email_send_log')
+          .from('notification_dispatch_log')
           .select('id')
-          .eq('message_id', dedupeKey)
+          .eq('user_id', s.user_id)
+          .eq('turno', name)
+          .eq('dispatch_date', todayKey)
+          .eq('trigger_source', 'cron')
           .limit(1)
           .maybeSingle()
         if (existing) {
@@ -114,16 +116,15 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Mark dispatch as done (idempotency record) — table may not exist; ignore errors
-        try {
-          await sb.from('email_send_log').insert({
-            message_id: dedupeKey,
-            template_name: 'evolucao_pedagogica',
-            recipient_email: `batch:${turmaIds.length}-turmas`,
-            status: sent > 0 && failed === 0 ? 'sent' : (sent === 0 ? 'failed' : 'partial'),
-            metadata: { user_id: s.user_id, turno: name, sent, failed, total: (alunos || []).length },
-          } as any)
-        } catch (_) {}
+        await sb.from('notification_dispatch_log').insert({
+          user_id: s.user_id,
+          turno: name,
+          dispatch_date: todayKey,
+          sent_count: sent,
+          failed_count: failed,
+          total_count: (alunos || []).length,
+          trigger_source: 'cron',
+        } as any)
 
         results.push({ user_id: s.user_id, turno: name, sent, failed, total: (alunos || []).length })
       }
