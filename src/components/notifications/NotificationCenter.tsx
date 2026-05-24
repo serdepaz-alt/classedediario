@@ -355,6 +355,14 @@ export const NotificationCenter = () => {
                     ))}
                   </PopoverContent>
                 </Popover>
+                <Button
+                  onClick={handleEnviarAgora}
+                  disabled={dispatching || selectedTurmas.length === 0}
+                  className="gap-2"
+                >
+                  {dispatching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Enviar agora ({estimatedEmails})
+                </Button>
               </div>
 
               <div>
