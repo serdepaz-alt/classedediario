@@ -185,18 +185,20 @@ export const NotificationCenter = () => {
       toast.info(`Iniciando envio para ${destinatarios.length} aluno(s)...`);
       let sent = 0;
       let failed = 0;
-      await Promise.all(
-        destinatarios.map(async (a: any) => {
-          try {
-            const { error: fnErr } = await supabase.functions.invoke("send-evolucao-email", {
-              body: { to: a.email, turmaId: a.turma_id, data: { studentName: a.nome } },
-            });
-            if (fnErr) failed++; else sent++;
-          } catch {
-            failed++;
-          }
-        })
-      );
+      // Sequential dispatch — Gmail SMTP rejects parallel connections and the
+      // shared denomailer buffer leaks raw MIME between sends if we parallelize.
+      for (const a of destinatarios as any[]) {
+        try {
+          const { error: fnErr } = await supabase.functions.invoke("send-evolucao-email", {
+            body: { to: a.email, turmaId: a.turma_id, data: { studentName: a.nome } },
+          });
+          if (fnErr) failed++; else sent++;
+        } catch {
+          failed++;
+        }
+        // Small delay to avoid Gmail rate-limit (max ~20/min on standard accounts)
+        await new Promise((r) => setTimeout(r, 400));
+      }
       await supabase.from("notification_dispatch_log").insert({
         user_id: user.id,
         turno: "Manual",
