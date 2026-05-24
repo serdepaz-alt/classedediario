@@ -896,6 +896,42 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          auto_enabled: boolean
+          created_at: string
+          id: string
+          matutino: Json
+          noturno: Json
+          selected_turmas: Json
+          updated_at: string
+          user_id: string
+          vespertino: Json
+        }
+        Insert: {
+          auto_enabled?: boolean
+          created_at?: string
+          id?: string
+          matutino?: Json
+          noturno?: Json
+          selected_turmas?: Json
+          updated_at?: string
+          user_id: string
+          vespertino?: Json
+        }
+        Update: {
+          auto_enabled?: boolean
+          created_at?: string
+          id?: string
+          matutino?: Json
+          noturno?: Json
+          selected_turmas?: Json
+          updated_at?: string
+          user_id?: string
+          vespertino?: Json
+        }
+        Relationships: []
+      }
       padroes_disciplinas: {
         Row: {
           carga_horaria_diaria: number
