@@ -96,13 +96,14 @@ Deno.serve(async (req) => {
       },
     })
 
-    await client.send({
-      from: `Diário de Classe <${SMTP_USER}>`,
+    const emailPayload = {
+      from: SMTP_USER,
       to,
-      subject,
-      content: "auto",
+      subject: String(subject).replace(/[\r\n]+/g, ' ').trim(),
       html,
-    })
+    }
+
+    await client.send(emailPayload)
     await client.close()
 
     return new Response(JSON.stringify({ success: true, to, subject }), {
