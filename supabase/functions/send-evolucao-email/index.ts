@@ -78,7 +78,6 @@ Deno.serve(async (req) => {
 
     const element = React.createElement(evolucaoTemplate.component as any, data)
     const html = await render(element)
-    const text = await render(element, { plainText: true })
     const subject = evolucaoTemplate.subject(data)
 
     const SMTP_USER = Deno.env.get('SMTP_USER')!
@@ -101,7 +100,7 @@ Deno.serve(async (req) => {
       from: `Diário de Classe <${SMTP_USER}>`,
       to,
       subject,
-      content: text,
+      content: "auto",
       html,
     })
     await client.close()
