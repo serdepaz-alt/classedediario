@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       const hoje = new Date().toISOString().slice(0, 10)
       const lista = disciplinas ?? []
 
-      const gestaoCronograma = lista.map((d: any, idx: number) => {
+      const gestaoCronogramaCompleto = lista.map((d: any, idx: number) => {
         const ini = d.data_inicio ?? ''
         const fim = d.data_termino ?? ''
         const status = fim && fim < hoje ? 'Concluído' : (ini && ini <= hoje && fim >= hoje ? 'Atual' : 'Futuro')
@@ -51,8 +51,17 @@ Deno.serve(async (req) => {
         }
       })
 
-      const concluidas = gestaoCronograma.filter((d) => d.status === 'Concluído').length
-      const total = gestaoCronograma.length
+      // Filtra: apenas disciplina anterior (última concluída), atual e a primeira futura
+      const atualIdx = gestaoCronogramaCompleto.findIndex((d) => d.status === 'Atual')
+      const concluidasArr = gestaoCronogramaCompleto.filter((d) => d.status === 'Concluído')
+      const futurasArr = gestaoCronogramaCompleto.filter((d) => d.status === 'Futuro')
+      const anterior = concluidasArr.length > 0 ? concluidasArr[concluidasArr.length - 1] : null
+      const atual = atualIdx >= 0 ? gestaoCronogramaCompleto[atualIdx] : null
+      const proximaFutura = futurasArr.length > 0 ? futurasArr[0] : null
+      const gestaoCronograma = [anterior, atual, proximaFutura].filter(Boolean)
+
+      const concluidas = concluidasArr.length
+      const total = gestaoCronogramaCompleto.length
 
       data = {
         ...data,
