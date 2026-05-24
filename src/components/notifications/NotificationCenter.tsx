@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -8,10 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, MailWarning, Send, Clock, CalendarDays, ChevronDown, TrendingUp } from "lucide-react";
+import { Bell, MailWarning, Send, Clock, CalendarDays, ChevronDown, TrendingUp, Loader2, CheckCircle2 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -31,21 +34,106 @@ export const NotificationCenter = () => {
   const [matutino, setMatutino] = useState<TurnoConfig>(defaultTurno(["Qua", "Qui", "Sex"], "14:00"));
   const [vespertino, setVespertino] = useState<TurnoConfig>(defaultTurno(["Qua", "Qui", "Sex"], "14:00"));
   const [noturno, setNoturno] = useState<TurnoConfig>(defaultTurno(["Qui", "Sex"], "09:00"));
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState<null | "instant" | "debounced">(null);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [studentsCount, setStudentsCount] = useState<Record<string, number>>({});
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevAutoEnabledRef = useRef<boolean>(true);
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("turmas")
-      .select("id, nome, curso")
-      .eq("status", "Ativa")
-      .order("nome")
-      .then(({ data }) => {
-        if (data) {
-          setTurmas(data as any);
-          setSelectedTurmas(data.map((t: any) => t.id));
-        }
+    (async () => {
+      const [{ data: turmasData }, { data: settings }, { data: alunos }] = await Promise.all([
+        supabase.from("turmas").select("id, nome, curso").eq("status", "Ativa").order("nome"),
+        supabase.from("notification_settings").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("students").select("turma_id").eq("status", "Ativo"),
+      ]);
+
+      if (turmasData) setTurmas(turmasData as any);
+
+      const counts: Record<string, number> = {};
+      (alunos || []).forEach((a: any) => {
+        if (a.turma_id) counts[a.turma_id] = (counts[a.turma_id] || 0) + 1;
       });
+      setStudentsCount(counts);
+
+      if (settings) {
+        setAutoEnabled(settings.auto_enabled);
+        setSelectedTurmas(Array.isArray(settings.selected_turmas) ? (settings.selected_turmas as string[]) : []);
+        if (settings.matutino) setMatutino(settings.matutino as TurnoConfig);
+        if (settings.vespertino) setVespertino(settings.vespertino as TurnoConfig);
+        if (settings.noturno) setNoturno(settings.noturno as TurnoConfig);
+        setLastSavedAt(new Date(settings.updated_at));
+        prevAutoEnabledRef.current = settings.auto_enabled;
+      } else if (turmasData) {
+        // Initialize selecting all turmas by default
+        setSelectedTurmas(turmasData.map((t: any) => t.id));
+      }
+      setLoaded(true);
+    })();
   }, [user]);
+
+  // Persist helper
+  const persist = async (toastMsg?: string) => {
+    if (!user) return;
+    setSaving((s) => s ?? "instant");
+    const payload = {
+      user_id: user.id,
+      auto_enabled: autoEnabled,
+      selected_turmas: selectedTurmas,
+      matutino,
+      vespertino,
+      noturno,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from("notification_settings")
+      .upsert(payload, { onConflict: "user_id" });
+    setSaving(null);
+    if (error) {
+      toast.error("Não foi possível salvar a configuração");
+      return;
+    }
+    setLastSavedAt(new Date());
+    if (toastMsg) toast.success(toastMsg);
+  };
+
+  // Auto-save on instant changes (toggles, selected turmas)
+  useEffect(() => {
+    if (!loaded) return;
+    persist("Configuração atualizada com sucesso");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoEnabled, JSON.stringify(selectedTurmas)]);
+
+  // Auto-save with 1s debounce for turno cards (days/time/active toggle)
+  useEffect(() => {
+    if (!loaded) return;
+    setSaving("debounced");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      persist("Configuração do turno atualizada com sucesso");
+    }, 1000);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(matutino), JSON.stringify(vespertino), JSON.stringify(noturno)]);
+
+  // Compute estimated emails for selected turmas
+  const estimatedEmails = selectedTurmas.reduce((sum, id) => sum + (studentsCount[id] || 0), 0);
+
+  // Notify when automation is toggled on
+  useEffect(() => {
+    if (!loaded) return;
+    if (autoEnabled && !prevAutoEnabledRef.current) {
+      toast.info(
+        `A automação foi ativada. Aproximadamente ${estimatedEmails} e-mail(s) serão enviados nos dias e horários programados.`
+      );
+    }
+    prevAutoEnabledRef.current = autoEnabled;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoEnabled, loaded]);
 
   // Mock — would come from email_send_log aggregations
   const totalNaoAbertos = 347;
@@ -83,9 +171,12 @@ export const NotificationCenter = () => {
     config: TurnoConfig;
     setConfig: (c: TurnoConfig) => void;
   }) => (
-    <Card className="gradient-card">
+    <Card className={`gradient-card transition-colors ${saving === "debounced" ? "border-primary/60" : ""}`}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm">{titulo}</CardTitle>
+        <CardTitle className="text-sm flex items-center justify-between">
+          <span>{titulo}</span>
+          {saving === "debounced" && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center gap-2">
