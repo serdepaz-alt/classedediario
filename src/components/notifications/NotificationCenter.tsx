@@ -239,6 +239,22 @@ export const NotificationCenter = () => {
           Dedicado exclusivamente às Configurações de Automação de E-mail, exceto para a visualização individual do
           Relatório do Aluno
         </p>
+        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+          {saving ? (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin text-primary" />
+              <span>Salvando alterações…</span>
+            </>
+          ) : lastSavedAt ? (
+            <>
+              <CheckCircle2 className="w-3 h-3 text-green-600" />
+              <span>
+                Última modificação salva{" "}
+                {format(lastSavedAt, "'em' dd/MM 'às' HH:mm", { locale: ptBR })}
+              </span>
+            </>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
