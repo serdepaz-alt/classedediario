@@ -61,9 +61,9 @@ export const NotificationCenter = () => {
       if (settings) {
         setAutoEnabled(settings.auto_enabled);
         setSelectedTurmas(Array.isArray(settings.selected_turmas) ? (settings.selected_turmas as string[]) : []);
-        if (settings.matutino) setMatutino(settings.matutino as TurnoConfig);
-        if (settings.vespertino) setVespertino(settings.vespertino as TurnoConfig);
-        if (settings.noturno) setNoturno(settings.noturno as TurnoConfig);
+        if (settings.matutino) setMatutino(settings.matutino as unknown as TurnoConfig);
+        if (settings.vespertino) setVespertino(settings.vespertino as unknown as TurnoConfig);
+        if (settings.noturno) setNoturno(settings.noturno as unknown as TurnoConfig);
         setLastSavedAt(new Date(settings.updated_at));
         prevAutoEnabledRef.current = settings.auto_enabled;
       } else if (turmasData) {
@@ -89,7 +89,7 @@ export const NotificationCenter = () => {
     };
     const { error } = await supabase
       .from("notification_settings")
-      .upsert(payload, { onConflict: "user_id" });
+      .upsert([payload] as any, { onConflict: "user_id" });
     setSaving(null);
     if (error) {
       toast.error("Não foi possível salvar a configuração");
