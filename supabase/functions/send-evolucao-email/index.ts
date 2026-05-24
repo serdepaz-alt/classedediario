@@ -1,7 +1,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import * as React from 'npm:react@18.3.1'
 import { render } from 'npm:@react-email/render@0.0.17'
-import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
+import nodemailer from 'npm:nodemailer@6.9.16'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { template as evolucaoTemplate } from '../_shared/transactional-email-templates/evolucao-pedagogica.tsx'
 
@@ -84,16 +84,13 @@ Deno.serve(async (req) => {
     // Gmail app passwords are often pasted with spaces — strip them
     const SMTP_PASS = (Deno.env.get('SMTP_PASS') ?? '').replace(/\s+/g, '')
     const SMTP_HOST = Deno.env.get('SMTP_HOST') ?? 'smtp.gmail.com'
-    // Use implicit TLS on 465 for Gmail — STARTTLS on 587 is unreliable in edge runtime
-    const SMTP_PORT = 465
+    const SMTP_PORT = Number(Deno.env.get('SMTP_PORT') ?? 465)
 
-    const client = new SMTPClient({
-      connection: {
-        hostname: SMTP_HOST,
-        port: SMTP_PORT,
-        tls: true,
-        auth: { username: SMTP_USER, password: SMTP_PASS },
-      },
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
     })
 
     const emailPayload = {
@@ -103,8 +100,7 @@ Deno.serve(async (req) => {
       html,
     }
 
-    await client.send(emailPayload)
-    await client.close()
+    await transporter.sendMail(emailPayload)
 
     return new Response(JSON.stringify({ success: true, to, subject }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
