@@ -40,6 +40,7 @@ export const NotificationCenter = () => {
   const [studentsCount, setStudentsCount] = useState<Record<string, number>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevAutoEnabledRef = useRef<boolean>(true);
+  const [dispatching, setDispatching] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -160,6 +161,61 @@ export const NotificationCenter = () => {
 
   const toggleTurma = (id: string) => {
     setSelectedTurmas((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const handleEnviarAgora = async () => {
+    if (!user) return;
+    if (selectedTurmas.length === 0) {
+      toast.warning("Selecione pelo menos uma turma antes de enviar.");
+      return;
+    }
+    setDispatching(true);
+    try {
+      const { data: alunos, error } = await supabase
+        .from("students")
+        .select("id, nome, email, turma_id")
+        .in("turma_id", selectedTurmas)
+        .eq("status", "Ativo");
+      if (error) throw error;
+      const destinatarios = (alunos || []).filter((a: any) => a.email);
+      if (destinatarios.length === 0) {
+        toast.warning("Nenhum aluno com e-mail cadastrado nas turmas selecionadas.");
+        return;
+      }
+      toast.info(`Iniciando envio para ${destinatarios.length} aluno(s)...`);
+      let sent = 0;
+      let failed = 0;
+      await Promise.all(
+        destinatarios.map(async (a: any) => {
+          try {
+            const { error: fnErr } = await supabase.functions.invoke("send-evolucao-email", {
+              body: { to: a.email, turmaId: a.turma_id, data: { studentName: a.nome } },
+            });
+            if (fnErr) failed++; else sent++;
+          } catch {
+            failed++;
+          }
+        })
+      );
+      await supabase.from("notification_dispatch_log").insert({
+        user_id: user.id,
+        turno: "Manual",
+        dispatch_date: new Date().toISOString().slice(0, 10),
+        sent_count: sent,
+        failed_count: failed,
+        total_count: destinatarios.length,
+        trigger_source: "manual",
+      } as any);
+      if (failed === 0) {
+        toast.success(`Disparo concluído! ${sent} e-mail(s) enviados com sucesso.`);
+      } else {
+        toast.warning(`Apenas ${sent} de ${destinatarios.length} e-mails foram entregues. ${failed} falha(s).`);
+      }
+    } catch (e: any) {
+      toast.error(`Falha no disparo: ${e.message ?? e}`);
+    } finally {
+      setDispatching(false);
+    }
   };
 
   const TurnoCard = ({
