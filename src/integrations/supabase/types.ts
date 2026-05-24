@@ -896,6 +896,42 @@ export type Database = {
           },
         ]
       }
+      notification_dispatch_log: {
+        Row: {
+          created_at: string
+          dispatch_date: string
+          failed_count: number
+          id: string
+          sent_count: number
+          total_count: number
+          trigger_source: string
+          turno: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dispatch_date: string
+          failed_count?: number
+          id?: string
+          sent_count?: number
+          total_count?: number
+          trigger_source?: string
+          turno: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dispatch_date?: string
+          failed_count?: number
+          id?: string
+          sent_count?: number
+          total_count?: number
+          trigger_source?: string
+          turno?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_settings: {
         Row: {
           auto_enabled: boolean
