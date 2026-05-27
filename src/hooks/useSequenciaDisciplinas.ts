@@ -358,22 +358,77 @@ export const useSequenciaDisciplinas = () => {
     [recalcularDatasDe]
   );
 
-  // Edit a single item's end date — preserves qtd_dias, recomputes início and cascades forward
+  // Count business days between two dates (inclusive), skipping weekends/holidays
+  const countBusinessDaysInclusive = useCallback(
+    (start: Date, end: Date): number => {
+      if (end < start) return 0;
+      let count = 0;
+      let current = start;
+      while (current <= end) {
+        const ds = format(current, "yyyy-MM-dd");
+        if (!isWeekend(current) && !holidayDates.includes(ds)) count++;
+        current = addDays(current, 1);
+      }
+      return count;
+    },
+    [holidayDates]
+  );
+
+  // Edit a single item's end date — preserves data_inicio, recomputes qtd_dias + carga
+  // and cascades forward through subsequent rows preserving their original carga horária.
   const setItemDataTermino = useCallback(
     (idx: number, date: string) => {
       if (!date) return;
       setSequencia((prev) => {
         const item = prev[idx];
-        if (!item) return prev;
+        if (!item || !item.data_inicio) return prev;
+
+        const inicio = firstBusinessDay(parseISO(item.data_inicio));
         const terminoSnap = lastBusinessDay(parseISO(date));
-        const inicio = rewindBusinessDays(terminoSnap, item.qtd_dias - 1);
-        const inicioStr = format(inicio, "yyyy-MM-dd");
-        const updated = recalcularDatasDe(prev, idx, inicioStr);
-        if (idx === 0) setDataInicio(inicioStr);
-        return updated;
+        if (terminoSnap < inicio) {
+          toast.error("Data de Término não pode ser anterior à Data de Início.");
+          return prev;
+        }
+
+        const novaQtdDias = countBusinessDaysInclusive(inicio, terminoSnap);
+        const novaCarga = novaQtdDias * item.carga_horaria_diaria;
+
+        const result = prev.map((it, i) => ({ ...it, ordem: i + 1 }));
+        result[idx] = {
+          ...result[idx],
+          data_inicio: format(inicio, "yyyy-MM-dd"),
+          data_termino: format(terminoSnap, "yyyy-MM-dd"),
+          qtd_dias: novaQtdDias,
+          carga_horaria_total: novaCarga,
+        };
+
+        // Cascade: subsequent rows keep their original carga_horaria_total.
+        // Recompute qtd_dias from carga_horaria_total / carga_horaria_diaria,
+        // then chain data_inicio/data_termino from the previous row.
+        let cursor = firstBusinessDay(advanceBusinessDays(terminoSnap, 1));
+        for (let i = idx + 1; i < result.length; i++) {
+          const row = result[i];
+          const diaria = row.carga_horaria_diaria || 1;
+          const qtd = Math.max(
+            1,
+            Math.ceil((row.carga_horaria_total || 0) / diaria)
+          );
+          const ini = cursor;
+          const fim = advanceBusinessDays(ini, qtd - 1);
+          result[i] = {
+            ...row,
+            qtd_dias: qtd,
+            data_inicio: format(ini, "yyyy-MM-dd"),
+            data_termino: format(fim, "yyyy-MM-dd"),
+          };
+          cursor = firstBusinessDay(advanceBusinessDays(fim, 1));
+        }
+
+        if (idx === 0) setDataInicio(format(inicio, "yyyy-MM-dd"));
+        return result;
       });
     },
-    [recalcularDatasDe, lastBusinessDay, rewindBusinessDays]
+    [firstBusinessDay, lastBusinessDay, advanceBusinessDays, countBusinessDaysInclusive]
   );
 
   const handleSetDataInicio = useCallback(
