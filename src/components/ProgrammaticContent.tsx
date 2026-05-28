@@ -10,14 +10,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar as CalendarIcon, Search, Filter, BookOpen, Clock, FileText, Upload, Sparkles } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Search, Filter, BookOpen, Clock, FileText, Upload, Sparkles, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { DocumentUploadSection } from "@/components/programmatic/DocumentUploadSection";
 import { ImportPdfConteudoDialog, AulaGerada } from "@/components/programmatic/ImportPdfConteudoDialog";
-import { useConteudoProgramaticoAulas } from "@/hooks/useConteudoProgramaticoAulas";
+import { useConteudoProgramaticoAulas, AulaProgramatica } from "@/hooks/useConteudoProgramaticoAulas";
 import { usePadroesDisciplinas } from "@/hooks/usePadroesDisciplinas";
+import { EditAulaDialog } from "@/components/programmatic/EditAulaDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 const statusMap = {
@@ -37,7 +48,9 @@ export const ProgrammaticContent = () => {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isImportPdfOpen, setIsImportPdfOpen] = useState(false);
-  const { aulas: aulasSalvas, isLoading: isLoadingAulas, salvarAulasImportadas } = useConteudoProgramaticoAulas();
+  const { aulas: aulasSalvas, isLoading: isLoadingAulas, salvarAulasImportadas, deleteAula } = useConteudoProgramaticoAulas();
+  const [editingAula, setEditingAula] = useState<AulaProgramatica | null>(null);
+  const [deletingAula, setDeletingAula] = useState<AulaProgramatica | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [newContent, setNewContent] = useState({
     subject: "",
@@ -386,6 +399,16 @@ export const ProgrammaticContent = () => {
                       {aula.observacoes && (
                         <p className="text-xs text-muted-foreground italic mt-2">💡 {aula.observacoes}</p>
                       )}
+                      <div className="flex justify-end gap-2 mt-3 pt-3 border-t">
+                        <Button variant="outline" size="sm" onClick={() => setEditingAula(aula)}>
+                          <Pencil className="w-3.5 h-3.5 mr-1" />
+                          Editar
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => setDeletingAula(aula)}>
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          Excluir
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -427,6 +450,36 @@ export const ProgrammaticContent = () => {
         onOpenChange={setIsImportPdfOpen}
         onImportComplete={handleImportComplete}
       />
+
+      <EditAulaDialog
+        aula={editingAula}
+        open={!!editingAula}
+        onOpenChange={(open) => !open && setEditingAula(null)}
+      />
+
+      <AlertDialog open={!!deletingAula} onOpenChange={(open) => !open && setDeletingAula(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Plano de Aula?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A aula "{deletingAula?.topico}" será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (deletingAula) {
+                  await deleteAula.mutateAsync(deletingAula.id);
+                  setDeletingAula(null);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
