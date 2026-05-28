@@ -509,22 +509,42 @@ export const ProgrammaticContent = () => {
       <AlertDialog open={!!deletingPadrao} onOpenChange={(open) => !open && setDeletingPadrao(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir disciplina do padrão?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir aulas do Conteúdo Programático?</AlertDialogTitle>
             <AlertDialogDescription>
-              A disciplina "{deletingPadrao?.nome}" será removida do Padrão de Marcação. Esta ação não pode ser desfeita.
+              Serão removidas <strong>{deletingPadrao?.count ?? 0}</strong> aula(s) da disciplina
+              "{deletingPadrao?.nome}" do Conteúdo Programático. O Padrão de Marcação
+              <strong> não </strong>será afetado. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
+              disabled={isDeletingAulas}
               onClick={async () => {
-                if (deletingPadrao) {
-                  await deletePadrao.mutateAsync(deletingPadrao.id);
+                if (!deletingPadrao || !user?.id) return;
+                setIsDeletingAulas(true);
+                try {
+                  const { error } = await supabase
+                    .from("conteudo_programatico_aulas")
+                    .delete()
+                    .eq("user_id", user.id)
+                    .eq("disciplina_nome", deletingPadrao.nome);
+                  if (error) throw error;
+                  await queryClient.invalidateQueries({
+                    queryKey: ["conteudo-programatico-aulas"],
+                  });
+                  toast.success(
+                    `${deletingPadrao.count} aula(s) de "${deletingPadrao.nome}" removida(s)`,
+                  );
                   setDeletingPadrao(null);
+                } catch (err: any) {
+                  toast.error("Erro ao excluir aulas: " + err.message);
+                } finally {
+                  setIsDeletingAulas(false);
                 }
               }}
             >
-              Excluir
+              {isDeletingAulas ? "Excluindo..." : "Excluir aulas"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
