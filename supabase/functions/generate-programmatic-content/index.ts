@@ -32,7 +32,7 @@ Sua tarefa é analisar o conteúdo programático extraído de um PDF e gerar um 
 
 Para cada aula, você DEVE gerar:
 1. **data**: A data da aula (formato YYYY-MM-DD), respeitando o período letivo informado, excluindo fins de semana
-2. **topico**: O tópico/conteúdo daquele dia
+2. **topico**: O tópico/conteúdo daquele dia. SEMPRE prefixe no formato exato: "Aula N Dia N: <título>" — por exemplo "Aula 1 Dia 1: Introdução e Contexto Histórico (3h)". Mantenha a numeração sequencial começando em 1 e use a mesma numeração para "Aula" e "Dia". Inclua a carga horária do dia em parênteses ao final do título quando disponível no PDF.
 3. **objetivo**: Um objetivo claro e mensurável para aquela aula (usando verbos da Taxonomia de Bloom)
 4. **metodologia**: Uma metodologia moderna e adequada ao conteúdo, escolhendo entre:
    - Metodologias Ativas (Sala de Aula Invertida, Aprendizagem Baseada em Problemas, Estudo de Caso, Peer Instruction)
