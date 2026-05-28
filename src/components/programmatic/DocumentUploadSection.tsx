@@ -13,6 +13,11 @@ import {
   File, FileImage, FileVideo, FileAudio, FolderOpen 
 } from "lucide-react";
 import { useConteudoProgramaticoDocs } from "@/hooks/useConteudoProgramaticoDocs";
+import { useConteudoProgramaticoAulas } from "@/hooks/useConteudoProgramaticoAulas";
+import { usePadroesDisciplinas } from "@/hooks/usePadroesDisciplinas";
+import { extractTextFromPdf } from "@/lib/pdfExtractor";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -38,10 +43,14 @@ const formatFileSize = (bytes: number | null): string => {
 
 export const DocumentUploadSection = ({ turmaId, disciplinaId }: DocumentUploadSectionProps) => {
   const { documentos, isLoading, uploadDocumento, deleteDocumento, getDownloadUrl } = useConteudoProgramaticoDocs(turmaId, disciplinaId);
+  const { padroes } = usePadroesDisciplinas();
+  const { salvarAulasImportadas } = useConteudoProgramaticoAulas();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [descricao, setDescricao] = useState("");
+  const [selectedPadraoId, setSelectedPadraoId] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,20 +63,66 @@ export const DocumentUploadSection = ({ turmaId, disciplinaId }: DocumentUploadS
 
   const handleUpload = async () => {
     if (!selectedFile) return;
-    
+
+    const padrao = padroes.find((p) => p.id === selectedPadraoId);
+    if (!padrao) {
+      toast.error("Selecione uma disciplina do Padrão de Marcação");
+      return;
+    }
+
     setIsUploading(true);
     try {
+      setProcessingMessage("Enviando documento...");
       await uploadDocumento.mutateAsync({
         file: selectedFile,
         turmaId,
         disciplinaId,
-        descricao: descricao || undefined,
+        descricao: descricao ? `[${padrao.nome}] ${descricao}` : `[${padrao.nome}]`,
       });
+
+      if (selectedFile.type === "application/pdf") {
+        try {
+          setProcessingMessage("Extraindo texto do PDF...");
+          const pdfText = await extractTextFromPdf(selectedFile);
+
+          if (pdfText && pdfText.trim().length >= 50) {
+            setProcessingMessage("Gerando plano de aulas dia a dia com IA...");
+            const { data, error } = await supabase.functions.invoke(
+              "generate-programmatic-content",
+              {
+                body: {
+                  pdfText,
+                  disciplinaNome: padrao.nome,
+                  cargaHorariaDiaria: padrao.carga_horaria_diaria * 60,
+                },
+              }
+            );
+
+            if (!error && data?.aulas && Array.isArray(data.aulas) && data.aulas.length > 0) {
+              await salvarAulasImportadas.mutateAsync({
+                aulasData: data.aulas,
+                disciplinaId,
+                turmaId,
+                disciplinaNome: padrao.nome,
+              });
+            } else if (error) {
+              console.error("Erro IA:", error);
+              toast.error("Documento salvo, mas não foi possível gerar o plano de aulas");
+            }
+          }
+        } catch (aiErr) {
+          console.error("Erro ao processar PDF com IA:", aiErr);
+          toast.error("Documento salvo, mas falhou ao gerar plano de aulas");
+        }
+      }
+
       setIsUploadDialogOpen(false);
       setSelectedFile(null);
       setDescricao("");
+      setSelectedPadraoId("");
     } finally {
       setIsUploading(false);
+      setProcessingMessage("");
     }
   };
 
@@ -225,6 +280,33 @@ export const DocumentUploadSection = ({ turmaId, disciplinaId }: DocumentUploadS
               )}
 
               <div className="space-y-2">
+                <Label htmlFor="padrao">Disciplina (Padrão de Marcação)</Label>
+                <Select value={selectedPadraoId} onValueChange={setSelectedPadraoId}>
+                  <SelectTrigger id="padrao">
+                    <SelectValue placeholder="Selecione a disciplina para associar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {padroes.length === 0 ? (
+                      <div className="px-2 py-3 text-xs text-muted-foreground">
+                        Nenhum padrão cadastrado
+                      </div>
+                    ) : (
+                      padroes.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nome} — {p.turno} ({p.carga_horaria_total}h)
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {selectedFile?.type === "application/pdf" && selectedPadraoId && (
+                  <p className="text-xs text-muted-foreground">
+                    A IA irá gerar automaticamente o plano de aulas dia a dia (Aula 1 Dia 1, Aula 2 Dia 2…) a partir deste PDF.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="descricao">Descrição (opcional)</Label>
                 <Textarea
                   id="descricao"
@@ -240,9 +322,9 @@ export const DocumentUploadSection = ({ turmaId, disciplinaId }: DocumentUploadS
               <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleUpload} disabled={isUploading}>
+              <Button onClick={handleUpload} disabled={isUploading || !selectedPadraoId}>
                 {isUploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Enviar
+                {isUploading ? (processingMessage || "Processando...") : "Enviar"}
               </Button>
             </DialogFooter>
           </DialogContent>
