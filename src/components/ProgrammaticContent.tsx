@@ -450,6 +450,36 @@ export const ProgrammaticContent = () => {
         onOpenChange={setIsImportPdfOpen}
         onImportComplete={handleImportComplete}
       />
+
+      <EditAulaDialog
+        aula={editingAula}
+        open={!!editingAula}
+        onOpenChange={(open) => !open && setEditingAula(null)}
+      />
+
+      <AlertDialog open={!!deletingAula} onOpenChange={(open) => !open && setDeletingAula(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Plano de Aula?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A aula "{deletingAula?.topico}" será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (deletingAula) {
+                  await deleteAula.mutateAsync(deletingAula.id);
+                  setDeletingAula(null);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
