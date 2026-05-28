@@ -38,8 +38,9 @@ const statusMap = {
 };
 
 export const ProgrammaticContent = () => {
-  const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes, deletePadrao } = usePadroesDisciplinas();
-  const [deletingPadrao, setDeletingPadrao] = useState<{ id: string; nome: string } | null>(null);
+  const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes } = usePadroesDisciplinas();
+  const [deletingPadrao, setDeletingPadrao] = useState<{ nome: string; count: number } | null>(null);
+  const [isDeletingAulas, setIsDeletingAulas] = useState(false);
   
   // Extrair nomes únicos de disciplinas dos padrões
   const subjects = padroesDisciplinas.map(p => p.nome);
