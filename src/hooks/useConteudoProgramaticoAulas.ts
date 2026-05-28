@@ -120,5 +120,26 @@ export const useConteudoProgramaticoAulas = (disciplinaId?: string) => {
     onError: () => toast.error("Erro ao atualizar status"),
   });
 
-  return { aulas, isLoading, salvarAulasImportadas, deleteAula, updateAulaStatus };
+  const updateAula = useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<Pick<AulaProgramatica, "topico" | "objetivo" | "metodologia" | "recursos" | "tipo_avaliacao" | "observacoes" | "status" | "data_aula" | "disciplina_nome">>;
+    }) => {
+      const { error } = await supabase
+        .from("conteudo_programatico_aulas")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conteudo-programatico-aulas"] });
+      toast.success("Aula atualizada!");
+    },
+    onError: (err: any) => toast.error("Erro ao atualizar aula: " + err.message),
+  });
+
+  return { aulas, isLoading, salvarAulasImportadas, deleteAula, updateAulaStatus, updateAula };
 };
