@@ -46,6 +46,8 @@ export const ProgrammaticContent = () => {
   const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes } = usePadroesDisciplinas();
   const [deletingPadrao, setDeletingPadrao] = useState<{ nome: string; count: number } | null>(null);
   const [isDeletingAulas, setIsDeletingAulas] = useState(false);
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
   
   // Extrair nomes únicos de disciplinas dos padrões
   const subjects = padroesDisciplinas.map(p => p.nome);
@@ -183,6 +185,16 @@ export const ProgrammaticContent = () => {
 
           {/* Add Button */}
           <div className="flex justify-end gap-2">
+            {aulasSalvas.length > 0 && (
+              <Button
+                variant="destructive"
+                className="gap-2"
+                onClick={() => setIsClearAllOpen(true)}
+              >
+                <Trash2 className="w-4 h-4" />
+                Limpar Todos os Planos ({aulasSalvas.length})
+              </Button>
+            )}
             <Button variant="outline" className="gap-2" onClick={() => setIsImportPdfOpen(true)}>
               <Upload className="w-4 h-4" />
               Importar PDF com IA
