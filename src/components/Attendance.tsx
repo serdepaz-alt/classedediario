@@ -60,6 +60,7 @@ import { AttendanceFrequencyChart } from "./attendance/AttendanceFrequencyChart"
 import { AttendanceTableView } from "./attendance/AttendanceTableView";
 import { AttendanceSaveSummary } from "./attendance/AttendanceSaveSummary";
 import { AttendanceLessonPlanSelector } from "./attendance/AttendanceLessonPlanSelector";
+import { ConteudoMinistradoSelect } from "./attendance/ConteudoMinistradoSelect";
 
 interface Disciplina {
   id: string;
@@ -1399,6 +1400,16 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
                 <div className="flex items-center gap-2 mb-2">
                   <FileText className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium">Ocorrências e Observações do Dia</span>
+                </div>
+                <div className="mb-3">
+                  <ConteudoMinistradoSelect
+                    disciplinaId={selectedDisciplina?.id || null}
+                    selectedDate={selectedDate}
+                    value={selectedAulaId || ""}
+                    onChange={(id) => setSelectedAulaId(id)}
+                    ocorrencias={ocorrencias}
+                    setOcorrencias={setOcorrencias}
+                  />
                 </div>
                 <Textarea
                   placeholder="Registre aqui observações gerais, conteúdo ministrado, incidentes..."
