@@ -496,6 +496,30 @@ export const ProgrammaticContent = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!deletingPadrao} onOpenChange={(open) => !open && setDeletingPadrao(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir disciplina do padrão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A disciplina "{deletingPadrao?.nome}" será removida do Padrão de Marcação. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (deletingPadrao) {
+                  await deletePadrao.mutateAsync(deletingPadrao.id);
+                  setDeletingPadrao(null);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
