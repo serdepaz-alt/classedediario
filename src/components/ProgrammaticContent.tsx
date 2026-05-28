@@ -38,7 +38,8 @@ const statusMap = {
 };
 
 export const ProgrammaticContent = () => {
-  const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes } = usePadroesDisciplinas();
+  const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes, deletePadrao } = usePadroesDisciplinas();
+  const [deletingPadrao, setDeletingPadrao] = useState<{ id: string; nome: string } | null>(null);
   
   // Extrair nomes únicos de disciplinas dos padrões
   const subjects = padroesDisciplinas.map(p => p.nome);
@@ -137,18 +138,33 @@ export const ProgrammaticContent = () => {
                 <CardDescription>Disciplinas configuradas para carga de dados</CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="flex flex-wrap gap-2">
-                  {padroesDisciplinas.slice(0, 5).map((padrao) => (
-                    <Badge 
-                      key={padrao.id} 
-                      variant="outline" 
-                      className="cursor-pointer hover:bg-primary/10"
-                      onClick={() => setSelectedSubject(padrao.nome)}
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
+                  {padroesDisciplinas.map((padrao) => (
+                    <Badge
+                      key={padrao.id}
+                      variant="outline"
+                      className="group gap-1 pr-1 hover:bg-primary/10"
                     >
-                      {padrao.nome}
-                      <span className="ml-1 text-[10px] text-muted-foreground">
-                        ({padrao.carga_horaria_total}h)
+                      <span
+                        className="cursor-pointer"
+                        onClick={() => setSelectedSubject(padrao.nome)}
+                      >
+                        {padrao.nome}
+                        <span className="ml-1 text-[10px] text-muted-foreground">
+                          ({padrao.carga_horaria_total}h)
+                        </span>
                       </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingPadrao({ id: padrao.id, nome: padrao.nome });
+                        }}
+                        className="ml-1 rounded-full p-0.5 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label={`Excluir ${padrao.nome}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     </Badge>
                   ))}
                 </div>
