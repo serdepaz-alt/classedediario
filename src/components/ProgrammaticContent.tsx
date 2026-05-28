@@ -18,6 +18,9 @@ import { DocumentUploadSection } from "@/components/programmatic/DocumentUploadS
 import { ImportPdfConteudoDialog, AulaGerada } from "@/components/programmatic/ImportPdfConteudoDialog";
 import { useConteudoProgramaticoAulas, AulaProgramatica } from "@/hooks/useConteudoProgramaticoAulas";
 import { usePadroesDisciplinas } from "@/hooks/usePadroesDisciplinas";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 import { EditAulaDialog } from "@/components/programmatic/EditAulaDialog";
 import {
   AlertDialog,
@@ -38,6 +41,8 @@ const statusMap = {
 };
 
 export const ProgrammaticContent = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes } = usePadroesDisciplinas();
   const [deletingPadrao, setDeletingPadrao] = useState<{ nome: string; count: number } | null>(null);
   const [isDeletingAulas, setIsDeletingAulas] = useState(false);
@@ -159,7 +164,10 @@ export const ProgrammaticContent = () => {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setDeletingPadrao({ id: padrao.id, nome: padrao.nome });
+                          const count = aulasSalvas.filter(
+                            (a) => a.disciplina_nome === padrao.nome,
+                          ).length;
+                          setDeletingPadrao({ nome: padrao.nome, count });
                         }}
                         className="ml-1 rounded-full p-0.5 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
                         aria-label={`Excluir ${padrao.nome}`}
