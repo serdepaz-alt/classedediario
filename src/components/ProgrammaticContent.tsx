@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar as CalendarIcon, Search, Filter, BookOpen, Clock, FileText, Upload, Sparkles, Pencil, Trash2 } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Search, Filter, BookOpen, Clock, FileText, Upload, Sparkles, Pencil, Trash2, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -38,7 +38,8 @@ const statusMap = {
 };
 
 export const ProgrammaticContent = () => {
-  const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes } = usePadroesDisciplinas();
+  const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes, deletePadrao } = usePadroesDisciplinas();
+  const [deletingPadrao, setDeletingPadrao] = useState<{ id: string; nome: string } | null>(null);
   
   // Extrair nomes únicos de disciplinas dos padrões
   const subjects = padroesDisciplinas.map(p => p.nome);
@@ -137,18 +138,33 @@ export const ProgrammaticContent = () => {
                 <CardDescription>Disciplinas configuradas para carga de dados</CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="flex flex-wrap gap-2">
-                  {padroesDisciplinas.slice(0, 5).map((padrao) => (
-                    <Badge 
-                      key={padrao.id} 
-                      variant="outline" 
-                      className="cursor-pointer hover:bg-primary/10"
-                      onClick={() => setSelectedSubject(padrao.nome)}
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
+                  {padroesDisciplinas.map((padrao) => (
+                    <Badge
+                      key={padrao.id}
+                      variant="outline"
+                      className="group gap-1 pr-1 hover:bg-primary/10"
                     >
-                      {padrao.nome}
-                      <span className="ml-1 text-[10px] text-muted-foreground">
-                        ({padrao.carga_horaria_total}h)
+                      <span
+                        className="cursor-pointer"
+                        onClick={() => setSelectedSubject(padrao.nome)}
+                      >
+                        {padrao.nome}
+                        <span className="ml-1 text-[10px] text-muted-foreground">
+                          ({padrao.carga_horaria_total}h)
+                        </span>
                       </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingPadrao({ id: padrao.id, nome: padrao.nome });
+                        }}
+                        className="ml-1 rounded-full p-0.5 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label={`Excluir ${padrao.nome}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     </Badge>
                   ))}
                 </div>
@@ -472,6 +488,30 @@ export const ProgrammaticContent = () => {
                 if (deletingAula) {
                   await deleteAula.mutateAsync(deletingAula.id);
                   setDeletingAula(null);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deletingPadrao} onOpenChange={(open) => !open && setDeletingPadrao(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir disciplina do padrão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A disciplina "{deletingPadrao?.nome}" será removida do Padrão de Marcação. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (deletingPadrao) {
+                  await deletePadrao.mutateAsync(deletingPadrao.id);
+                  setDeletingPadrao(null);
                 }
               }}
             >
