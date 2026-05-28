@@ -399,6 +399,16 @@ export const ProgrammaticContent = () => {
                       {aula.observacoes && (
                         <p className="text-xs text-muted-foreground italic mt-2">💡 {aula.observacoes}</p>
                       )}
+                      <div className="flex justify-end gap-2 mt-3 pt-3 border-t">
+                        <Button variant="outline" size="sm" onClick={() => setEditingAula(aula)}>
+                          <Pencil className="w-3.5 h-3.5 mr-1" />
+                          Editar
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => setDeletingAula(aula)}>
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          Excluir
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
