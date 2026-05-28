@@ -18,6 +18,9 @@ import { DocumentUploadSection } from "@/components/programmatic/DocumentUploadS
 import { ImportPdfConteudoDialog, AulaGerada } from "@/components/programmatic/ImportPdfConteudoDialog";
 import { useConteudoProgramaticoAulas, AulaProgramatica } from "@/hooks/useConteudoProgramaticoAulas";
 import { usePadroesDisciplinas } from "@/hooks/usePadroesDisciplinas";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 import { EditAulaDialog } from "@/components/programmatic/EditAulaDialog";
 import {
   AlertDialog,
@@ -38,8 +41,11 @@ const statusMap = {
 };
 
 export const ProgrammaticContent = () => {
-  const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes, deletePadrao } = usePadroesDisciplinas();
-  const [deletingPadrao, setDeletingPadrao] = useState<{ id: string; nome: string } | null>(null);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes } = usePadroesDisciplinas();
+  const [deletingPadrao, setDeletingPadrao] = useState<{ nome: string; count: number } | null>(null);
+  const [isDeletingAulas, setIsDeletingAulas] = useState(false);
   
   // Extrair nomes únicos de disciplinas dos padrões
   const subjects = padroesDisciplinas.map(p => p.nome);
@@ -158,7 +164,10 @@ export const ProgrammaticContent = () => {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setDeletingPadrao({ id: padrao.id, nome: padrao.nome });
+                          const count = aulasSalvas.filter(
+                            (a) => a.disciplina_nome === padrao.nome,
+                          ).length;
+                          setDeletingPadrao({ nome: padrao.nome, count });
                         }}
                         className="ml-1 rounded-full p-0.5 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
                         aria-label={`Excluir ${padrao.nome}`}
@@ -500,22 +509,42 @@ export const ProgrammaticContent = () => {
       <AlertDialog open={!!deletingPadrao} onOpenChange={(open) => !open && setDeletingPadrao(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir disciplina do padrão?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir aulas do Conteúdo Programático?</AlertDialogTitle>
             <AlertDialogDescription>
-              A disciplina "{deletingPadrao?.nome}" será removida do Padrão de Marcação. Esta ação não pode ser desfeita.
+              Serão removidas <strong>{deletingPadrao?.count ?? 0}</strong> aula(s) da disciplina
+              "{deletingPadrao?.nome}" do Conteúdo Programático. O Padrão de Marcação
+              <strong> não </strong>será afetado. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
+              disabled={isDeletingAulas}
               onClick={async () => {
-                if (deletingPadrao) {
-                  await deletePadrao.mutateAsync(deletingPadrao.id);
+                if (!deletingPadrao || !user?.id) return;
+                setIsDeletingAulas(true);
+                try {
+                  const { error } = await supabase
+                    .from("conteudo_programatico_aulas")
+                    .delete()
+                    .eq("user_id", user.id)
+                    .eq("disciplina_nome", deletingPadrao.nome);
+                  if (error) throw error;
+                  await queryClient.invalidateQueries({
+                    queryKey: ["conteudo-programatico-aulas"],
+                  });
+                  toast.success(
+                    `${deletingPadrao.count} aula(s) de "${deletingPadrao.nome}" removida(s)`,
+                  );
                   setDeletingPadrao(null);
+                } catch (err: any) {
+                  toast.error("Erro ao excluir aulas: " + err.message);
+                } finally {
+                  setIsDeletingAulas(false);
                 }
               }}
             >
-              Excluir
+              {isDeletingAulas ? "Excluindo..." : "Excluir aulas"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
