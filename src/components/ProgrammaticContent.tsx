@@ -46,6 +46,8 @@ export const ProgrammaticContent = () => {
   const { padroes: padroesDisciplinas, isLoading: isLoadingPadroes } = usePadroesDisciplinas();
   const [deletingPadrao, setDeletingPadrao] = useState<{ nome: string; count: number } | null>(null);
   const [isDeletingAulas, setIsDeletingAulas] = useState(false);
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
   
   // Extrair nomes únicos de disciplinas dos padrões
   const subjects = padroesDisciplinas.map(p => p.nome);
@@ -183,6 +185,16 @@ export const ProgrammaticContent = () => {
 
           {/* Add Button */}
           <div className="flex justify-end gap-2">
+            {aulasSalvas.length > 0 && (
+              <Button
+                variant="destructive"
+                className="gap-2"
+                onClick={() => setIsClearAllOpen(true)}
+              >
+                <Trash2 className="w-4 h-4" />
+                Limpar Todos os Planos ({aulasSalvas.length})
+              </Button>
+            )}
             <Button variant="outline" className="gap-2" onClick={() => setIsImportPdfOpen(true)}>
               <Upload className="w-4 h-4" />
               Importar PDF com IA
@@ -545,6 +557,48 @@ export const ProgrammaticContent = () => {
               }}
             >
               {isDeletingAulas ? "Excluindo..." : "Excluir aulas"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isClearAllOpen} onOpenChange={setIsClearAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir todos os Planos de Aula?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá <strong>todas as {aulasSalvas.length} aula(s)</strong> de
+              <strong> todas as disciplinas </strong>do Conteúdo Programático. Os Padrões de
+              Marcação <strong>não</strong> serão afetados. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isClearingAll}
+              onClick={async () => {
+                if (!user?.id) return;
+                setIsClearingAll(true);
+                try {
+                  const total = aulasSalvas.length;
+                  const { error } = await supabase
+                    .from("conteudo_programatico_aulas")
+                    .delete()
+                    .eq("user_id", user.id);
+                  if (error) throw error;
+                  await queryClient.invalidateQueries({
+                    queryKey: ["conteudo-programatico-aulas"],
+                  });
+                  toast.success(`${total} aula(s) removida(s) do Conteúdo Programático`);
+                  setIsClearAllOpen(false);
+                } catch (err: any) {
+                  toast.error("Erro ao excluir aulas: " + err.message);
+                } finally {
+                  setIsClearingAll(false);
+                }
+              }}
+            >
+              {isClearingAll ? "Excluindo..." : "Excluir tudo"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
