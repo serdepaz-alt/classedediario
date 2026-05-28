@@ -561,6 +561,48 @@ export const ProgrammaticContent = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={isClearAllOpen} onOpenChange={setIsClearAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir todos os Planos de Aula?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá <strong>todas as {aulasSalvas.length} aula(s)</strong> de
+              <strong> todas as disciplinas </strong>do Conteúdo Programático. Os Padrões de
+              Marcação <strong>não</strong> serão afetados. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isClearingAll}
+              onClick={async () => {
+                if (!user?.id) return;
+                setIsClearingAll(true);
+                try {
+                  const total = aulasSalvas.length;
+                  const { error } = await supabase
+                    .from("conteudo_programatico_aulas")
+                    .delete()
+                    .eq("user_id", user.id);
+                  if (error) throw error;
+                  await queryClient.invalidateQueries({
+                    queryKey: ["conteudo-programatico-aulas"],
+                  });
+                  toast.success(`${total} aula(s) removida(s) do Conteúdo Programático`);
+                  setIsClearAllOpen(false);
+                } catch (err: any) {
+                  toast.error("Erro ao excluir aulas: " + err.message);
+                } finally {
+                  setIsClearingAll(false);
+                }
+              }}
+            >
+              {isClearingAll ? "Excluindo..." : "Excluir tudo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
