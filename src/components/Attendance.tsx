@@ -1401,6 +1401,16 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
                   <FileText className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium">Ocorrências e Observações do Dia</span>
                 </div>
+                <div className="mb-3">
+                  <ConteudoMinistradoSelect
+                    disciplinaId={selectedDisciplina?.id || null}
+                    selectedDate={selectedDate}
+                    value={selectedAulaId || ""}
+                    onChange={(id) => setSelectedAulaId(id)}
+                    ocorrencias={ocorrencias}
+                    setOcorrencias={setOcorrencias}
+                  />
+                </div>
                 <Textarea
                   placeholder="Registre aqui observações gerais, conteúdo ministrado, incidentes..."
                   value={ocorrencias}
