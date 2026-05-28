@@ -60,6 +60,7 @@ import { AttendanceFrequencyChart } from "./attendance/AttendanceFrequencyChart"
 import { AttendanceTableView } from "./attendance/AttendanceTableView";
 import { AttendanceSaveSummary } from "./attendance/AttendanceSaveSummary";
 import { AttendanceLessonPlanSelector } from "./attendance/AttendanceLessonPlanSelector";
+import { ConteudoMinistradoSelect } from "./attendance/ConteudoMinistradoSelect";
 
 interface Disciplina {
   id: string;
