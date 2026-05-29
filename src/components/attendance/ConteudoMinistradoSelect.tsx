@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ interface AulaItem {
 
 interface Props {
   disciplinaId: string | null;
+  disciplinaNome?: string | null;
   selectedDate: Date | undefined;
   value: string;
   onChange: (value: string) => void;
@@ -32,6 +34,7 @@ const CONTEUDO_TAG = /^\[Conteúdo:[^\]]*\]\s*-\s*/;
 
 export const ConteudoMinistradoSelect = ({
   disciplinaId,
+  disciplinaNome,
   selectedDate,
   value,
   onChange,
@@ -39,36 +42,34 @@ export const ConteudoMinistradoSelect = ({
   setOcorrencias,
 }: Props) => {
   const { user } = useAuth();
-  const [aulas, setAulas] = useState<AulaItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
   const dateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : null;
 
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      if (!user?.id || !disciplinaId) {
-        setAulas([]);
-        return;
-      }
-      setIsLoading(true);
-      const { data, error } = await supabase
+  // React Query — invalida automaticamente quando novas aulas são salvas
+  // (mesma chave usada por useConteudoProgramaticoAulas)
+  const { data: aulas = [], isLoading } = useQuery({
+    queryKey: ["conteudo-programatico-aulas", user?.id, "select", disciplinaId, disciplinaNome],
+    queryFn: async (): Promise<AulaItem[]> => {
+      if (!user?.id || (!disciplinaId && !disciplinaNome)) return [];
+      // Filtra por disciplina_id (quando vinculada à disciplina da turma) OU
+      // por disciplina_nome (quando o plano foi cadastrado só pelo Padrão de Marcação)
+      const filters: string[] = [];
+      if (disciplinaId) filters.push(`disciplina_id.eq.${disciplinaId}`);
+      if (disciplinaNome) filters.push(`disciplina_nome.eq.${disciplinaNome}`);
+      const query = supabase
         .from("conteudo_programatico_aulas")
         .select("id, topico, data_aula, objetivo")
         .eq("user_id", user.id)
-        .eq("disciplina_id", disciplinaId)
         .order("data_aula", { ascending: true });
-      if (!cancelled) {
-        if (!error && data) setAulas(data as AulaItem[]);
-        else setAulas([]);
-        setIsLoading(false);
-      }
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, disciplinaId]);
+      const { data, error } = await (filters.length > 1
+        ? query.or(filters.join(","))
+        : disciplinaId
+        ? query.eq("disciplina_id", disciplinaId)
+        : query.eq("disciplina_nome", disciplinaNome!));
+      if (error) return [];
+      return (data || []) as AulaItem[];
+    },
+    enabled: !!user?.id && (!!disciplinaId || !!disciplinaNome),
+  });
 
   // Sugestão: aula com data_aula igual à data selecionada
   const suggestedId = useMemo(() => {
@@ -112,7 +113,7 @@ export const ConteudoMinistradoSelect = ({
       <Select
         value={value || undefined}
         onValueChange={(v) => handleSelect(v)}
-        disabled={isLoading || !disciplinaId}
+        disabled={isLoading || (!disciplinaId && !disciplinaNome)}
       >
         <SelectTrigger className="w-full">
           {isLoading ? (
@@ -152,7 +153,7 @@ export const ConteudoMinistradoSelect = ({
           )}
         </SelectContent>
       </Select>
-      {!isLoading && aulas.length === 0 && disciplinaId && (
+      {!isLoading && aulas.length === 0 && (disciplinaId || disciplinaNome) && (
         <p className="text-[11px] text-muted-foreground">
           Nenhum plano de aula vinculado a esta disciplina.
         </p>
