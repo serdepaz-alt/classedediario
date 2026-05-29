@@ -27,51 +27,46 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const systemPrompt = `Você é um especialista em planejamento pedagógico e educação moderna. 
-Sua tarefa é analisar o conteúdo programático extraído de um PDF e gerar um plano de aulas dia a dia.
+    const systemPrompt = `Atuas como um assistente educacional. Vais receber o texto de um plano de ensino.
+A tua tarefa é extrair o plano de aulas dia a dia e retornar ESTRITAMENTE um array JSON.
 
-Para cada aula, você DEVE gerar:
-1. **data**: A data da aula (formato YYYY-MM-DD), respeitando o período letivo informado, excluindo fins de semana
-2. **topico**: O tópico/conteúdo daquele dia. SEMPRE prefixe no formato exato: "Aula N Dia N: <título>" — por exemplo "Aula 1 Dia 1: Introdução e Contexto Histórico (3h)". Mantenha a numeração sequencial começando em 1 e use a mesma numeração para "Aula" e "Dia". Inclua a carga horária do dia em parênteses ao final do título quando disponível no PDF.
-3. **objetivo**: Um objetivo claro e mensurável para aquela aula (usando verbos da Taxonomia de Bloom)
-4. **metodologia**: Uma metodologia moderna e adequada ao conteúdo, escolhendo entre:
-   - Metodologias Ativas (Sala de Aula Invertida, Aprendizagem Baseada em Problemas, Estudo de Caso, Peer Instruction)
-   - Educação 4.0 (Gamificação, Realidade Aumentada, Simulações Digitais, Learning Analytics)
-   - Ferramentas Interativas (Kahoot, Mentimeter, Padlet, Google Forms interativo, Quizizz)
-   - Metodologias Tradicionais Aprimoradas (Aula expositiva dialogada, Seminário, Debate estruturado)
-5. **recursos**: Os recursos didáticos mais adequados para aquela aula (projetor, laboratório, material impresso, dispositivos móveis, etc.)
-6. **tipo_avaliacao**: Se aquele dia é uma aula normal ("aula"), uma "revisao" ou uma "avaliacao"
-7. **observacoes**: Dicas pedagógicas para o professor
+Procura o padrão "Dia [Número]: [Título] ([Horas]h)" seguido dos tópicos/bullet points associados a esse dia.
+Ignora objetivos gerais, módulos genéricos, ementas e metodologias finais.
+
+Para cada dia encontrado, devolve um objeto com EXATAMENTE estas chaves:
+- "data": string no formato YYYY-MM-DD, calculada sequencialmente a partir da data de início informada, pulando sábados e domingos (1 dia por aula).
+- "topico": string no formato exato "Aula N Dia N: <título> (<H>h)" — reaproveita o título e a carga horária extraídos do padrão "Dia N:". Se a carga horária não estiver no PDF, usa a carga horária diária informada (em horas).
+- "objetivo": string curta com o objetivo da aula (deduz a partir dos tópicos daquele dia; usa verbo da Taxonomia de Bloom).
+- "metodologia": string curta com uma metodologia adequada (ativa, expositiva dialogada, estudo de caso, etc.).
+- "recursos": string com recursos didáticos sugeridos.
+- "tipo_avaliacao": "aula" | "revisao" | "avaliacao".
+- "observacoes": string opcional com dica pedagógica curta.
 
 REGRAS:
-- Distribua o conteúdo de forma equilibrada ao longo dos dias disponíveis
-- Reserve pelo menos 1 dia para revisão antes de cada avaliação
-- Programe avaliações a cada 8-12 aulas
-- Varie as metodologias para manter o engajamento
-- Considere a carga horária diária informada
-- Retorne APENAS o JSON, sem texto adicional
+- Numeração sequencial começando em 1; "Aula N" e "Dia N" devem coincidir.
+- Retorna APENAS o JSON válido (um array), sem Markdown, sem comentários, sem texto antes ou depois.`;
 
-Formato de saída (JSON array):
-[
-  {
-    "data": "2025-03-10",
-    "topico": "...",
-    "objetivo": "...",
-    "metodologia": "...",
-    "recursos": "...",
-    "tipo_avaliacao": "aula",
-    "observacoes": "..."
-  }
-]`;
+    const cleanPdfText = String(pdfText)
+      .replace(/\u0000/g, "")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
 
     const userPrompt = `Disciplina: ${disciplinaNome}
-Período: ${dataInicio || "a definir"} até ${dataTermino || "a definir"}
+Data de início: ${dataInicio || new Date().toISOString().slice(0, 10)}
+Data de término: ${dataTermino || "a definir"}
 Carga horária diária: ${cargaHorariaDiaria || 60} minutos
 
-Conteúdo extraído do PDF:
-${pdfText.substring(0, 12000)}`;
+Texto extraído do PDF do plano de ensino:
+"""
+${cleanPdfText.substring(0, 14000)}
+"""`;
 
-    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    let response: Response;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 55000);
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -86,26 +81,52 @@ ${pdfText.substring(0, 12000)}`;
         temperature: 0.7,
         max_tokens: 8000,
       }),
-    });
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchErr) {
+      console.error("AI fetch error:", fetchErr);
+      return new Response(
+        JSON.stringify({ error: "Falha na interpretação da IA (timeout ou rede)" }),
+        { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI API error:", errorText);
-      throw new Error(`AI API returned ${response.status}`);
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Limite de requisições atingido. Tente novamente em instantes." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Créditos de IA esgotados. Adicione créditos ao workspace." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: "Falha na interpretação da IA", detail: errorText.slice(0, 500) }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const aiResult = await response.json();
     const content = aiResult.choices?.[0]?.message?.content || "";
 
-    // Extract JSON from response
+    // Extrai JSON de forma robusta (remove cercas Markdown se houver)
     let parsed;
     try {
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("No JSON array found");
-      }
+      const cleaned = content
+        .replace(/```json/gi, "")
+        .replace(/```/g, "")
+        .trim();
+      const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("No JSON array found");
+      parsed = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(parsed)) throw new Error("Resposta não é um array");
     } catch (parseErr) {
       console.error("Parse error:", parseErr, "Content:", content);
       return new Response(
