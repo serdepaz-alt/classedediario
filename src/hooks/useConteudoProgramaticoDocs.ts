@@ -59,8 +59,15 @@ export const useConteudoProgramaticoDocs = (turmaId?: string, disciplinaId?: str
     }) => {
       if (!user?.id) throw new Error("Usuário não autenticado");
 
-      // Upload para o storage
-      const filePath = `${user.id}/${Date.now()}_${file.name}`;
+      // Sanitiza o nome: remove acentos, troca espaços/chars inválidos por "_"
+      const safeName = file.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "_")
+        .replace(/_+/g, "_");
+
+      // Upload para o storage (chave 100% ASCII-safe)
+      const filePath = `${user.id}/${Date.now()}_${safeName}`;
       const { error: uploadError } = await supabase.storage
         .from("conteudo-programatico")
         .upload(filePath, file);
@@ -90,9 +97,9 @@ export const useConteudoProgramaticoDocs = (turmaId?: string, disciplinaId?: str
       queryClient.invalidateQueries({ queryKey: ["conteudo-programatico-docs"] });
       toast.success("Documento enviado com sucesso!");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Erro ao enviar documento:", error);
-      toast.error("Erro ao enviar documento");
+      toast.error(error?.message || "Erro ao enviar documento");
     },
   });
 
