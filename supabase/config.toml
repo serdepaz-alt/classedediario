@@ -1,1 +1,7 @@
 project_id = "axsvxbzoiquuatmldqep"
+
+[functions.get-contract-by-token]
+verify_jwt = false
+
+[functions.accept-contract]
+verify_jwt = false

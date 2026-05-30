@@ -510,6 +510,65 @@ export const useSequenciaDisciplinas = () => {
       toast.success(
         `Cronograma da turma "${selectedTurma.nome}" salvo com ${sequencia.length} disciplina(s)!`
       );
+
+      // Trigger: gerar contrato para cada disciplina com professor vinculado
+      try {
+        const { data: savedDisciplinas } = await supabase
+          .from("disciplinas")
+          .select("id, nome, nome_professor")
+          .eq("user_id", user.id)
+          .eq("turma_id", selectedTurmaId);
+
+        const profMap = new Map(professores.map((p) => [p.nome, p.id]));
+        const targets = (savedDisciplinas || []).filter(
+          (d) => d.nome_professor && profMap.has(d.nome_professor)
+        );
+
+        if (targets.length > 0) {
+          toast.info(`Gerando ${targets.length} contrato(s)...`);
+          const results = await Promise.allSettled(
+            targets.map((d) =>
+              supabase.functions.invoke("generate-professor-contract", {
+                body: {
+                  professor_id: profMap.get(d.nome_professor!),
+                  disciplina_id: d.id,
+                  turma_id: selectedTurmaId,
+                },
+              })
+            )
+          );
+
+          let sent = 0;
+          let skipped = 0;
+          const warnings: string[] = [];
+          results.forEach((r, idx) => {
+            const profName = targets[idx].nome_professor!;
+            if (r.status === "fulfilled" && !r.value.error) {
+              const data: any = r.value.data;
+              if (data?.skipped) skipped++;
+              else {
+                sent++;
+                if (data?.missing_fields?.length) {
+                  warnings.push(`${profName}: faltam ${data.missing_fields.join(", ")}`);
+                }
+                if (data?.email_error) {
+                  warnings.push(`${profName}: e-mail não enviado (${data.email_error})`);
+                }
+              }
+            } else {
+              warnings.push(`${profName}: falha ao gerar contrato`);
+            }
+          });
+
+          if (sent > 0) toast.success(`${sent} contrato(s) gerado(s).`);
+          if (skipped > 0) toast.info(`${skipped} contrato(s) já existiam.`);
+          warnings.slice(0, 5).forEach((w) => toast.warning(w));
+        }
+      } catch (e) {
+        console.error("Erro ao gerar contratos:", e);
+        toast.warning("Cronograma salvo, mas houve falha na geração de contratos.");
+      }
+
       return true;
     } catch (err) {
       console.error("Erro ao salvar cronograma:", err);
@@ -518,7 +577,7 @@ export const useSequenciaDisciplinas = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [validate, user?.id, selectedTurma, selectedTurmaId, sequencia, turno, queryClient]);
+  }, [validate, user?.id, selectedTurma, selectedTurmaId, sequencia, turno, queryClient, professores]);
 
   const reset = useCallback(() => {
     setSelectedTurmaId("");
