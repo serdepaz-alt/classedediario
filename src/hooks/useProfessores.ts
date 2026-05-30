@@ -17,6 +17,12 @@ export interface Professor {
   cpf: string | null;
   data_nascimento: string | null;
   endereco: string | null;
+  estado_civil: string | null;
+  profissao: string | null;
+  endereco_rua: string | null;
+  endereco_numero: string | null;
+  endereco_bairro: string | null;
+  endereco_cep: string | null;
   formacao: string | null;
   indicacao: string | null;
   funcao: string | null;
@@ -47,6 +53,12 @@ export interface ProfessorFormData {
   cpf?: string;
   data_nascimento?: string;
   endereco?: string;
+  estado_civil?: string;
+  profissao?: string;
+  endereco_rua?: string;
+  endereco_numero?: string;
+  endereco_bairro?: string;
+  endereco_cep?: string;
   formacao?: string;
   indicacao?: string;
   funcao?: string;
@@ -97,6 +109,12 @@ export const useProfessores = () => {
           cpf: formData.cpf || null,
           data_nascimento: formData.data_nascimento || null,
           endereco: formData.endereco || null,
+          estado_civil: formData.estado_civil || null,
+          profissao: formData.profissao || null,
+          endereco_rua: formData.endereco_rua || null,
+          endereco_numero: formData.endereco_numero || null,
+          endereco_bairro: formData.endereco_bairro || null,
+          endereco_cep: formData.endereco_cep || null,
           formacao: formData.formacao || null,
           indicacao: formData.indicacao || null,
           funcao: formData.funcao || null,
@@ -138,6 +156,12 @@ export const useProfessores = () => {
           cpf: formData.cpf || null,
           data_nascimento: formData.data_nascimento || null,
           endereco: formData.endereco || null,
+          estado_civil: formData.estado_civil || null,
+          profissao: formData.profissao || null,
+          endereco_rua: formData.endereco_rua || null,
+          endereco_numero: formData.endereco_numero || null,
+          endereco_bairro: formData.endereco_bairro || null,
+          endereco_cep: formData.endereco_cep || null,
           formacao: formData.formacao || null,
           indicacao: formData.indicacao || null,
           funcao: formData.funcao || null,
