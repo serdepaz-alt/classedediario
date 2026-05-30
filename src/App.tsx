@@ -17,6 +17,7 @@ import SmartFinancePage from "./pages/SmartFinancePage";
 import ProfessoresPage from "./pages/ProfessoresPage";
 import CronogramaPage from "./pages/CronogramaPage";
 import AceiteCronogramaPage from "./pages/AceiteCronogramaPage";
+import AceiteContratoPage from "./pages/AceiteContratoPage";
 import GestaoExcecoesPage from "./pages/GestaoExcecoesPage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/professores" element={<ProtectedRoute><ProfessoresPage /></ProtectedRoute>} />
             <Route path="/cronograma" element={<ProtectedRoute><CronogramaPage /></ProtectedRoute>} />
             <Route path="/aceite-cronograma" element={<ProtectedRoute><AceiteCronogramaPage /></ProtectedRoute>} />
+            <Route path="/contrato/aceite" element={<AceiteContratoPage />} />
             <Route path="/gestao-excecoes" element={<ProtectedRoute><GestaoExcecoesPage /></ProtectedRoute>} />
             <Route path="/payroll" element={<ProtectedRoute><PayrollPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
