@@ -225,13 +225,19 @@ export type Database = {
           disciplinas_lecionar: string | null
           email: string | null
           endereco: string | null
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_numero: string | null
+          endereco_rua: string | null
           especialidade: string | null
+          estado_civil: string | null
           experiencia: string | null
           formacao: string | null
           funcao: string | null
           id: string
           indicacao: string | null
           nome: string
+          profissao: string | null
           rg: string | null
           senha: string | null
           status: string | null
@@ -250,13 +256,19 @@ export type Database = {
           disciplinas_lecionar?: string | null
           email?: string | null
           endereco?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_numero?: string | null
+          endereco_rua?: string | null
           especialidade?: string | null
+          estado_civil?: string | null
           experiencia?: string | null
           formacao?: string | null
           funcao?: string | null
           id?: string
           indicacao?: string | null
           nome: string
+          profissao?: string | null
           rg?: string | null
           senha?: string | null
           status?: string | null
@@ -275,13 +287,19 @@ export type Database = {
           disciplinas_lecionar?: string | null
           email?: string | null
           endereco?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_numero?: string | null
+          endereco_rua?: string | null
           especialidade?: string | null
+          estado_civil?: string | null
           experiencia?: string | null
           formacao?: string | null
           funcao?: string | null
           id?: string
           indicacao?: string | null
           nome?: string
+          profissao?: string | null
           rg?: string | null
           senha?: string | null
           status?: string | null
@@ -513,6 +531,78 @@ export type Database = {
             referencedColumns: ["turma_id"]
           },
         ]
+      }
+      contratos_professores: {
+        Row: {
+          aceito_em: string | null
+          aceito_ip: string | null
+          carga_horaria: number
+          created_at: string
+          disciplina_id: string | null
+          disciplina_nome: string
+          email_destino: string | null
+          enviado_em: string
+          id: string
+          observacoes: string | null
+          pdf_storage_path: string | null
+          periodo_aulas: string | null
+          professor_id: string
+          recusado_em: string | null
+          status: string
+          token_aceite: string
+          turma_id: string | null
+          updated_at: string
+          user_id: string
+          valor_extenso: string | null
+          valor_numerico: number
+        }
+        Insert: {
+          aceito_em?: string | null
+          aceito_ip?: string | null
+          carga_horaria?: number
+          created_at?: string
+          disciplina_id?: string | null
+          disciplina_nome: string
+          email_destino?: string | null
+          enviado_em?: string
+          id?: string
+          observacoes?: string | null
+          pdf_storage_path?: string | null
+          periodo_aulas?: string | null
+          professor_id: string
+          recusado_em?: string | null
+          status?: string
+          token_aceite?: string
+          turma_id?: string | null
+          updated_at?: string
+          user_id: string
+          valor_extenso?: string | null
+          valor_numerico?: number
+        }
+        Update: {
+          aceito_em?: string | null
+          aceito_ip?: string | null
+          carga_horaria?: number
+          created_at?: string
+          disciplina_id?: string | null
+          disciplina_nome?: string
+          email_destino?: string | null
+          enviado_em?: string
+          id?: string
+          observacoes?: string | null
+          pdf_storage_path?: string | null
+          periodo_aulas?: string | null
+          professor_id?: string
+          recusado_em?: string | null
+          status?: string
+          token_aceite?: string
+          turma_id?: string | null
+          updated_at?: string
+          user_id?: string
+          valor_extenso?: string | null
+          valor_numerico?: number
+        }
+        Relationships: []
       }
       cronograma_mestre: {
         Row: {
