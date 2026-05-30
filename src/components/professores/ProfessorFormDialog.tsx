@@ -163,6 +163,12 @@ export const ProfessorFormDialog = ({
         cpf: professor.cpf || "",
         data_nascimento: professor.data_nascimento || "",
         endereco: professor.endereco || "",
+        estado_civil: professor.estado_civil || "",
+        profissao: professor.profissao || "",
+        endereco_rua: professor.endereco_rua || "",
+        endereco_numero: professor.endereco_numero || "",
+        endereco_bairro: professor.endereco_bairro || "",
+        endereco_cep: professor.endereco_cep || "",
         formacao: professor.formacao || "",
         indicacao: professor.indicacao || "",
         funcao: professor.funcao || "",
@@ -259,7 +265,7 @@ export const ProfessorFormDialog = ({
               name="endereco"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Endereço</FormLabel>
+                  <FormLabel>Endereço (linha única — legado)</FormLabel>
                   <FormControl>
                     <Input placeholder="Endereço completo" {...field} />
                   </FormControl>
@@ -267,6 +273,101 @@ export const ProfessorFormDialog = ({
                 </FormItem>
               )}
             />
+
+            {/* Endereço destrinchado (usado no contrato) */}
+            <div className="grid grid-cols-12 gap-3">
+              <FormField
+                control={form.control}
+                name="endereco_rua"
+                render={({ field }) => (
+                  <FormItem className="col-span-7">
+                    <FormLabel>Rua</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Rua das Flores" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="endereco_numero"
+                render={({ field }) => (
+                  <FormItem className="col-span-2">
+                    <FormLabel>Nº</FormLabel>
+                    <FormControl>
+                      <Input placeholder="123" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="endereco_cep"
+                render={({ field }) => (
+                  <FormItem className="col-span-3">
+                    <FormLabel>CEP</FormLabel>
+                    <FormControl>
+                      <Input placeholder="00000-000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="endereco_bairro"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bairro</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Nazaré" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Estado civil + profissão (para o contrato) */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="estado_civil"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estado Civil</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União Estável"].map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="profissao"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Profissão</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Enfermeiro(a)" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Telefone 01, Telefone 02 */}
             <div className="grid grid-cols-2 gap-4">
