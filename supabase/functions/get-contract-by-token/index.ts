@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 
     const { data: contrato, error } = await admin
       .from("contratos_professores")
-      .select("*, cad_professores!inner(nome)")
+      .select("*")
       .eq("token_aceite", token)
       .maybeSingle();
 
@@ -42,6 +42,12 @@ Deno.serve(async (req) => {
       });
     }
 
+    const { data: professor } = await admin
+      .from("cad_professores")
+      .select("nome")
+      .eq("id", contrato.professor_id)
+      .maybeSingle();
+
     const { data: signed } = await admin.storage
       .from("contratos")
       .createSignedUrl(contrato.pdf_storage_path, 60 * 60);
@@ -50,7 +56,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         contrato: {
           id: contrato.id,
-          professor_nome: (contrato as any).cad_professores?.nome,
+          professor_nome: professor?.nome ?? "",
           disciplina_nome: contrato.disciplina_nome,
           carga_horaria: contrato.carga_horaria,
           periodo_aulas: contrato.periodo_aulas,
