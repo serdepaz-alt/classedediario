@@ -368,15 +368,15 @@ Deno.serve(async (req) => {
         const origin = req.headers.get("origin") ||
           "https://diariodeclasse2026.lovable.app";
         const link = `${origin}/contrato/aceite?token=${tokenAceite}`;
-        const emailRes = await admin.functions.invoke("send-transactional-email", {
+        const emailRes = await admin.functions.invoke("send-contract-invitation-email", {
           body: {
-            templateName: "professor-contract-invitation",
-            recipientEmail: professor.email,
-            idempotencyKey: `contract-${inserted.id}`,
-            templateData: {
+            to: professor.email,
+            data: {
               name: professor.nome,
               disciplina: disciplina.nome,
               valor: brl(valor),
+              periodo,
+              cargaHoraria: carga,
               link,
             },
           },
