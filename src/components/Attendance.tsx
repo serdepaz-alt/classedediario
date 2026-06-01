@@ -660,6 +660,10 @@ export const Attendance = () => {
   };
 
   const handleSaveClick = () => {
+    if (!canMakeChamada) {
+      toast.error("Apenas o usuário autorizado (serdepaz@gmail.com) pode realizar a chamada.");
+      return;
+    }
     // Reset lesson plan state for the dialog
     setSelectedAulaId(null);
     setSeguiuPlanejado(true);
