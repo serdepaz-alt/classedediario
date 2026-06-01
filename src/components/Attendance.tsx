@@ -1423,10 +1423,19 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
               <div className="p-4 border-t flex gap-3">
                 <Button
                   className="flex-1"
-                  disabled={isLoading || students.length === 0}
+                  disabled={isLoading || students.length === 0 || !canMakeChamada}
                   onClick={handleSaveClick}
+                  title={
+                    !canMakeChamada
+                      ? "Apenas serdepaz@gmail.com pode realizar a chamada"
+                      : undefined
+                  }
                 >
-                  {isLoading ? "Salvando..." : "Salvar Chamada"}
+                  {isLoading
+                    ? "Salvando..."
+                    : !canMakeChamada
+                    ? "Somente leitura"
+                    : "Salvar Chamada"}
                 </Button>
                 <Button variant="outline" onClick={handleExportPDF}>
                   <FileText className="w-4 h-4 mr-2" />
