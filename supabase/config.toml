@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.accept-contract]
 verify_jwt = false
+
+[functions.check-contract-sla]
+verify_jwt = false
