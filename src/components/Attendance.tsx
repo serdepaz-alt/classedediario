@@ -388,17 +388,10 @@ export const Attendance = () => {
         .eq("user_id", ownerId);
 
       if (!error && data) {
-        let filtered = data;
-        // When a professor is logged in, show ONLY the discipline currently active for them
-        if (professorMatch) {
-          const todayStr = format(new Date(), "yyyy-MM-dd");
-          filtered = data.filter(
-            (d: any) =>
-              d.nome_professor === professorMatch.nome &&
-              d.data_inicio <= todayStr &&
-              d.data_termino >= todayStr
-          );
-        }
+        // Lista TODAS as turmas/disciplinas para todos os usuários autenticados.
+        // A permissão de efetivamente salvar a chamada é controlada por e-mail
+        // (apenas serdepaz@gmail.com) no botão "Salvar Chamada".
+        const filtered = data;
         setDisciplinas(filtered);
         // Validate selectedDisciplina still exists in the loaded list; clear if stale/phantom
         setSelectedDisciplina((prev) => {
