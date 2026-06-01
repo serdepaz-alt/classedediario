@@ -6,6 +6,22 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const MAKE_WEBHOOK_URL =
+  Deno.env.get("MAKE_WEBHOOK_URL") ??
+  "https://hook.us2.make.com/rqunmuefa25z96mbnf2ifulhsfsryfwp";
+
+async function postToMake(payload: Record<string, unknown>) {
+  try {
+    await fetch(MAKE_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    console.error("Make webhook failed", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -26,7 +42,7 @@ Deno.serve(async (req) => {
 
     const { data: contrato, error: fetchErr } = await admin
       .from("contratos_professores")
-      .select("id, status")
+      .select("*")
       .eq("token_aceite", token)
       .maybeSingle();
     if (fetchErr || !contrato) {
@@ -56,6 +72,87 @@ Deno.serve(async (req) => {
       .update(updates)
       .eq("id", contrato.id);
     if (upErr) throw upErr;
+
+    // Carrega dados do professor para enriquecer o webhook
+    const { data: professor } = await admin
+      .from("cad_professores")
+      .select("nome, email, telefone, telefone2")
+      .eq("id", contrato.professor_id)
+      .maybeSingle();
+
+    if (novoStatus === "aceito") {
+      // Busca todos os planos de aula vinculados à disciplina
+      const { data: planos } = await admin
+        .from("conteudo_programatico_aulas")
+        .select(
+          "id, data_aula, topico, objetivo, metodologia, recursos, observacoes, tipo_avaliacao, disciplina_nome",
+        )
+        .eq("disciplina_id", contrato.disciplina_id)
+        .order("data_aula", { ascending: true });
+
+      // Gera signed URL do PDF para anexo
+      let pdfUrl: string | null = null;
+      if (contrato.pdf_storage_path) {
+        const { data: signed } = await admin.storage
+          .from("contratos")
+          .createSignedUrl(contrato.pdf_storage_path, 60 * 60 * 24 * 7);
+        pdfUrl = signed?.signedUrl ?? null;
+      }
+
+      await postToMake({
+        acao: "contrato_aceito",
+        contrato_id: contrato.id,
+        email_professor: professor?.email ?? contrato.email_destino,
+        nome_professor: professor?.nome ?? null,
+        telefone_professor: professor?.telefone ?? null,
+        disciplina: contrato.disciplina_nome,
+        carga_horaria: contrato.carga_horaria,
+        periodo_aulas: contrato.periodo_aulas,
+        valor_numerico: contrato.valor_numerico,
+        valor_extenso: contrato.valor_extenso,
+        aceito_em: updates.aceito_em,
+        contrato_pdf_url: pdfUrl,
+        anexos: (planos ?? []).map((p) => ({
+          id: p.id,
+          data: p.data_aula,
+          titulo: p.topico,
+          disciplina: p.disciplina_nome,
+          objetivo: p.objetivo,
+          metodologia: p.metodologia,
+          recursos: p.recursos,
+          observacoes: p.observacoes,
+          tipo: p.tipo_avaliacao,
+        })),
+        total_planos: planos?.length ?? 0,
+        notificar_whatsapp: ["equipe", "adm"],
+      });
+    } else {
+      // Auto-cleanup: remove professor da disciplina e cronograma
+      if (contrato.disciplina_id) {
+        await admin
+          .from("disciplinas")
+          .update({ nome_professor: null })
+          .eq("id", contrato.disciplina_id);
+        await admin
+          .from("cronograma_mestre")
+          .update({ professor_id: null })
+          .eq("disciplina_id", contrato.disciplina_id)
+          .eq("professor_id", contrato.professor_id);
+      }
+
+      await postToMake({
+        acao: "contrato_recusado",
+        contrato_id: contrato.id,
+        email_professor: professor?.email ?? contrato.email_destino,
+        nome_professor: professor?.nome ?? null,
+        telefone_professor: professor?.telefone ?? null,
+        telefone_professor_2: professor?.telefone2 ?? null,
+        disciplina: contrato.disciplina_nome,
+        recusado_em: updates.recusado_em,
+        cronograma_limpo: true,
+        notificar_whatsapp: ["equipe", "adm"],
+      });
+    }
 
     return new Response(JSON.stringify({ ok: true, status: novoStatus }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
