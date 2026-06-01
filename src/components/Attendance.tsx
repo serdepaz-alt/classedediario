@@ -116,6 +116,9 @@ interface ActiveAula {
 
 export const Attendance = () => {
   const { user } = useAuth();
+  const ALLOWED_CHAMADA_EMAIL = "serdepaz@gmail.com";
+  const canMakeChamada =
+    (user?.email || "").toLowerCase() === ALLOWED_CHAMADA_EMAIL;
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [selectedDisciplina, setSelectedDisciplina] = useState<Disciplina | null>(null);
