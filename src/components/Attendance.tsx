@@ -116,6 +116,9 @@ interface ActiveAula {
 
 export const Attendance = () => {
   const { user } = useAuth();
+  const ALLOWED_CHAMADA_EMAIL = "serdepaz@gmail.com";
+  const canMakeChamada =
+    (user?.email || "").toLowerCase() === ALLOWED_CHAMADA_EMAIL;
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [selectedDisciplina, setSelectedDisciplina] = useState<Disciplina | null>(null);
@@ -388,17 +391,10 @@ export const Attendance = () => {
         .eq("user_id", ownerId);
 
       if (!error && data) {
-        let filtered = data;
-        // When a professor is logged in, show ONLY the discipline currently active for them
-        if (professorMatch) {
-          const todayStr = format(new Date(), "yyyy-MM-dd");
-          filtered = data.filter(
-            (d: any) =>
-              d.nome_professor === professorMatch.nome &&
-              d.data_inicio <= todayStr &&
-              d.data_termino >= todayStr
-          );
-        }
+        // Lista TODAS as turmas/disciplinas para todos os usuários autenticados.
+        // A permissão de efetivamente salvar a chamada é controlada por e-mail
+        // (apenas serdepaz@gmail.com) no botão "Salvar Chamada".
+        const filtered = data;
         setDisciplinas(filtered);
         // Validate selectedDisciplina still exists in the loaded list; clear if stale/phantom
         setSelectedDisciplina((prev) => {
@@ -667,6 +663,10 @@ export const Attendance = () => {
   };
 
   const handleSaveClick = () => {
+    if (!canMakeChamada) {
+      toast.error("Apenas o usuário autorizado (serdepaz@gmail.com) pode realizar a chamada.");
+      return;
+    }
     // Reset lesson plan state for the dialog
     setSelectedAulaId(null);
     setSeguiuPlanejado(true);
@@ -1423,10 +1423,19 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
               <div className="p-4 border-t flex gap-3">
                 <Button
                   className="flex-1"
-                  disabled={isLoading || students.length === 0}
+                  disabled={isLoading || students.length === 0 || !canMakeChamada}
                   onClick={handleSaveClick}
+                  title={
+                    !canMakeChamada
+                      ? "Apenas serdepaz@gmail.com pode realizar a chamada"
+                      : undefined
+                  }
                 >
-                  {isLoading ? "Salvando..." : "Salvar Chamada"}
+                  {isLoading
+                    ? "Salvando..."
+                    : !canMakeChamada
+                    ? "Somente leitura"
+                    : "Salvar Chamada"}
                 </Button>
                 <Button variant="outline" onClick={handleExportPDF}>
                   <FileText className="w-4 h-4 mr-2" />
