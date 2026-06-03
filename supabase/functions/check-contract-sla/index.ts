@@ -9,6 +9,18 @@ const MAKE_WEBHOOK_URL =
   Deno.env.get("MAKE_WEBHOOK_URL") ??
   "https://hook.us2.make.com/rqunmuefa25z96mbnf2ifulhsfsryfwp";
 
+const DEFAULT_WHATSAPP = "5571991747744";
+
+function mapTurno(p: string | null | undefined): string | null {
+  switch (p) {
+    case "Manhã": return "Matutino";
+    case "Tarde": return "Vespertino";
+    case "Noite": return "Noturno";
+    case "Sábado": return "Intermediário";
+    default: return null;
+  }
+}
+
 // Roda via pg_cron. Marca contratos > 48h sem aceite e dispara webhook uma vez.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -40,6 +52,16 @@ Deno.serve(async (req) => {
         .eq("id", c.professor_id)
         .maybeSingle();
 
+      let turmaInfo: any = null;
+      if (c.turma_id) {
+        const { data: t } = await admin
+          .from("turmas")
+          .select("id, nome, periodo, curso, data_inicio")
+          .eq("id", c.turma_id)
+          .maybeSingle();
+        turmaInfo = t ?? null;
+      }
+
       const horas = Math.floor(
         (Date.now() - new Date(c.enviado_em).getTime()) / 3_600_000,
       );
@@ -57,7 +79,13 @@ Deno.serve(async (req) => {
           disciplina: c.disciplina_nome,
           enviado_em: c.enviado_em,
           horas_sem_assinar: horas,
+          turma_id: c.turma_id ?? null,
+          turma_nome: turmaInfo?.nome ?? null,
+          turno: mapTurno(turmaInfo?.periodo),
+          curso: turmaInfo?.curso ?? null,
+          turma_data_inicio: turmaInfo?.data_inicio ?? null,
           notificar_whatsapp: ["equipe", "adm"],
+          whatsapp_destino: DEFAULT_WHATSAPP,
         }),
       }).catch((e) => console.error("Make webhook failed", e));
 
