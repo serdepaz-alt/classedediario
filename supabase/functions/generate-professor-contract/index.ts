@@ -71,6 +71,10 @@ async function buildPdf(payload: {
   periodo_aulas: string;
   valor_numerico: number;
   valor_extenso: string;
+  turma_nome?: string | null;
+  turno?: string | null;
+  curso?: string | null;
+  turma_data_inicio?: string | null;
 }): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.TimesRoman);
@@ -141,6 +145,14 @@ async function buildPdf(payload: {
 
   writeParagraph(
     `CONTRATADO: ${safe(p.nome).toUpperCase()}, nacionalidade brasileiro(a), estado civil ${safe(p.estado_civil)}, profissão ${safe(p.profissao)}, carteira de identidade Nº ${safe(p.rg)}, CPF Nº ${safe(p.cpf)}, residente e domiciliado na ${enderecoLinha}, Estado da Bahia.`,
+  );
+
+  // Bloco de identificação da Turma
+  writeLine("IDENTIFICAÇÃO DA TURMA", { font: bold, size: 11, gap: 8 });
+  writeParagraph(
+    `Turma: ${safe(payload.turma_nome)} | Turno: ${safe(payload.turno)} | Curso: ${safe(payload.curso)} | Data de Início da Turma: ${
+      payload.turma_data_inicio ? fmtDateBR(payload.turma_data_inicio) : "___"
+    }.`,
   );
 
   writeLine("DO OBJETO DO CONTRATO", { font: bold, size: 11, gap: 8 });
