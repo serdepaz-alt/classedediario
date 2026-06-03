@@ -312,6 +312,24 @@ Deno.serve(async (req) => {
     const professor = profRes.data;
     const disciplina = discRes.data;
 
+    // Carrega dados da turma (Turma/Turno/Curso/Data Início da Turma)
+    const turmaIdFinal = turma_id ?? disciplina.turma_id ?? null;
+    let turmaRow: any = null;
+    if (turmaIdFinal) {
+      const { data: t } = await admin
+        .from("turmas")
+        .select("id, nome, periodo, curso, data_inicio")
+        .eq("id", turmaIdFinal)
+        .maybeSingle();
+      turmaRow = t ?? null;
+    }
+    const mapTurno = (p: string | null | undefined) =>
+      p === "Manhã" ? "Matutino"
+      : p === "Tarde" ? "Vespertino"
+      : p === "Noite" ? "Noturno"
+      : p === "Sábado" ? "Intermediário"
+      : (disciplina.turno ?? null);
+
     const carga = disciplina.carga_horaria_total || 0;
     const valor = Number((professor.valor_hora || 0) * carga);
     const valorExtenso = valorPorExtensoBRL(valor);
@@ -336,6 +354,10 @@ Deno.serve(async (req) => {
       periodo_aulas: periodo,
       valor_numerico: valor,
       valor_extenso: valorExtenso,
+      turma_nome: turmaRow?.nome ?? null,
+      turno: mapTurno(turmaRow?.periodo),
+      curso: turmaRow?.curso ?? disciplina.curso ?? null,
+      turma_data_inicio: turmaRow?.data_inicio ?? null,
     });
 
     const contratoId = crypto.randomUUID();
