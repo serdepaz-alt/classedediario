@@ -10,6 +10,18 @@ const MAKE_WEBHOOK_URL =
   Deno.env.get("MAKE_WEBHOOK_URL") ??
   "https://hook.us2.make.com/rqunmuefa25z96mbnf2ifulhsfsryfwp";
 
+const DEFAULT_WHATSAPP = "5571991747744";
+
+function mapTurno(p: string | null | undefined): string | null {
+  switch (p) {
+    case "Manhã": return "Matutino";
+    case "Tarde": return "Vespertino";
+    case "Noite": return "Noturno";
+    case "Sábado": return "Intermediário";
+    default: return null;
+  }
+}
+
 async function postToMake(payload: Record<string, unknown>) {
   try {
     await fetch(MAKE_WEBHOOK_URL, {
@@ -80,6 +92,24 @@ Deno.serve(async (req) => {
       .eq("id", contrato.professor_id)
       .maybeSingle();
 
+    // Carrega dados da Turma para enriquecer payload e PDF
+    let turmaInfo: any = null;
+    if (contrato.turma_id) {
+      const { data: t } = await admin
+        .from("turmas")
+        .select("id, nome, periodo, curso, data_inicio")
+        .eq("id", contrato.turma_id)
+        .maybeSingle();
+      turmaInfo = t ?? null;
+    }
+    const turmaPayload = {
+      turma_id: contrato.turma_id ?? null,
+      turma_nome: turmaInfo?.nome ?? null,
+      turno: mapTurno(turmaInfo?.periodo),
+      curso: turmaInfo?.curso ?? null,
+      turma_data_inicio: turmaInfo?.data_inicio ?? null,
+    };
+
     if (novoStatus === "aceito") {
       // Busca todos os planos de aula vinculados à disciplina
       const { data: planos } = await admin
@@ -112,6 +142,7 @@ Deno.serve(async (req) => {
         valor_extenso: contrato.valor_extenso,
         aceito_em: updates.aceito_em,
         contrato_pdf_url: pdfUrl,
+        ...turmaPayload,
         anexos: (planos ?? []).map((p) => ({
           id: p.id,
           data: p.data_aula,
@@ -125,6 +156,7 @@ Deno.serve(async (req) => {
         })),
         total_planos: planos?.length ?? 0,
         notificar_whatsapp: ["equipe", "adm"],
+        whatsapp_destino: DEFAULT_WHATSAPP,
       });
     } else {
       // Auto-cleanup: remove professor da disciplina e cronograma
@@ -150,7 +182,9 @@ Deno.serve(async (req) => {
         disciplina: contrato.disciplina_nome,
         recusado_em: updates.recusado_em,
         cronograma_limpo: true,
+        ...turmaPayload,
         notificar_whatsapp: ["equipe", "adm"],
+        whatsapp_destino: DEFAULT_WHATSAPP,
       });
     }
 
