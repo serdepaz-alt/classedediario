@@ -222,6 +222,74 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
     w.document.close();
   };
 
+  const handlePrintAtestado = () => {
+    const v = form.getValues();
+    const turma = turmas.find((t) => t.id === v.turma_id);
+    const hoje = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    const logoUrl = `${window.location.origin}/logo-irma-dulce.jpeg`;
+    const assinaturaUrl = `${window.location.origin}/assinatura-luciano.png`;
+    const cursoNome = (turma as any)?.curso || "";
+    const turno = (turma as any)?.periodo || "";
+    const horario = (turma as any)?.horario || "";
+
+    const genero = (v.nome_mae || v.nome_pai) ? "" : "";
+    const aluno = v.nome || "_____________________";
+    const cpf = v.cpf || "___.___.___-__";
+    const matricula = v.matricula || "_______________";
+    const mae = v.nome_mae || "_____________________";
+    const pai = v.nome_pai || "_____________________";
+    const filiacao = [mae, pai].filter((s) => s && s.trim()).join(" e ") || "_____________________";
+
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/>
+<title>Atestado de Matrícula - ${aluno}</title>
+<style>
+  @page { size: A4; margin: 22mm 22mm 22mm 22mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Times New Roman', serif; color:#000; margin:0; font-size:13pt; line-height:1.7; }
+  .header { text-align:center; margin-bottom:8px; }
+  .header img.logo { width:140px; height:auto; object-fit:contain; display:block; margin:0 auto 8px; }
+  .header .divider { height:2px; background:#1f3a93; width:100%; margin:6px 0 24px; }
+  h1.title { text-align:center; font-style:italic; font-weight:bold; font-size:18pt; text-decoration:underline; margin:24px 0 32px; }
+  p.body { text-align:justify; text-indent:1.5em; margin:0 0 28px; }
+  .local-data { text-align:center; font-weight:bold; margin:36px 0 60px; }
+  .assinatura-bloco { text-align:center; margin-top:12px; }
+  .assinatura-bloco img { width:220px; height:auto; display:block; margin:0 auto -6px; }
+  .assinatura-bloco .linha { border-top:1px solid #000; width:320px; margin:0 auto; padding-top:4px; }
+  @media print { .no-print { display:none; } }
+  .actions { text-align:center; padding:12px; background:#f0f0f0; position:sticky; top:0; z-index:100; }
+  .actions button { padding:8px 18px; font-size:13px; cursor:pointer; margin:0 4px; }
+</style></head><body>
+<div class="actions no-print">
+  <button onclick="window.print()">🖨️ Imprimir</button>
+  <button onclick="window.close()">Fechar</button>
+</div>
+<div class="header">
+  <img class="logo" src="${logoUrl}" alt="Logo"/>
+  <div class="divider"></div>
+</div>
+<h1 class="title">Atestado de Matrícula</h1>
+
+<p class="body">Atestado para devidos fins que o(a) aluno(a) <b>${aluno}</b>, CPF <b>${cpf}</b>, Matrícula: <b>${matricula}</b>, filho(a) de ${filiacao}, está matriculado(a) no curso <b>${cursoNome || "_____________________"}</b> nesse estabelecimento de Ensino, no turno <b>${turno || "_______"}</b>${horario ? `, no horário <b>${horario}</b>` : ""}.</p>
+
+<p class="local-data">Salvador, ${hoje}.</p>
+
+<div class="assinatura-bloco">
+  <img src="${assinaturaUrl}" alt="Assinatura"/>
+  <div class="linha">Responsável Legal</div>
+</div>
+
+<script>window.addEventListener('load', () => setTimeout(() => window.print(), 500));</script>
+</body></html>`;
+
+    const w = window.open("", "_blank", "width=900,height=1000");
+    if (!w) {
+      toast.error("Permita pop-ups para imprimir o atestado");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+  };
+
   const handlePrintContrato = () => {
     const v = form.getValues();
     const turma = turmas.find((t) => t.id === v.turma_id);
@@ -815,7 +883,7 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       </div>
 
       {/* Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-4 border-t">
         {isEditing && (
           <>
             <Button type="button" variant="secondary" onClick={handlePrintFicha} className="w-full">
@@ -825,6 +893,10 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
             <Button type="button" variant="secondary" onClick={handlePrintContrato} className="w-full">
               <FileText className="h-4 w-4 mr-2" />
               Imprimir Contrato
+            </Button>
+            <Button type="button" variant="secondary" onClick={handlePrintAtestado} className="w-full">
+              <FileText className="h-4 w-4 mr-2" />
+              Imprimir Atestado de Matrícula
             </Button>
           </>
         )}
