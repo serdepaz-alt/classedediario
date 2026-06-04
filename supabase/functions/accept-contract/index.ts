@@ -171,6 +171,10 @@ Deno.serve(async (req) => {
 <p>Atenciosamente,<br/>Centro de Formação Técnica em Enfermagem Irmã Dulce</p>`,
             anexo_url: pdfUrl,
             anexo_nome: `Contrato_${(professor?.nome ?? "Professor").replace(/\s+/g, "_")}_${contrato.disciplina_nome.replace(/\s+/g, "_")}.pdf`,
+            turma: turmaInfo?.nome ?? null,
+            turno: mapTurno(turmaInfo?.periodo),
+            curso: turmaInfo?.curso ?? null,
+            data_inicio_turma: turmaInfo?.data_inicio ?? null,
           },
           drive: {
             salvar: true,
@@ -178,6 +182,10 @@ Deno.serve(async (req) => {
             subpasta: turmaInfo?.nome ?? null,
             arquivo_nome: `Contrato_${(professor?.nome ?? "Professor").replace(/\s+/g, "_")}_${contrato.disciplina_nome.replace(/\s+/g, "_")}.pdf`,
             arquivo_url: pdfUrl,
+            turma: turmaInfo?.nome ?? null,
+            turno: mapTurno(turmaInfo?.periodo),
+            curso: turmaInfo?.curso ?? null,
+            data_inicio_turma: turmaInfo?.data_inicio ?? null,
           },
           calendar: {
             criar_evento: true,
@@ -199,6 +207,16 @@ Caso haja qualquer mudança nesta programação, por favor sinalize respondendo 
               2880,  // 2 dias antes
             ],
             recorrencia_semanal_ate_inicio: true,
+            turma: turmaInfo?.nome ?? null,
+            turno: mapTurno(turmaInfo?.periodo),
+            curso: turmaInfo?.curso ?? null,
+            data_inicio_turma: turmaInfo?.data_inicio ?? null,
+          },
+          contexto_turma: {
+            turma: turmaInfo?.nome ?? null,
+            turno: mapTurno(turmaInfo?.periodo),
+            curso: turmaInfo?.curso ?? null,
+            data_inicio_turma: turmaInfo?.data_inicio ?? null,
           },
         },
         anexos: (planos ?? []).map((p) => ({
