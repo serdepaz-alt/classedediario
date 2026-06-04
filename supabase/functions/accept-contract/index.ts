@@ -171,6 +171,10 @@ Deno.serve(async (req) => {
 <p>Atenciosamente,<br/>Centro de Formação Técnica em Enfermagem Irmã Dulce</p>`,
             anexo_url: pdfUrl,
             anexo_nome: `Contrato_${(professor?.nome ?? "Professor").replace(/\s+/g, "_")}_${contrato.disciplina_nome.replace(/\s+/g, "_")}.pdf`,
+            turma: turmaInfo?.nome ?? null,
+            turno: mapTurno(turmaInfo?.periodo),
+            curso: turmaInfo?.curso ?? null,
+            data_inicio_turma: turmaInfo?.data_inicio ?? null,
           },
           drive: {
             salvar: true,
