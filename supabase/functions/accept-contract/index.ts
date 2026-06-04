@@ -11,6 +11,8 @@ const MAKE_WEBHOOK_URL =
   "https://hook.us2.make.com/rqunmuefa25z96mbnf2ifulhsfsryfwp";
 
 const DEFAULT_WHATSAPP = "5571991747744";
+const EMAIL_CENTRAL = "salasdeaulairmadulce@gmail.com";
+const DRIVE_FOLDER_NAME = "Contratos Professores - Diário de Classe";
 
 function mapTurno(p: string | null | undefined): string | null {
   switch (p) {
@@ -102,6 +104,18 @@ Deno.serve(async (req) => {
         .maybeSingle();
       turmaInfo = t ?? null;
     }
+
+    // Carrega disciplina para data_inicio/data_termino do evento
+    let discInfo: any = null;
+    if (contrato.disciplina_id) {
+      const { data: d } = await admin
+        .from("disciplinas")
+        .select("data_inicio, data_termino")
+        .eq("id", contrato.disciplina_id)
+        .maybeSingle();
+      discInfo = d ?? null;
+    }
+
     const turmaPayload = {
       turma_id: contrato.turma_id ?? null,
       turma_nome: turmaInfo?.nome ?? null,
@@ -143,6 +157,50 @@ Deno.serve(async (req) => {
         aceito_em: updates.aceito_em,
         contrato_pdf_url: pdfUrl,
         ...turmaPayload,
+        disciplina_data_inicio: discInfo?.data_inicio ?? null,
+        disciplina_data_termino: discInfo?.data_termino ?? null,
+        integracoes: {
+          email: {
+            enviar: true,
+            para: professor?.email ?? contrato.email_destino,
+            cc: [EMAIL_CENTRAL],
+            assunto: `Contrato aceito — ${contrato.disciplina_nome}`,
+            corpo_html: `<p>Olá, ${professor?.nome ?? "Professor(a)"},</p>
+<p>Confirmamos o aceite do seu contrato para a disciplina <strong>${contrato.disciplina_nome}</strong> — Turma <strong>${turmaInfo?.nome ?? "-"}</strong> (${turmaInfo?.curso ?? "-"} / ${mapTurno(turmaInfo?.periodo) ?? "-"}), com início em <strong>${discInfo?.data_inicio ?? turmaInfo?.data_inicio ?? "-"}</strong>.</p>
+<p>O PDF do contrato segue em anexo. Caso identifique qualquer divergência, por favor responda este e-mail sinalizando a mudança.</p>
+<p>Atenciosamente,<br/>Centro de Formação Técnica em Enfermagem Irmã Dulce</p>`,
+            anexo_url: pdfUrl,
+            anexo_nome: `Contrato_${(professor?.nome ?? "Professor").replace(/\s+/g, "_")}_${contrato.disciplina_nome.replace(/\s+/g, "_")}.pdf`,
+          },
+          drive: {
+            salvar: true,
+            pasta: DRIVE_FOLDER_NAME,
+            subpasta: turmaInfo?.nome ?? null,
+            arquivo_nome: `Contrato_${(professor?.nome ?? "Professor").replace(/\s+/g, "_")}_${contrato.disciplina_nome.replace(/\s+/g, "_")}.pdf`,
+            arquivo_url: pdfUrl,
+          },
+          calendar: {
+            criar_evento: true,
+            calendar_id: EMAIL_CENTRAL,
+            titulo: `${contrato.disciplina_nome} — ${professor?.nome ?? "Professor"} (${turmaInfo?.nome ?? ""})`,
+            descricao: `Disciplina: ${contrato.disciplina_nome}
+Professor: ${professor?.nome ?? "-"} (${professor?.email ?? "-"})
+Turma: ${turmaInfo?.nome ?? "-"} — ${turmaInfo?.curso ?? "-"} — ${mapTurno(turmaInfo?.periodo) ?? "-"}
+Carga horária: ${contrato.carga_horaria}h
+Período: ${contrato.periodo_aulas}
+
+Caso haja qualquer mudança nesta programação, por favor sinalize respondendo ao e-mail de confirmação do contrato.`,
+            data_inicio: discInfo?.data_inicio ?? turmaInfo?.data_inicio ?? null,
+            data_termino: discInfo?.data_termino ?? null,
+            convidados: [professor?.email ?? contrato.email_destino, EMAIL_CENTRAL].filter(Boolean),
+            lembretes_minutos: [
+              10080, // 7 dias antes (semanal)
+              10080, // 1 semana antes do início
+              2880,  // 2 dias antes
+            ],
+            recorrencia_semanal_ate_inicio: true,
+          },
+        },
         anexos: (planos ?? []).map((p) => ({
           id: p.id,
           data: p.data_aula,
