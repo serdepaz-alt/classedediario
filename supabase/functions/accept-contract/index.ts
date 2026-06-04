@@ -182,6 +182,10 @@ Deno.serve(async (req) => {
             subpasta: turmaInfo?.nome ?? null,
             arquivo_nome: `Contrato_${(professor?.nome ?? "Professor").replace(/\s+/g, "_")}_${contrato.disciplina_nome.replace(/\s+/g, "_")}.pdf`,
             arquivo_url: pdfUrl,
+            turma: turmaInfo?.nome ?? null,
+            turno: mapTurno(turmaInfo?.periodo),
+            curso: turmaInfo?.curso ?? null,
+            data_inicio_turma: turmaInfo?.data_inicio ?? null,
           },
           calendar: {
             criar_evento: true,
