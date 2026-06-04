@@ -207,6 +207,16 @@ Caso haja qualquer mudança nesta programação, por favor sinalize respondendo 
               2880,  // 2 dias antes
             ],
             recorrencia_semanal_ate_inicio: true,
+            turma: turmaInfo?.nome ?? null,
+            turno: mapTurno(turmaInfo?.periodo),
+            curso: turmaInfo?.curso ?? null,
+            data_inicio_turma: turmaInfo?.data_inicio ?? null,
+          },
+          contexto_turma: {
+            turma: turmaInfo?.nome ?? null,
+            turno: mapTurno(turmaInfo?.periodo),
+            curso: turmaInfo?.curso ?? null,
+            data_inicio_turma: turmaInfo?.data_inicio ?? null,
           },
         },
         anexos: (planos ?? []).map((p) => ({
