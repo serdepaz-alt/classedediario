@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,6 +23,80 @@ function mapTurno(p: string | null | undefined): string | null {
     case "Sábado": return "Intermediário";
     default: return null;
   }
+}
+
+function stripAccentsSafe(s: string): string {
+  return (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function buildPlanoAulasPDF(opts: {
+  disciplina: string;
+  professor: string;
+  turma: string;
+  curso: string;
+  turno: string;
+  cargaHoraria: string | number | null;
+  periodo: string | null;
+  aulas: Array<{
+    data: string | null;
+    topico: string | null;
+    objetivo: string | null;
+    metodologia: string | null;
+    recursos: string | null;
+    observacoes: string | null;
+    tipo: string | null;
+  }>;
+}): Uint8Array {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageW = 210;
+  const pageH = 297;
+  const margin = 15;
+  const maxW = pageW - margin * 2;
+  let y = margin;
+
+  const writeLine = (txt: string, size = 11, bold = false) => {
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    const lines = doc.splitTextToSize(stripAccentsSafe(txt), maxW);
+    for (const line of lines) {
+      if (y > pageH - margin) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(line, margin, y);
+      y += size * 0.45;
+    }
+  };
+
+  writeLine("Conteudo Programatico - Plano de Aulas", 16, true);
+  y += 2;
+  writeLine(`Disciplina: ${opts.disciplina}`, 12, true);
+  writeLine(`Professor(a): ${opts.professor}`);
+  writeLine(`Turma: ${opts.turma}  |  Curso: ${opts.curso}  |  Turno: ${opts.turno}`);
+  writeLine(`Carga horaria: ${opts.cargaHoraria ?? "-"}h  |  Periodo: ${opts.periodo ?? "-"}`);
+  y += 3;
+  doc.setDrawColor(180);
+  doc.line(margin, y, pageW - margin, y);
+  y += 4;
+
+  if (!opts.aulas.length) {
+    writeLine("Nenhuma aula cadastrada para esta disciplina.", 11);
+  } else {
+    opts.aulas.forEach((a, i) => {
+      if (y > pageH - 40) { doc.addPage(); y = margin; }
+      writeLine(`Aula ${i + 1}${a.data ? ` - ${a.data}` : ""}`, 12, true);
+      if (a.topico) writeLine(`Topico: ${a.topico}`);
+      if (a.objetivo) writeLine(`Objetivo: ${a.objetivo}`);
+      if (a.metodologia) writeLine(`Metodologia: ${a.metodologia}`);
+      if (a.recursos) writeLine(`Recursos: ${a.recursos}`);
+      if (a.tipo) writeLine(`Tipo: ${a.tipo}`);
+      if (a.observacoes) writeLine(`Observacoes: ${a.observacoes}`);
+      y += 3;
+    });
+  }
+
+  const arr = doc.output("arraybuffer");
+  return new Uint8Array(arr);
 }
 
 async function postToMake(payload: Record<string, unknown>) {
@@ -143,6 +218,50 @@ Deno.serve(async (req) => {
         pdfUrl = signed?.signedUrl ?? null;
       }
 
+      // Gera PDF do Conteudo Programatico (Plano de Aulas) e faz upload
+      let planoPdfUrl: string | null = null;
+      let planoPdfNome: string | null = null;
+      try {
+        const planoBytes = buildPlanoAulasPDF({
+          disciplina: contrato.disciplina_nome ?? "Disciplina",
+          professor: professor?.nome ?? "Professor(a)",
+          turma: turmaInfo?.nome ?? "-",
+          curso: turmaInfo?.curso ?? "-",
+          turno: mapTurno(turmaInfo?.periodo) ?? "-",
+          cargaHoraria: contrato.carga_horaria ?? null,
+          periodo: contrato.periodo_aulas ?? null,
+          aulas: (planos ?? []).map((p) => ({
+            data: p.data_aula,
+            topico: p.topico,
+            objetivo: p.objetivo,
+            metodologia: p.metodologia,
+            recursos: p.recursos,
+            observacoes: p.observacoes,
+            tipo: p.tipo_avaliacao,
+          })),
+        });
+        const safeProf = (professor?.nome ?? "Professor").replace(/\s+/g, "_");
+        const safeDisc = (contrato.disciplina_nome ?? "Disciplina").replace(/\s+/g, "_");
+        planoPdfNome = `Plano_Aulas_${safeDisc}_${safeProf}.pdf`;
+        const planoPath = `planos-aula/${contrato.id}/${Date.now()}_${planoPdfNome}`;
+        const { error: upErr2 } = await admin.storage
+          .from("contratos")
+          .upload(planoPath, planoBytes, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
+        if (!upErr2) {
+          const { data: signed2 } = await admin.storage
+            .from("contratos")
+            .createSignedUrl(planoPath, 60 * 60 * 24 * 7);
+          planoPdfUrl = signed2?.signedUrl ?? null;
+        } else {
+          console.error("Falha upload plano PDF", upErr2);
+        }
+      } catch (e) {
+        console.error("Falha geracao plano PDF", e);
+      }
+
       await postToMake({
         acao: "contrato_aceito",
         contrato_id: contrato.id,
@@ -156,6 +275,8 @@ Deno.serve(async (req) => {
         valor_extenso: contrato.valor_extenso,
         aceito_em: updates.aceito_em,
         contrato_pdf_url: pdfUrl,
+        plano_aulas_pdf_url: planoPdfUrl,
+        plano_aulas_pdf_nome: planoPdfNome,
         ...turmaPayload,
         disciplina_data_inicio: discInfo?.data_inicio ?? null,
         disciplina_data_termino: discInfo?.data_termino ?? null,
@@ -167,10 +288,28 @@ Deno.serve(async (req) => {
             assunto: `Contrato aceito — ${contrato.disciplina_nome}`,
             corpo_html: `<p>Olá, ${professor?.nome ?? "Professor(a)"},</p>
 <p>Confirmamos o aceite do seu contrato para a disciplina <strong>${contrato.disciplina_nome}</strong> — Turma <strong>${turmaInfo?.nome ?? "-"}</strong> (${turmaInfo?.curso ?? "-"} / ${mapTurno(turmaInfo?.periodo) ?? "-"}), com início em <strong>${discInfo?.data_inicio ?? turmaInfo?.data_inicio ?? "-"}</strong>.</p>
-<p>O PDF do contrato segue em anexo. Caso identifique qualquer divergência, por favor responda este e-mail sinalizando a mudança.</p>
+<p>Seguem em anexo: (1) o PDF do contrato aceito e (2) o Conteúdo Programático com o Plano de Aulas completo da disciplina. Caso identifique qualquer divergência, por favor responda este e-mail sinalizando a mudança.</p>
 <p>Atenciosamente,<br/>Centro de Formação Técnica em Enfermagem Irmã Dulce</p>`,
             anexo_url: pdfUrl,
             anexo_nome: `Contrato_${(professor?.nome ?? "Professor").replace(/\s+/g, "_")}_${contrato.disciplina_nome.replace(/\s+/g, "_")}.pdf`,
+            anexos: [
+              pdfUrl
+                ? {
+                    nome: `Contrato_${(professor?.nome ?? "Professor").replace(/\s+/g, "_")}_${contrato.disciplina_nome.replace(/\s+/g, "_")}.pdf`,
+                    url: pdfUrl,
+                    tipo: "contrato",
+                  }
+                : null,
+              planoPdfUrl
+                ? {
+                    nome: planoPdfNome,
+                    url: planoPdfUrl,
+                    tipo: "plano_aulas",
+                  }
+                : null,
+            ].filter(Boolean),
+            plano_aulas_pdf_url: planoPdfUrl,
+            plano_aulas_pdf_nome: planoPdfNome,
             turma: turmaInfo?.nome ?? null,
             turno: mapTurno(turmaInfo?.periodo),
             curso: turmaInfo?.curso ?? null,
