@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,7 +29,32 @@ function stripAccentsSafe(s: string): string {
   return (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-function buildPlanoAulasPDF(opts: {
+function fmtDateBR(iso: string | null | undefined): string {
+  if (!iso) return "-";
+  const [y, m, d] = String(iso).split("-");
+  if (!y || !m || !d) return String(iso);
+  return `${d}/${m}/${y}`;
+}
+
+function wrapText(text: string, font: any, size: number, maxWidth: number): string[] {
+  const words = (text ?? "").split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+  for (const w of words) {
+    const test = current ? current + " " + w : w;
+    const width = font.widthOfTextAtSize(test, size);
+    if (width > maxWidth && current) {
+      lines.push(current);
+      current = w;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+async function buildPlanoAulasPDF(opts: {
   disciplina: string;
   professor: string;
   turma: string;
@@ -46,57 +71,75 @@ function buildPlanoAulasPDF(opts: {
     observacoes: string | null;
     tipo: string | null;
   }>;
-}): Uint8Array {
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const pageW = 210;
-  const pageH = 297;
-  const margin = 15;
-  const maxW = pageW - margin * 2;
-  let y = margin;
+}): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const pageSize: [number, number] = [595.28, 841.89]; // A4
+  const margin = 50;
+  const maxWidth = pageSize[0] - margin * 2;
+  let page = doc.addPage(pageSize);
+  let y = pageSize[1] - margin;
 
-  const writeLine = (txt: string, size = 11, bold = false) => {
-    doc.setFont("helvetica", bold ? "bold" : "normal");
-    doc.setFontSize(size);
-    const lines = doc.splitTextToSize(stripAccentsSafe(txt), maxW);
-    for (const line of lines) {
-      if (y > pageH - margin) {
-        doc.addPage();
-        y = margin;
-      }
-      doc.text(line, margin, y);
-      y += size * 0.45;
+  const writeLine = (
+    text: string,
+    o: { size?: number; bold?: boolean; gap?: number; align?: "left" | "center" } = {},
+  ) => {
+    const sz = o.size ?? 10.5;
+    const f = o.bold ? bold : font;
+    const gap = o.gap ?? 3;
+    if (y < margin + 40) {
+      page = doc.addPage(pageSize);
+      y = pageSize[1] - margin;
     }
+    let x = margin;
+    const safe = stripAccentsSafe(text);
+    if (o.align === "center") {
+      const w = f.widthOfTextAtSize(safe, sz);
+      x = (pageSize[0] - w) / 2;
+    }
+    page.drawText(safe, { x, y, size: sz, font: f, color: rgb(0, 0, 0) });
+    y -= sz + gap;
   };
 
-  writeLine("Conteudo Programatico - Plano de Aulas", 16, true);
-  y += 2;
-  writeLine(`Disciplina: ${opts.disciplina}`, 12, true);
-  writeLine(`Professor(a): ${opts.professor}`);
-  writeLine(`Turma: ${opts.turma}  |  Curso: ${opts.curso}  |  Turno: ${opts.turno}`);
-  writeLine(`Carga horaria: ${opts.cargaHoraria ?? "-"}h  |  Periodo: ${opts.periodo ?? "-"}`);
-  y += 3;
-  doc.setDrawColor(180);
-  doc.line(margin, y, pageW - margin, y);
-  y += 4;
+  const writePara = (text: string, o: { size?: number; bold?: boolean; gapAfter?: number } = {}) => {
+    const sz = o.size ?? 10.5;
+    const f = o.bold ? bold : font;
+    const lines = wrapText(stripAccentsSafe(text), f, sz, maxWidth);
+    for (const ln of lines) writeLine(ln, { size: sz, bold: o.bold, gap: 2 });
+    y -= o.gapAfter ?? 4;
+  };
+
+  writeLine("CONTEUDO PROGRAMATICO - PLANO DE AULAS", { size: 14, bold: true, align: "center", gap: 10 });
+  writeLine(`Disciplina: ${opts.disciplina}`, { size: 11, bold: true });
+  writeLine(`Professor(a): ${opts.professor}`, { size: 10.5 });
+  writeLine(`Turma: ${opts.turma}  |  Curso: ${opts.curso}  |  Turno: ${opts.turno}`, { size: 10.5 });
+  writeLine(`Carga horaria: ${opts.cargaHoraria ?? "-"}h  |  Periodo: ${opts.periodo ?? "-"}`, { size: 10.5, gap: 8 });
+  page.drawLine({
+    start: { x: margin, y: y },
+    end: { x: pageSize[0] - margin, y: y },
+    thickness: 0.5,
+    color: rgb(0.7, 0.7, 0.7),
+  });
+  y -= 10;
 
   if (!opts.aulas.length) {
-    writeLine("Nenhuma aula cadastrada para esta disciplina.", 11);
+    writePara("Nenhuma aula cadastrada para esta disciplina.");
   } else {
     opts.aulas.forEach((a, i) => {
-      if (y > pageH - 40) { doc.addPage(); y = margin; }
-      writeLine(`Aula ${i + 1}${a.data ? ` - ${a.data}` : ""}`, 12, true);
-      if (a.topico) writeLine(`Topico: ${a.topico}`);
-      if (a.objetivo) writeLine(`Objetivo: ${a.objetivo}`);
-      if (a.metodologia) writeLine(`Metodologia: ${a.metodologia}`);
-      if (a.recursos) writeLine(`Recursos: ${a.recursos}`);
-      if (a.tipo) writeLine(`Tipo: ${a.tipo}`);
-      if (a.observacoes) writeLine(`Observacoes: ${a.observacoes}`);
-      y += 3;
+      if (y < margin + 80) { page = doc.addPage(pageSize); y = pageSize[1] - margin; }
+      writeLine(`Aula ${i + 1}${a.data ? ` - ${fmtDateBR(a.data)}` : ""}`, { size: 11.5, bold: true, gap: 3 });
+      if (a.topico) writePara(`Topico: ${a.topico}`, { gapAfter: 2 });
+      if (a.objetivo) writePara(`Objetivo: ${a.objetivo}`, { gapAfter: 2 });
+      if (a.metodologia) writePara(`Metodologia: ${a.metodologia}`, { gapAfter: 2 });
+      if (a.recursos) writePara(`Recursos: ${a.recursos}`, { gapAfter: 2 });
+      if (a.tipo) writePara(`Tipo: ${a.tipo}`, { gapAfter: 2 });
+      if (a.observacoes) writePara(`Observacoes: ${a.observacoes}`, { gapAfter: 2 });
+      y -= 6;
     });
   }
 
-  const arr = doc.output("arraybuffer");
-  return new Uint8Array(arr);
+  return await doc.save();
 }
 
 async function postToMake(payload: Record<string, unknown>) {
@@ -252,7 +295,7 @@ Deno.serve(async (req) => {
       let planoPdfUrl: string | null = null;
       let planoPdfNome: string | null = null;
       try {
-        const planoBytes = buildPlanoAulasPDF({
+        const planoBytes = await buildPlanoAulasPDF({
           disciplina: contrato.disciplina_nome ?? "Disciplina",
           professor: professor?.nome ?? "Professor(a)",
           turma: turmaInfo?.nome ?? "-",
