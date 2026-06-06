@@ -313,8 +313,14 @@ Deno.serve(async (req) => {
             tipo: p.tipo_avaliacao,
           })),
         });
-        const safeProf = (professor?.nome ?? "Professor").replace(/\s+/g, "_");
-        const safeDisc = (contrato.disciplina_nome ?? "Disciplina").replace(/\s+/g, "_");
+        const sanitize = (s: string) =>
+          stripAccentsSafe(s)
+            .replace(/[\/\\?%*:|"<>]/g, "-")
+            .replace(/\s+/g, "_")
+            .replace(/_+/g, "_")
+            .replace(/^[._-]+|[._-]+$/g, "");
+        const safeProf = sanitize(professor?.nome ?? "Professor");
+        const safeDisc = sanitize(contrato.disciplina_nome ?? "Disciplina");
         planoPdfNome = `Plano_Aulas_${safeDisc}_${safeProf}.pdf`;
         const planoPath = `planos-aula/${contrato.id}/${Date.now()}_${planoPdfNome}`;
         const { error: upErr2 } = await admin.storage
