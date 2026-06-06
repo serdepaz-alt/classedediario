@@ -201,13 +201,43 @@ Deno.serve(async (req) => {
 
     if (novoStatus === "aceito") {
       // Busca todos os planos de aula vinculados à disciplina
-      const { data: planos } = await admin
+      let { data: planos } = await admin
         .from("conteudo_programatico_aulas")
         .select(
           "id, data_aula, topico, objetivo, metodologia, recursos, observacoes, tipo_avaliacao, disciplina_nome",
         )
         .eq("disciplina_id", contrato.disciplina_id)
         .order("data_aula", { ascending: true });
+
+      // Fallback 1: por turma + nome da disciplina (case-insensitive)
+      if ((!planos || planos.length === 0) && contrato.disciplina_nome) {
+        const q = admin
+          .from("conteudo_programatico_aulas")
+          .select(
+            "id, data_aula, topico, objetivo, metodologia, recursos, observacoes, tipo_avaliacao, disciplina_nome",
+          )
+          .ilike("disciplina_nome", contrato.disciplina_nome)
+          .order("data_aula", { ascending: true });
+        if (contrato.turma_id) q.eq("turma_id", contrato.turma_id);
+        const { data: p2 } = await q;
+        planos = p2 ?? [];
+      }
+
+      // Fallback 2: somente por nome da disciplina
+      if ((!planos || planos.length === 0) && contrato.disciplina_nome) {
+        const { data: p3 } = await admin
+          .from("conteudo_programatico_aulas")
+          .select(
+            "id, data_aula, topico, objetivo, metodologia, recursos, observacoes, tipo_avaliacao, disciplina_nome",
+          )
+          .ilike("disciplina_nome", contrato.disciplina_nome)
+          .order("data_aula", { ascending: true });
+        planos = p3 ?? [];
+      }
+
+      console.log(
+        `[accept-contract] planos encontrados=${planos?.length ?? 0} disciplina_id=${contrato.disciplina_id} disciplina_nome=${contrato.disciplina_nome}`,
+      );
 
       // Gera signed URL do PDF para anexo
       let pdfUrl: string | null = null;
