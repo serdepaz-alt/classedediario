@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { DocumentUploadSection } from "@/components/programmatic/DocumentUploadSection";
-import { ImportPdfConteudoDialog, AulaGerada } from "@/components/programmatic/ImportPdfConteudoDialog";
+import { ImportPdfConteudoDialog, AulaGerada, ImportTarget } from "@/components/programmatic/ImportPdfConteudoDialog";
 import { useConteudoProgramaticoAulas, AulaProgramatica } from "@/hooks/useConteudoProgramaticoAulas";
 import { usePadroesDisciplinas } from "@/hooks/usePadroesDisciplinas";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,12 +100,15 @@ export const ProgrammaticContent = () => {
     setSelectedDate(undefined);
   };
 
-  const handleImportComplete = (aulas: AulaGerada[], disciplinaNome: string, disciplinaId?: string, turmaId?: string) => {
+  const handleImportComplete = (
+    aulas: AulaGerada[],
+    disciplinaNome: string,
+    targets: ImportTarget[],
+  ) => {
     salvarAulasImportadas.mutate({
       aulasData: aulas,
-      disciplinaId,
-      turmaId,
       disciplinaNome,
+      targets,
     });
   };
 
