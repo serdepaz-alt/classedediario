@@ -52,27 +52,56 @@ export const useConteudoProgramaticoAulas = (disciplinaId?: string) => {
       disciplinaId,
       turmaId,
       disciplinaNome,
+      targets,
     }: {
       aulasData: { data: string; topico: string; objetivo: string; metodologia: string; recursos: string; tipo_avaliacao: string; observacoes: string }[];
       disciplinaId?: string;
       turmaId?: string;
       disciplinaNome: string;
+      // Quando informado, gera 1 conjunto de aulas por target (turma ativa do Padrão de Marcação),
+      // recalculando data_aula a partir do data_inicio de cada turma (pulando sábados/domingos).
+      targets?: { disciplina_id: string; turma_id: string | null; data_inicio: string }[];
     }) => {
       if (!user?.id) throw new Error("Usuário não autenticado");
 
-      const rows = aulasData.map((a) => ({
-        user_id: user.id,
-        disciplina_id: disciplinaId || null,
-        turma_id: turmaId || null,
-        disciplina_nome: disciplinaNome,
-        data_aula: a.data,
-        topico: a.topico,
-        objetivo: a.objetivo || null,
-        metodologia: a.metodologia || null,
-        recursos: a.recursos || null,
-        tipo_avaliacao: a.tipo_avaliacao || "aula",
-        observacoes: a.observacoes || null,
-      }));
+      const addBusinessDays = (startISO: string, n: number) => {
+        const d = new Date(startISO + "T00:00:00");
+        let added = 0;
+        while (added < n) {
+          d.setDate(d.getDate() + 1);
+          const dow = d.getDay();
+          if (dow !== 0 && dow !== 6) added++;
+        }
+        return d.toISOString().slice(0, 10);
+      };
+
+      const buildRowsFor = (
+        disc_id: string | null,
+        turma_id: string | null,
+        startDate?: string,
+      ) =>
+        aulasData.map((a, idx) => ({
+          user_id: user.id,
+          disciplina_id: disc_id,
+          turma_id: turma_id,
+          disciplina_nome: disciplinaNome,
+          data_aula: startDate ? (idx === 0 ? startDate : addBusinessDays(startDate, idx)) : a.data,
+          topico: a.topico,
+          objetivo: a.objetivo || null,
+          metodologia: a.metodologia || null,
+          recursos: a.recursos || null,
+          tipo_avaliacao: a.tipo_avaliacao || "aula",
+          observacoes: a.observacoes || null,
+        }));
+
+      let rows: ReturnType<typeof buildRowsFor> = [];
+      if (targets && targets.length > 0) {
+        for (const t of targets) {
+          rows = rows.concat(buildRowsFor(t.disciplina_id, t.turma_id, t.data_inicio));
+        }
+      } else {
+        rows = buildRowsFor(disciplinaId || null, turmaId || null);
+      }
 
       const { error } = await supabase
         .from("conteudo_programatico_aulas")

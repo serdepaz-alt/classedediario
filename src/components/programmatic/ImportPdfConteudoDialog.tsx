@@ -27,10 +27,20 @@ export interface AulaGerada {
   observacoes: string;
 }
 
+export interface ImportTarget {
+  disciplina_id: string;
+  turma_id: string | null;
+  data_inicio: string;
+}
+
 interface ImportPdfConteudoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImportComplete: (aulas: AulaGerada[], disciplinaNome: string, disciplinaId?: string, turmaId?: string) => void;
+  onImportComplete: (
+    aulas: AulaGerada[],
+    disciplinaNome: string,
+    targets: ImportTarget[],
+  ) => void;
 }
 
 const tipoMap = {
@@ -43,28 +53,54 @@ export const ImportPdfConteudoDialog = ({ open, onOpenChange, onImportComplete }
   const { user } = useAuth();
   const [step, setStep] = useState<"upload" | "processing" | "preview">("upload");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedDisciplinaId, setSelectedDisciplinaId] = useState("");
+  const [selectedPadraoId, setSelectedPadraoId] = useState("");
   const [aulasGeradas, setAulasGeradas] = useState<AulaGerada[]>([]);
   const [expandedAula, setExpandedAula] = useState<number | null>(null);
   const [processingMessage, setProcessingMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: disciplinas = [] } = useQuery({
-    queryKey: ["disciplinas-for-import", user?.id],
+  // 1) Fonte oficial das disciplinas elegíveis = Padrão de Marcação por Disciplina
+  const { data: padroes = [] } = useQuery({
+    queryKey: ["padroes-for-import", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
-        .from("disciplinas")
-        .select("id, nome, data_inicio, data_termino, carga_horaria_diaria, turma_id, turmas:turma_id(nome)")
+        .from("padroes_disciplinas")
+        .select("id, nome, turno, carga_horaria_total, carga_horaria_diaria")
         .eq("user_id", user.id)
-        .order("data_inicio", { ascending: true });
+        .order("nome", { ascending: true });
       if (error) throw error;
       return data || [];
     },
     enabled: !!user?.id && open,
   });
 
-  const selectedDisc = disciplinas.find((d: any) => d.id === selectedDisciplinaId);
+  const selectedPadrao = padroes.find((p: any) => p.id === selectedPadraoId);
+
+  const normalize = (s: string) =>
+    (s || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+
+  // 2) Turmas ativas que receberão o plano (Módulo de Presença individualizado)
+  const { data: turmasAlvo = [] } = useQuery({
+    queryKey: ["turmas-alvo-padrao", user?.id, selectedPadrao?.nome, selectedPadrao?.turno],
+    queryFn: async () => {
+      if (!user?.id || !selectedPadrao) return [];
+      const { data, error } = await supabase
+        .from("disciplinas")
+        .select("id, nome, turno, data_inicio, data_termino, turma_id, turmas:turma_id(nome)")
+        .eq("user_id", user.id)
+        .eq("turno", selectedPadrao.turno);
+      if (error) throw error;
+      const alvoNome = normalize(selectedPadrao.nome);
+      return (data || []).filter((d: any) => normalize(d.nome) === alvoNome);
+    },
+    enabled: !!user?.id && !!selectedPadrao,
+  });
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -76,7 +112,7 @@ export const ImportPdfConteudoDialog = ({ open, onOpenChange, onImportComplete }
   };
 
   const handleProcess = async () => {
-    if (!selectedFile || !selectedDisc) return;
+    if (!selectedFile || !selectedPadrao) return;
 
     setStep("processing");
     setProcessingMessage("Extraindo texto do PDF...");
@@ -92,13 +128,20 @@ export const ImportPdfConteudoDialog = ({ open, onOpenChange, onImportComplete }
 
       setProcessingMessage("Gerando plano de aulas com IA...");
 
+      // Usa a data de início da turma ativa mais cedo como referência para a IA gerar a sequência.
+      // As datas finais serão recalculadas por turma no momento da persistência.
+      const ref = [...turmasAlvo].sort((a: any, b: any) =>
+        String(a.data_inicio).localeCompare(String(b.data_inicio)),
+      )[0] as any;
+
       const { data, error } = await supabase.functions.invoke("generate-programmatic-content", {
         body: {
           pdfText,
-          disciplinaNome: selectedDisc.nome,
-          dataInicio: selectedDisc.data_inicio,
-          dataTermino: selectedDisc.data_termino,
-          cargaHorariaDiaria: selectedDisc.carga_horaria_diaria,
+          disciplinaNome: selectedPadrao.nome,
+          dataInicio: ref?.data_inicio || new Date().toISOString().slice(0, 10),
+          dataTermino: ref?.data_termino || null,
+          // padrão guarda horas/dia (ex.: 3); a função espera minutos
+          cargaHorariaDiaria: (selectedPadrao.carga_horaria_diaria || 1) * 60,
         },
       });
 
@@ -119,14 +162,23 @@ export const ImportPdfConteudoDialog = ({ open, onOpenChange, onImportComplete }
   };
 
   const handleConfirm = () => {
-    onImportComplete(aulasGeradas, selectedDisc?.nome || "", selectedDisciplinaId, (selectedDisc as any)?.turma_id || undefined);
+    const targets: ImportTarget[] = (turmasAlvo as any[]).map((d) => ({
+      disciplina_id: d.id,
+      turma_id: d.turma_id || null,
+      data_inicio: d.data_inicio,
+    }));
+    if (targets.length === 0) {
+      toast.error("Nenhuma turma ativa vinculada a esta disciplina do Padrão de Marcação");
+      return;
+    }
+    onImportComplete(aulasGeradas, selectedPadrao?.nome || "", targets);
     handleReset();
   };
 
   const handleReset = () => {
     setStep("upload");
     setSelectedFile(null);
-    setSelectedDisciplinaId("");
+    setSelectedPadraoId("");
     setAulasGeradas([]);
     setExpandedAula(null);
     onOpenChange(false);
@@ -154,15 +206,15 @@ export const ImportPdfConteudoDialog = ({ open, onOpenChange, onImportComplete }
         {step === "upload" && (
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Disciplina</Label>
-              <Select value={selectedDisciplinaId} onValueChange={setSelectedDisciplinaId}>
+              <Label>Disciplina (Padrão de Marcação)</Label>
+              <Select value={selectedPadraoId} onValueChange={setSelectedPadraoId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a disciplina" />
+                  <SelectValue placeholder="Selecione a disciplina do Padrão de Marcação" />
                 </SelectTrigger>
                 <SelectContent>
-                  {disciplinas.map((d: any) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.nome} — {(d.turmas as any)?.nome || "Sem turma"}
+                  {(padroes as any[]).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nome} — {p.turno} ({p.carga_horaria_total}h)
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -203,18 +255,33 @@ export const ImportPdfConteudoDialog = ({ open, onOpenChange, onImportComplete }
               </div>
             </div>
 
-            {selectedDisc && (
+            {selectedPadrao && (
               <Card className="bg-muted/50">
                 <CardContent className="p-3 text-sm space-y-1">
-                  <p><strong>Período:</strong> {selectedDisc.data_inicio} a {selectedDisc.data_termino}</p>
-                  <p><strong>Carga horária diária:</strong> {selectedDisc.carga_horaria_diaria} min</p>
+                  <p><strong>Turno:</strong> {selectedPadrao.turno} • <strong>Carga:</strong> {selectedPadrao.carga_horaria_total}h ({selectedPadrao.carga_horaria_diaria}h/dia)</p>
+                  <p>
+                    <strong>Turmas ativas vinculadas:</strong>{" "}
+                    {turmasAlvo.length === 0
+                      ? "Nenhuma — cadastre a disciplina em uma turma"
+                      : (turmasAlvo as any[])
+                          .map((d) => (d.turmas as any)?.nome || "Sem turma")
+                          .join(", ")}
+                  </p>
+                  {turmasAlvo.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      O plano será vinculado ao Módulo de Presença de cada turma, com datas recalculadas a partir do <em>data de início</em> de cada uma.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}
 
             <DialogFooter>
               <Button variant="outline" onClick={handleReset}>Cancelar</Button>
-              <Button onClick={handleProcess} disabled={!selectedFile || !selectedDisciplinaId}>
+              <Button
+                onClick={handleProcess}
+                disabled={!selectedFile || !selectedPadraoId || turmasAlvo.length === 0}
+              >
                 <Sparkles className="w-4 h-4 mr-2" />
                 Gerar com IA
               </Button>
