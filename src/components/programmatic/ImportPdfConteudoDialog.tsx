@@ -85,22 +85,32 @@ export const ImportPdfConteudoDialog = ({ open, onOpenChange, onImportComplete }
       .replace(/\s+/g, " ")
       .trim();
 
-  // 2) Turmas ativas que receberão o plano (Módulo de Presença individualizado)
-  const { data: turmasAlvo = [] } = useQuery({
-    queryKey: ["turmas-alvo-padrao", user?.id, selectedPadrao?.nome, selectedPadrao?.turno],
+  // Disciplinas (instâncias por turma) — usadas para enriquecer o dropdown do Padrão
+  // com as turmas vinculadas (mesmo nome + turno).
+  const { data: disciplinasAll = [] } = useQuery({
+    queryKey: ["disciplinas-todas-padrao", user?.id],
     queryFn: async () => {
-      if (!user?.id || !selectedPadrao) return [];
+      if (!user?.id) return [];
       const { data, error } = await supabase
         .from("disciplinas")
         .select("id, nome, turno, data_inicio, data_termino, turma_id, turmas:turma_id(nome)")
-        .eq("user_id", user.id)
-        .eq("turno", selectedPadrao.turno);
+        .eq("user_id", user.id);
       if (error) throw error;
-      const alvoNome = normalize(selectedPadrao.nome);
-      return (data || []).filter((d: any) => normalize(d.nome) === alvoNome);
+      return data || [];
     },
-    enabled: !!user?.id && !!selectedPadrao,
+    enabled: !!user?.id && open,
   });
+
+  const turmasPorPadrao = (padrao: any) => {
+    if (!padrao) return [] as any[];
+    const alvoNome = normalize(padrao.nome);
+    return (disciplinasAll as any[]).filter(
+      (d) => d.turno === padrao.turno && normalize(d.nome) === alvoNome,
+    );
+  };
+
+  // 2) Turmas ativas que receberão o plano (Módulo de Presença individualizado)
+  const turmasAlvo = turmasPorPadrao(selectedPadrao);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
