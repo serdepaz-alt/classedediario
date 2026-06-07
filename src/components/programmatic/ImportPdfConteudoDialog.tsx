@@ -222,11 +222,29 @@ export const ImportPdfConteudoDialog = ({ open, onOpenChange, onImportComplete }
                   <SelectValue placeholder="Selecione a disciplina do Padrão de Marcação" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(padroes as any[]).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome} — {p.turno} ({p.carga_horaria_total}h)
-                    </SelectItem>
-                  ))}
+                  {(padroes as any[]).map((p) => {
+                    const turmas = turmasPorPadrao(p);
+                    const turmasLabel = turmas
+                      .map((d: any) => (d.turmas as any)?.nome)
+                      .filter(Boolean)
+                      .join(", ");
+                    return (
+                      <SelectItem key={p.id} value={p.id}>
+                        <span>
+                          {p.nome} — {p.turno} ({p.carga_horaria_total}h)
+                          {turmas.length > 0 ? (
+                            <span className="text-muted-foreground">
+                              {" "}· Turmas: {turmasLabel}
+                            </span>
+                          ) : (
+                            <span className="text-destructive">
+                              {" "}· sem turma vinculada
+                            </span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
