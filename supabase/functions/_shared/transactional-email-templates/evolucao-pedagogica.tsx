@@ -145,7 +145,7 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
     { id: 3, disciplina: 'Farmacologia', professor: 'Prof. Carla', chTotal: 60, chDiaria: 3, dias: 20, inicio: '03/02/2025', termino: '28/02/2025', status: 'Futuro' },
   ],
   alerta = {
-    texto: 'AÇÃO REQUERIDA: SECRETARIA - Aluno deve regularizar documentação de estágio pendente até 20/05.',
+    texto: 'Os dados de alertas e encaminhamentos oficiais estão sendo anexados internamente pelo sistema e, em breve, divulgaremos novas atualizações.',
   },
   hardSkills = [
     { label: 'Aferição SSVV', percent: 100, color: 'green' },
@@ -213,9 +213,15 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
                 <Column style={{ width: '50%', verticalAlign: 'top', paddingRight: '6px' }}>
                   <div style={{ ...cardStyle, margin: 0, height: '100%' }}>
                     <Text style={sectionTitle}>Desempenho Acadêmico</Text>
-                    {avaliacoes.map((a) => (
-                      <ProgressRow key={a.label} label={a.label} value={a.value} percent={a.percent} color={a.color} />
-                    ))}
+                    {avaliacoes && avaliacoes.length > 0 ? (
+                      avaliacoes.map((a) => (
+                        <ProgressRow key={a.label} label={a.label} value={a.value} percent={a.percent} color={a.color} />
+                      ))
+                    ) : (
+                      <Text style={{ fontSize: '13px', color: '#6b7280', fontStyle: 'italic', margin: '24px 0', textAlign: 'center' }}>
+                        Disciplina em andamento
+                      </Text>
+                    )}
                   </div>
                 </Column>
                 <Column style={{ width: '50%', verticalAlign: 'top', paddingLeft: '6px' }}>
