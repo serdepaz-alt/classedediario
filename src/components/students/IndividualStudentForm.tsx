@@ -226,58 +226,117 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
     const v = form.getValues();
     const turma = turmas.find((t) => t.id === v.turma_id);
     const hoje = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-    const logoUrl = `${window.location.origin}/logo-irma-dulce.jpeg`;
-    const assinaturaUrl = `${window.location.origin}/assinatura-luciano.png`;
+    // Carrega o template institucional editável salvo na página /atestado-matricula
+    const DEFAULTS = {
+      logoUrl: "",
+      signatureUrl: "",
+      institutionName: "INSTITUIÇÃO DE ENSINO",
+      parecer: "Parecer / Credenciamento MEC nº 000/0000",
+      cnpj: "CNPJ: 00.000.000/0001-00",
+      endereco: "Rua Exemplo, 123 — Bairro — Cidade/UF — CEP 00000-000",
+      contatos: "Tel: (00) 0000-0000 — contato@instituicao.edu.br",
+      responsavelNome: "Nome do Responsável",
+      responsavelCargo: "Responsável Legal",
+      corpo:
+        "Atestamos, para os devidos fins, que o(a) aluno(a) {{NOME_ALUNO}}, matrícula nº {{MATRICULA}}, encontra-se regularmente matriculado(a) no curso {{CURSO}}, turma {{TURMA}}, turno {{TURNO}}, com início em {{DATA_INICIO}} e término previsto em {{DATA_TERMINO}}.\n\nPor ser expressão da verdade, firmamos o presente atestado.",
+    };
+    let cfg = { ...DEFAULTS };
+    try {
+      const raw = localStorage.getItem("atestado-matricula-v1");
+      if (raw) cfg = { ...DEFAULTS, ...JSON.parse(raw) };
+    } catch { /* ignore */ }
+
     const cursoNome = (turma as any)?.curso || "";
+    const turmaNome = (turma as any)?.nome || (turma as any)?.codigo || "";
     const turno = (turma as any)?.periodo || "";
     const horario = (turma as any)?.horario || "";
+    const dataInicio = (turma as any)?.data_inicio
+      ? format(new Date((turma as any).data_inicio), "dd/MM/yyyy")
+      : "____/____/______";
+    const dataTermino = (turma as any)?.data_termino
+      ? format(new Date((turma as any).data_termino), "dd/MM/yyyy")
+      : "____/____/______";
 
-    const genero = (v.nome_mae || v.nome_pai) ? "" : "";
     const aluno = v.nome || "_____________________";
-    const cpf = v.cpf || "___.___.___-__";
     const matricula = v.matricula || "_______________";
-    const mae = v.nome_mae || "_____________________";
-    const pai = v.nome_pai || "_____________________";
-    const filiacao = [mae, pai].filter((s) => s && s.trim()).join(" e ") || "_____________________";
+
+    const corpoPreenchido = cfg.corpo
+      .replace(/\{\{NOME_ALUNO\}\}/g, `<b>${aluno}</b>`)
+      .replace(/\{\{MATRICULA\}\}/g, `<b>${matricula}</b>`)
+      .replace(/\{\{CURSO\}\}/g, `<b>${cursoNome || "_____________"}</b>`)
+      .replace(/\{\{TURMA\}\}/g, `<b>${turmaNome || "_____________"}</b>`)
+      .replace(/\{\{TURNO\}\}/g, `<b>${turno || "_____________"}</b>${horario ? ` (${horario})` : ""}`)
+      .replace(/\{\{DATA_INICIO\}\}/g, `<b>${dataInicio}</b>`)
+      .replace(/\{\{DATA_TERMINO\}\}/g, `<b>${dataTermino}</b>`)
+      .replace(/\n/g, "<br/>");
+
+    const esc = (s: string) => (s || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" } as any)[c]);
 
     const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/>
 <title>Atestado de Matrícula - ${aluno}</title>
 <style>
-  @page { size: A4; margin: 22mm 22mm 22mm 22mm; }
+  @page { size: A4; margin: 16mm; }
   * { box-sizing: border-box; }
-  body { font-family: 'Times New Roman', serif; color:#000; margin:0; font-size:13pt; line-height:1.7; }
-  .header { text-align:center; margin-bottom:8px; }
-  .header img.logo { width:140px; height:auto; object-fit:contain; display:block; margin:0 auto 8px; }
-  .header .divider { height:2px; background:#1f3a93; width:100%; margin:6px 0 24px; }
-  h1.title { text-align:center; font-style:italic; font-weight:bold; font-size:18pt; text-decoration:underline; margin:24px 0 32px; }
-  p.body { text-align:justify; text-indent:1.5em; margin:0 0 28px; }
-  .local-data { text-align:center; font-weight:bold; margin:36px 0 60px; }
-  .assinatura-bloco { text-align:center; margin-top:12px; }
-  .assinatura-bloco img { width:220px; height:auto; display:block; margin:0 auto -6px; }
-  .assinatura-bloco .linha { border-top:1px solid #000; width:320px; margin:0 auto; padding-top:4px; }
-  @media print { .no-print { display:none; } }
-  .actions { text-align:center; padding:12px; background:#f0f0f0; position:sticky; top:0; z-index:100; }
+  body { font-family: Arial, Helvetica, sans-serif; color:#000; margin:0; background:#fff; font-size:15px; line-height:1.6; }
+  .actions { text-align:center; padding:10px; background:#f0f0f0; position:sticky; top:0; z-index:100; }
   .actions button { padding:8px 18px; font-size:13px; cursor:pointer; margin:0 4px; }
+  .sheet { max-width: 820px; margin: 24px auto; padding: 40px 56px; background:#fff; }
+  header.head { display:grid; grid-template-columns: 1fr 3fr; gap: 24px; padding-bottom:18px; border-bottom:1px solid #d4d4d4; align-items:center; }
+  header.head .logo-wrap { display:flex; align-items:center; justify-content:center; }
+  header.head .logo-wrap img { width:100%; max-width:140px; aspect-ratio:1/1; object-fit:contain; }
+  header.head .logo-wrap .ph { width:100%; aspect-ratio:1/1; max-width:140px; border:2px dashed #ddd; border-radius:6px; }
+  header.head .info h1 { font-size:18px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin:0 0 4px; }
+  header.head .info p { margin:0; font-size:12px; color:#333; }
+  section.body { position:relative; margin-top:36px; min-height:420px; }
+  section.body .watermark { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:0.10; pointer-events:none; }
+  section.body .watermark img { max-width:70%; max-height:70%; object-fit:contain; }
+  section.body .content { position:relative; }
+  section.body h2 { text-align:center; font-size:18px; font-weight:700; letter-spacing:0.3em; text-transform:uppercase; margin: 0 0 28px; }
+  section.body .text { text-align:justify; line-height:1.7; font-size:15px; }
+  .local-data { text-align:center; margin-top:32px; font-size:14px; }
+  footer.sig { margin-top:56px; display:flex; flex-direction:column; align-items:center; }
+  footer.sig img.assinatura { height:48px; width:auto; object-fit:contain; display:block; }
+  footer.sig .nome { margin-top:4px; font-weight:600; font-size:15px; text-align:center; }
+  footer.sig .cargo { font-size:14px; color:#444; text-align:center; }
+  @media print {
+    .actions { display:none; }
+    body { background:#fff; }
+    .sheet { margin:0; padding:0; max-width:none; }
+  }
 </style></head><body>
-<div class="actions no-print">
+<div class="actions">
   <button onclick="window.print()">🖨️ Imprimir</button>
   <button onclick="window.close()">Fechar</button>
 </div>
-<div class="header">
-  <img class="logo" src="${logoUrl}" alt="Logo"/>
-  <div class="divider"></div>
+<div class="sheet">
+  <header class="head">
+    <div class="logo-wrap">
+      ${cfg.logoUrl ? `<img src="${cfg.logoUrl}" alt="Logomarca"/>` : `<div class="ph"></div>`}
+    </div>
+    <div class="info">
+      <h1>${esc(cfg.institutionName)}</h1>
+      <p>${esc(cfg.parecer)}</p>
+      <p>${esc(cfg.cnpj)}</p>
+      <p>${esc(cfg.endereco)}</p>
+      <p>${esc(cfg.contatos)}</p>
+    </div>
+  </header>
+
+  <section class="body">
+    ${cfg.logoUrl ? `<div class="watermark"><img src="${cfg.logoUrl}" alt=""/></div>` : ""}
+    <div class="content">
+      <h2>Atestado de Matrícula</h2>
+      <div class="text">${corpoPreenchido}</div>
+      <p class="local-data">${esc(hoje)}.</p>
+    </div>
+  </section>
+
+  <footer class="sig">
+    ${cfg.signatureUrl ? `<img class="assinatura" src="${cfg.signatureUrl}" alt="Assinatura"/>` : ""}
+    <div class="nome">${esc(cfg.responsavelNome)}</div>
+    <div class="cargo">${esc(cfg.responsavelCargo)}</div>
+  </footer>
 </div>
-<h1 class="title">Atestado de Matrícula</h1>
-
-<p class="body">Atestado para devidos fins que o(a) aluno(a) <b>${aluno}</b>, CPF <b>${cpf}</b>, Matrícula: <b>${matricula}</b>, filho(a) de ${filiacao}, está matriculado(a) no curso <b>${cursoNome || "_____________________"}</b> nesse estabelecimento de Ensino, no turno <b>${turno || "_______"}</b>${horario ? `, no horário <b>${horario}</b>` : ""}.</p>
-
-<p class="local-data">Salvador, ${hoje}.</p>
-
-<div class="assinatura-bloco">
-  <img src="${assinaturaUrl}" alt="Assinatura"/>
-  <div class="linha">Responsável Legal</div>
-</div>
-
 <script>window.addEventListener('load', () => setTimeout(() => window.print(), 500));</script>
 </body></html>`;
 
