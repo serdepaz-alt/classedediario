@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -70,6 +80,8 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
     setItemDataTermino,
     swapDisciplina,
     salvar,
+    gerarContratos,
+    contarProfessoresVinculados,
     reset,
   } = useSequenciaDisciplinas();
 
@@ -87,11 +99,30 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
     }
   }, [open, initialTurmaId, turmas, selectedTurmaId, loadExistingSequencia]);
 
+  const [confirmEmailOpen, setConfirmEmailOpen] = useState(false);
+  const [profsVinculados, setProfsVinculados] = useState(0);
+
   const handleSave = async () => {
     const success = await salvar();
-    if (success) {
+    if (!success) return;
+    const count = contarProfessoresVinculados();
+    if (count > 0) {
+      setProfsVinculados(count);
+      setConfirmEmailOpen(true);
+    } else {
       onOpenChange(false);
     }
+  };
+
+  const handleConfirmSendEmails = async () => {
+    setConfirmEmailOpen(false);
+    await gerarContratos();
+    onOpenChange(false);
+  };
+
+  const handleSkipEmails = () => {
+    setConfirmEmailOpen(false);
+    onOpenChange(false);
   };
 
   const formatDateBR = (dateStr: string) => {
@@ -344,6 +375,26 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
           </Button>
         </DialogFooter>
       </DialogContent>
+      <AlertDialog open={confirmEmailOpen} onOpenChange={setConfirmEmailOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disparar e-mails aos professores?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O cronograma foi salvo. Deseja gerar e enviar os contratos atualizados
+              por e-mail para {profsVinculados} professor(es) vinculado(s) às disciplinas?
+              <br /><br />
+              Ao confirmar, o fluxo segue normalmente: os contratos são gerados e enviados
+              para os e-mails cadastrados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleSkipEmails}>Não enviar agora</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSendEmails}>
+              Sim, disparar e-mails
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };
