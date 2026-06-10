@@ -632,6 +632,8 @@ export const useSequenciaDisciplinas = () => {
     swapDisciplina,
     validate,
     salvar,
+    gerarContratos,
+    contarProfessoresVinculados,
     reset,
   };
 };
