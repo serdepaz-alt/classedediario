@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { valorPorExtensoBRL } from "../_shared/valorExtenso.ts";
+import { CONTRATANTE_SIGNATURE_PNG_BASE64 } from "../_shared/contratante-signature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,6 +80,15 @@ async function buildPdf(payload: {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.TimesRoman);
   const bold = await doc.embedFont(StandardFonts.TimesRomanBold);
+
+  // Embed signature image (contratante)
+  let sigImage: any = null;
+  try {
+    const bin = Uint8Array.from(atob(CONTRATANTE_SIGNATURE_PNG_BASE64), (c) => c.charCodeAt(0));
+    sigImage = await doc.embedPng(bin);
+  } catch (_) {
+    sigImage = null;
+  }
 
   const pageSize: [number, number] = [595.28, 841.89]; // A4
   const margin = 50;
@@ -222,6 +232,17 @@ async function buildPdf(payload: {
 
   y -= 20;
   writeLine(todayBR(), { size: 10.5, gap: 30, align: "center" });
+  if (sigImage) {
+    const sigW = 160;
+    const sigH = (sigImage.height / sigImage.width) * sigW;
+    if (y - sigH < margin + 60) {
+      page = doc.addPage(pageSize);
+      y = pageSize[1] - margin;
+    }
+    const sigX = (pageSize[0] - sigW) / 2;
+    page.drawImage(sigImage, { x: sigX, y: y - sigH + 8, width: sigW, height: sigH });
+    y -= sigH - 4;
+  }
   writeLine("____________________________________________", { size: 10, gap: 2, align: "center" });
   writeLine("LUCIANO KLEBER RIBEIRO CARNEIRO — Contratante", { size: 10, gap: 18, align: "center" });
   writeLine("____________________________________________", { size: 10, gap: 2, align: "center" });
