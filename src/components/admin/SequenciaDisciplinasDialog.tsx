@@ -45,6 +45,7 @@ import {
   Clock,
   BookOpen,
   AlertTriangle,
+  FileDown,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -132,6 +133,87 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
     } catch {
       return dateStr;
     }
+  };
+
+  const handleGerarPDF = () => {
+    if (sequencia.length === 0) return;
+    const turmaNome = selectedTurma?.nome || "—";
+    const curso = selectedTurma?.curso || "—";
+    const terminoCurso = sequencia[sequencia.length - 1]?.data_termino || "";
+    const linhas = sequencia
+      .map(
+        (item) => `
+          <tr>
+            <td style="text-align:center;">${item.ordem}</td>
+            <td>${item.nome}</td>
+            <td>${item.nome_professor || "—"}</td>
+            <td style="text-align:center;">${item.carga_horaria_total}h</td>
+            <td style="text-align:center;">${item.carga_horaria_diaria}h</td>
+            <td style="text-align:center;">${item.qtd_dias}</td>
+            <td style="text-align:center;">${formatDateBR(item.data_inicio)}</td>
+            <td style="text-align:center;">${formatDateBR(item.data_termino)}</td>
+          </tr>`
+      )
+      .join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cronograma - ${turmaNome}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #222; padding: 24px; }
+    h1 { font-size: 18px; margin: 0 0 4px 0; }
+    .meta { font-size: 12px; color: #555; margin-bottom: 16px; }
+    .kpis { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; font-size: 12px; }
+    .kpis span { border: 1px solid #ddd; border-radius: 999px; padding: 4px 10px; background: #f7f7f7; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; }
+    thead th { background: #f0f0f0; text-align: left; }
+    tfoot td { font-size: 10px; color: #666; padding-top: 12px; border: none; }
+    @media print { body { padding: 12px; } }
+  </style>
+</head>
+<body>
+  <h1>Cronograma da Turma — ${turmaNome}</h1>
+  <div class="meta">
+    <strong>Curso:</strong> ${curso} &nbsp;|&nbsp;
+    <strong>Turno:</strong> ${turno || "—"} &nbsp;|&nbsp;
+    <strong>Início:</strong> ${formatDateBR(dataInicio)} &nbsp;|&nbsp;
+    <strong>Término:</strong> ${formatDateBR(terminoCurso)}
+  </div>
+  <div class="kpis">
+    <span>Carga Total: ${cargaTotalCurso}h</span>
+    <span>Total de Dias: ${totalDiasCurso} dias úteis</span>
+    <span>${sequencia.length} disciplina(s)</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:center;width:50px;">Ordem</th>
+        <th>Disciplina</th>
+        <th style="width:160px;">Professor</th>
+        <th style="text-align:center;width:70px;">Carga</th>
+        <th style="text-align:center;width:60px;">Diária</th>
+        <th style="text-align:center;width:50px;">Dias</th>
+        <th style="text-align:center;width:90px;">Início</th>
+        <th style="text-align:center;width:90px;">Término</th>
+      </tr>
+    </thead>
+    <tbody>${linhas}</tbody>
+    <tfoot>
+      <tr><td colspan="8">Gerado em ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td></tr>
+    </tfoot>
+  </table>
+  <script>window.onload = () => { window.print(); };</script>
+</body>
+</html>`;
+
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
   };
 
   return (
@@ -360,6 +442,15 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleGerarPDF}
+            disabled={sequencia.length === 0}
+            className="gap-2"
+          >
+            <FileDown className="w-4 h-4" />
+            Gerar PDF
           </Button>
           <Button
             onClick={handleSave}
