@@ -53,6 +53,7 @@ export const useSequenciaDisciplinas = () => {
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [turno, setTurno] = useState<Turno>("Matutino");
   const [sequencia, setSequencia] = useState<SequenciaItem[]>([]);
+  const [sequenciaInicial, setSequenciaInicial] = useState<SequenciaItem[]>([]);
   const [dataInicio, setDataInicio] = useState<string>("");
   const [isLoadingTurmas, setIsLoadingTurmas] = useState(false);
   const [isLoadingPadroes, setIsLoadingPadroes] = useState(false);
@@ -158,8 +159,10 @@ export const useSequenciaDisciplinas = () => {
           return updated;
         });
         setSequencia(calculated);
+        setSequenciaInicial(calculated);
       } else {
         setSequencia(items);
+        setSequenciaInicial(items);
       }
     } catch (err) {
       console.error("Erro ao carregar padrões:", err);
@@ -209,6 +212,7 @@ export const useSequenciaDisciplinas = () => {
       }));
 
       setSequencia(items);
+      setSequenciaInicial(items);
       setDataInicio(items[0]?.data_inicio || "");
     } catch (err) {
       console.error("Erro ao carregar sequência existente:", err);
@@ -521,14 +525,51 @@ export const useSequenciaDisciplinas = () => {
     }
   }, [validate, user?.id, selectedTurma, selectedTurmaId, sequencia, turno, queryClient, professores]);
 
+  // Returns the set of discipline names that have been modified vs. the
+  // initial loaded state. New disciplines also count as modified.
+  const getDisciplinasModificadas = useCallback((): Set<string> => {
+    const inicialMap = new Map(sequenciaInicial.map((s) => [s.nome, s]));
+    const modified = new Set<string>();
+    sequencia.forEach((s) => {
+      const original = inicialMap.get(s.nome);
+      if (!original) {
+        modified.add(s.nome);
+        return;
+      }
+      if (
+        original.nome_professor !== s.nome_professor ||
+        original.data_inicio !== s.data_inicio ||
+        original.data_termino !== s.data_termino ||
+        original.carga_horaria_total !== s.carga_horaria_total ||
+        original.carga_horaria_diaria !== s.carga_horaria_diaria ||
+        original.qtd_dias !== s.qtd_dias ||
+        original.ordem !== s.ordem
+      ) {
+        modified.add(s.nome);
+      }
+    });
+    return modified;
+  }, [sequencia, sequenciaInicial]);
+
   const contarProfessoresVinculados = useCallback((): number => {
     const profNames = new Set(professores.map((p) => p.nome));
-    return sequencia.filter((s) => s.nome_professor && profNames.has(s.nome_professor)).length;
-  }, [sequencia, professores]);
+    const modificadas = getDisciplinasModificadas();
+    return sequencia.filter(
+      (s) =>
+        modificadas.has(s.nome) &&
+        s.nome_professor &&
+        profNames.has(s.nome_professor)
+    ).length;
+  }, [sequencia, professores, getDisciplinasModificadas]);
 
   const gerarContratos = useCallback(async (): Promise<boolean> => {
     if (!user?.id || !selectedTurmaId) return false;
     try {
+      const modificadas = getDisciplinasModificadas();
+      if (modificadas.size === 0) {
+        toast.info("Nenhuma disciplina foi modificada — nenhum contrato a enviar.");
+        return true;
+      }
       const { data: savedDisciplinas } = await supabase
         .from("disciplinas")
         .select("id, nome, nome_professor")
@@ -537,7 +578,10 @@ export const useSequenciaDisciplinas = () => {
 
       const profMap = new Map(professores.map((p) => [p.nome, p.id]));
       const targets = (savedDisciplinas || []).filter(
-        (d) => d.nome_professor && profMap.has(d.nome_professor)
+        (d) =>
+          modificadas.has(d.nome) &&
+          d.nome_professor &&
+          profMap.has(d.nome_professor)
       );
 
       if (targets.length === 0) {
@@ -589,12 +633,13 @@ export const useSequenciaDisciplinas = () => {
       toast.warning("Houve falha na geração de contratos.");
       return false;
     }
-  }, [user?.id, selectedTurmaId, professores]);
+  }, [user?.id, selectedTurmaId, professores, getDisciplinasModificadas]);
 
   const reset = useCallback(() => {
     setSelectedTurmaId("");
     setSelectedTurma(null);
     setSequencia([]);
+    setSequenciaInicial([]);
     setDataInicio("");
   }, []);
 
