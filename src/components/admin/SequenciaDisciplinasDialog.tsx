@@ -343,12 +343,12 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                           value={item.nome}
                           onValueChange={(val) => swapDisciplina(idx, val)}
                         >
-                          <SelectTrigger className="h-8 text-xs">
+                          <SelectTrigger className="h-8 text-xs" title={item.nome}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-background z-50 max-h-[300px]">
                             {sequencia.map((s) => (
-                              <SelectItem key={s.nome} value={s.nome}>
+                              <SelectItem key={s.nome} value={s.nome} title={s.nome}>
                                 {s.nome}
                               </SelectItem>
                             ))}
