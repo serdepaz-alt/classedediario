@@ -31,6 +31,13 @@ interface Turma {
   data_inicio: string | null;
 }
 
+export interface PadraoOption {
+  nome: string;
+  carga_horaria_total: number;
+  carga_horaria_diaria: number;
+  qtd_dias: number;
+}
+
 // Maps turma.periodo to padroes_disciplinas.turno
 const mapPeriodoToTurno = (periodo: string | null): Turno => {
   switch (periodo) {
@@ -54,6 +61,7 @@ export const useSequenciaDisciplinas = () => {
   const [turno, setTurno] = useState<Turno>("Matutino");
   const [sequencia, setSequencia] = useState<SequenciaItem[]>([]);
   const [sequenciaInicial, setSequenciaInicial] = useState<SequenciaItem[]>([]);
+  const [padroesTurno, setPadroesTurno] = useState<PadraoOption[]>([]);
   const [dataInicio, setDataInicio] = useState<string>("");
   const [isLoadingTurmas, setIsLoadingTurmas] = useState(false);
   const [isLoadingPadroes, setIsLoadingPadroes] = useState(false);
