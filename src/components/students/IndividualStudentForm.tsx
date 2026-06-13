@@ -94,6 +94,25 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!student;
 
+  const handleInativarTurma = async () => {
+    if (!student) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from("students")
+        .update({ turma_id: null, status: "Inativo" })
+        .eq("id", student.id);
+      if (error) throw error;
+      toast.success("Aluno inativado da turma");
+      onSuccess();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "Erro ao inativar aluno");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Fetch turmas for selection
   const { data: turmas = [] } = useQuery({
     queryKey: ["turmas", user?.id],
