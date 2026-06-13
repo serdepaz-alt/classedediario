@@ -19,13 +19,24 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Phone, Mail, MapPin, GraduationCap, Printer, FileText } from "lucide-react";
+import { CalendarIcon, Phone, Mail, MapPin, GraduationCap, Printer, FileText, UserX } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const ESTADOS_BR = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
@@ -82,6 +93,25 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!student;
+
+  const handleInativarTurma = async () => {
+    if (!student) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from("students")
+        .update({ turma_id: null, status: "Inativo" })
+        .eq("id", student.id);
+      if (error) throw error;
+      toast.success("Aluno inativado da turma");
+      onSuccess();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "Erro ao inativar aluno");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Fetch turmas for selection
   const { data: turmas = [] } = useQuery({
@@ -612,29 +642,57 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
             <GraduationCap className="h-4 w-4" />
             Turma *
           </Label>
-          <Select
-            value={form.watch("turma_id")}
-            onValueChange={(value) => form.setValue("turma_id", value)}
-          >
-            <SelectTrigger className={cn(
-              form.formState.errors.turma_id && "border-destructive"
-            )}>
-              <SelectValue placeholder="Selecione a turma do estudante" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              {turmas.length === 0 ? (
-                <div className="py-4 text-center text-sm text-muted-foreground">
-                  Nenhuma turma cadastrada
-                </div>
-              ) : (
-                turmas.map((turma) => (
-                  <SelectItem key={turma.id} value={turma.id}>
-                    {turma.nome} {turma.curso ? `- ${turma.curso}` : ""} {turma.periodo ? `(${turma.periodo})` : ""}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select
+              value={form.watch("turma_id")}
+              onValueChange={(value) => form.setValue("turma_id", value)}
+            >
+              <SelectTrigger className={cn(
+                "flex-1",
+                form.formState.errors.turma_id && "border-destructive"
+              )}>
+                <SelectValue placeholder="Selecione a turma do estudante" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover">
+                {turmas.length === 0 ? (
+                  <div className="py-4 text-center text-sm text-muted-foreground">
+                    Nenhuma turma cadastrada
+                  </div>
+                ) : (
+                  turmas.map((turma) => (
+                    <SelectItem key={turma.id} value={turma.id}>
+                      {turma.nome} {turma.curso ? `- ${turma.curso}` : ""} {turma.periodo ? `(${turma.periodo})` : ""}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {isEditing && student?.turma_id && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="destructive" disabled={isLoading}>
+                    <UserX className="h-4 w-4 mr-1" />
+                    Inativar da Turma
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Inativar aluno da turma?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      O aluno será desvinculado da turma atual e marcado como Inativo.
+                      Esta ação pode ser revertida selecionando uma nova turma posteriormente.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleInativarTurma}>
+                      Confirmar Inativação
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
           {form.formState.errors.turma_id && (
             <p className="text-sm text-destructive">{form.formState.errors.turma_id.message}</p>
           )}
