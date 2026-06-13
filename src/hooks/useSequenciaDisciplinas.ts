@@ -125,7 +125,23 @@ export const useSequenciaDisciplinas = () => {
 
       if (error) throw error;
 
-      const items: SequenciaItem[] = (data || []).map((p, idx) => ({
+      // Dedupe padroes by nome (keep first occurrence)
+      const seen = new Set<string>();
+      const padroesDedup = (data || []).filter((p) => {
+        if (seen.has(p.nome)) return false;
+        seen.add(p.nome);
+        return true;
+      });
+      setPadroesTurno(
+        padroesDedup.map((p) => ({
+          nome: p.nome,
+          carga_horaria_total: p.carga_horaria_total,
+          carga_horaria_diaria: p.carga_horaria_diaria,
+          qtd_dias: calcularQtdDias(p.carga_horaria_total, p.carga_horaria_diaria),
+        }))
+      );
+
+      const items: SequenciaItem[] = padroesDedup.map((p, idx) => ({
         ordem: idx + 1,
         nome: p.nome,
         carga_horaria_total: p.carga_horaria_total,
