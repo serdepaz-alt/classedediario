@@ -31,6 +31,13 @@ interface Turma {
   data_inicio: string | null;
 }
 
+export interface PadraoOption {
+  nome: string;
+  carga_horaria_total: number;
+  carga_horaria_diaria: number;
+  qtd_dias: number;
+}
+
 // Maps turma.periodo to padroes_disciplinas.turno
 const mapPeriodoToTurno = (periodo: string | null): Turno => {
   switch (periodo) {
@@ -54,6 +61,7 @@ export const useSequenciaDisciplinas = () => {
   const [turno, setTurno] = useState<Turno>("Matutino");
   const [sequencia, setSequencia] = useState<SequenciaItem[]>([]);
   const [sequenciaInicial, setSequenciaInicial] = useState<SequenciaItem[]>([]);
+  const [padroesTurno, setPadroesTurno] = useState<PadraoOption[]>([]);
   const [dataInicio, setDataInicio] = useState<string>("");
   const [isLoadingTurmas, setIsLoadingTurmas] = useState(false);
   const [isLoadingPadroes, setIsLoadingPadroes] = useState(false);
@@ -117,7 +125,23 @@ export const useSequenciaDisciplinas = () => {
 
       if (error) throw error;
 
-      const items: SequenciaItem[] = (data || []).map((p, idx) => ({
+      // Dedupe padroes by nome (keep first occurrence)
+      const seen = new Set<string>();
+      const padroesDedup = (data || []).filter((p) => {
+        if (seen.has(p.nome)) return false;
+        seen.add(p.nome);
+        return true;
+      });
+      setPadroesTurno(
+        padroesDedup.map((p) => ({
+          nome: p.nome,
+          carga_horaria_total: p.carga_horaria_total,
+          carga_horaria_diaria: p.carga_horaria_diaria,
+          qtd_dias: calcularQtdDias(p.carga_horaria_total, p.carga_horaria_diaria),
+        }))
+      );
+
+      const items: SequenciaItem[] = padroesDedup.map((p, idx) => ({
         ordem: idx + 1,
         nome: p.nome,
         carga_horaria_total: p.carga_horaria_total,
@@ -184,14 +208,38 @@ export const useSequenciaDisciplinas = () => {
     setIsLoadingPadroes(true);
 
     try {
-      const { data, error } = await supabase
-        .from("disciplinas")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("turma_id", turmaId)
-        .order("data_inicio", { ascending: true });
+      const [discRes, padRes] = await Promise.all([
+        supabase
+          .from("disciplinas")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("turma_id", turmaId)
+          .order("data_inicio", { ascending: true }),
+        supabase
+          .from("padroes_disciplinas")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("turno", mappedTurno)
+          .order("nome"),
+      ]);
+      if (discRes.error) throw discRes.error;
 
-      if (error) throw error;
+      const seen = new Set<string>();
+      const padroesDedup = (padRes.data || []).filter((p) => {
+        if (seen.has(p.nome)) return false;
+        seen.add(p.nome);
+        return true;
+      });
+      setPadroesTurno(
+        padroesDedup.map((p) => ({
+          nome: p.nome,
+          carga_horaria_total: p.carga_horaria_total,
+          carga_horaria_diaria: p.carga_horaria_diaria,
+          qtd_dias: calcularQtdDias(p.carga_horaria_total, p.carga_horaria_diaria),
+        }))
+      );
+
+      const data = discRes.data;
 
       if (!data || data.length === 0) {
         // No existing data, fall back to loading patterns
@@ -343,13 +391,28 @@ export const useSequenciaDisciplinas = () => {
     (idx: number, novoNome: string) => {
       setSequencia((prev) => {
         const targetIdx = prev.findIndex((p) => p.nome === novoNome);
-        if (targetIdx === -1 || targetIdx === idx) return prev;
+        if (targetIdx === idx) return prev;
         const newArr = [...prev];
-        [newArr[idx], newArr[targetIdx]] = [newArr[targetIdx], newArr[idx]];
+        if (targetIdx !== -1) {
+          // Swap positions of two existing disciplines
+          [newArr[idx], newArr[targetIdx]] = [newArr[targetIdx], newArr[idx]];
+        } else {
+          // Replace current row with a discipline from the turno's padroes
+          const padrao = padroesTurno.find((p) => p.nome === novoNome);
+          if (!padrao) return prev;
+          newArr[idx] = {
+            ...newArr[idx],
+            nome: padrao.nome,
+            carga_horaria_total: padrao.carga_horaria_total,
+            carga_horaria_diaria: padrao.carga_horaria_diaria,
+            qtd_dias: padrao.qtd_dias,
+            nome_professor: "",
+          };
+        }
         return recalcularDatas(newArr, dataInicio);
       });
     },
-    [dataInicio, recalcularDatas]
+    [dataInicio, recalcularDatas, padroesTurno]
   );
 
   // Edit a single item's start date — preserves qtd_dias, recomputes término and cascades forward
@@ -640,6 +703,7 @@ export const useSequenciaDisciplinas = () => {
     setSelectedTurma(null);
     setSequencia([]);
     setSequenciaInicial([]);
+    setPadroesTurno([]);
     setDataInicio("");
   }, []);
 
@@ -660,6 +724,7 @@ export const useSequenciaDisciplinas = () => {
     selectedTurma,
     turno,
     sequencia,
+    padroesTurno,
     dataInicio,
     isLoadingTurmas,
     isLoadingPadroes,
