@@ -65,6 +65,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
     selectedTurma,
     turno,
     sequencia,
+    padroesTurno,
     dataInicio,
     isLoadingTurmas,
     isLoadingPadroes,
@@ -347,11 +348,19 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-background z-50 max-h-[300px]">
-                            {sequencia.map((s) => (
-                              <SelectItem key={s.nome} value={s.nome} title={s.nome}>
-                                {s.nome}
-                              </SelectItem>
-                            ))}
+                            {(() => {
+                              const names = new Set<string>();
+                              padroesTurno.forEach((p) => names.add(p.nome));
+                              // Ensure current item is selectable even if not in padroes
+                              names.add(item.nome);
+                              return Array.from(names)
+                                .sort((a, b) => a.localeCompare(b, "pt-BR"))
+                                .map((nome) => (
+                                  <SelectItem key={nome} value={nome} title={nome}>
+                                    {nome}
+                                  </SelectItem>
+                                ));
+                            })()}
                           </SelectContent>
                         </Select>
                       </TableCell>
