@@ -949,29 +949,35 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       </div>
 
       {/* Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-4 border-t">
+      <div className="space-y-3 pt-4 border-t">
         {isEditing && (
-          <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Button type="button" variant="secondary" onClick={handlePrintFicha} className="w-full">
               <Printer className="h-4 w-4 mr-2" />
-              Imprimir Ficha de Matrícula
+              Ficha de Matrícula
             </Button>
             <Button type="button" variant="secondary" onClick={handlePrintContrato} className="w-full">
               <FileText className="h-4 w-4 mr-2" />
-              Imprimir Contrato
+              Contrato
             </Button>
             <Button type="button" variant="secondary" onClick={handlePrintAtestado} className="w-full">
               <FileText className="h-4 w-4 mr-2" />
-              Imprimir Atestado de Matrícula
+              Atestado de Matrícula
             </Button>
-          </>
+            <Button type="button" variant="default" onClick={handlePrintAll} className="w-full">
+              <Printer className="h-4 w-4 mr-2" />
+              Imprimir Tudo
+            </Button>
+          </div>
         )}
-        <Button type="button" variant="outline" onClick={onCancel} className="w-full">
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={isLoading} className="w-full">
-          {isLoading ? "Salvando..." : isEditing ? "Atualizar Estudante" : "Salvar Estudante"}
-        </Button>
+        <div className="grid grid-cols-2 gap-3">
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full">
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isLoading} className="w-full">
+            {isLoading ? "Salvando..." : isEditing ? "Atualizar Estudante" : "Salvar Estudante"}
+          </Button>
+        </div>
       </div>
     </form>
   );
