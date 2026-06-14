@@ -556,6 +556,14 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
     w.document.close();
   };
 
+  const handlePrintAll = () => {
+    handlePrintFicha();
+    setTimeout(() => handlePrintAtestado(), 800);
+    setTimeout(() => handlePrintContrato(), 1600);
+    toast.success("Abrindo todos os documentos para impressão");
+  };
+
+
   const form = useForm<StudentFormData>({
     resolver: zodResolver(studentSchema),
     defaultValues: {
