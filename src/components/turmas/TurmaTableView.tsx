@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { GraduationCap, Users, BookOpen, Calendar, MoreHorizontal } from "lucide-react";
+import { GraduationCap, Users, BookOpen, Calendar, MoreHorizontal, Printer } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,7 @@ interface TurmaTableViewProps {
   onViewDetails: (turma: Turma) => void;
   onEdit: (turma: Turma) => void;
   onDelete: (turma: Turma) => void;
+  onPrintRoster?: (turma: Turma) => void;
 }
 
 const getStatusColor = (status: string | null) => {
@@ -41,7 +42,7 @@ const getStatusColor = (status: string | null) => {
   }
 };
 
-export const TurmaTableView = ({ turmas, statsMap, onViewDetails, onEdit, onDelete }: TurmaTableViewProps) => {
+export const TurmaTableView = ({ turmas, statsMap, onViewDetails, onEdit, onDelete, onPrintRoster }: TurmaTableViewProps) => {
   return (
     <div className="rounded-md border overflow-hidden">
       <Table>
@@ -133,6 +134,12 @@ export const TurmaTableView = ({ turmas, statsMap, onViewDetails, onEdit, onDele
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(turma); }}>
                         Editar
                       </DropdownMenuItem>
+                      {onPrintRoster && (
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPrintRoster(turma); }}>
+                          <Printer className="w-4 h-4 mr-2" />
+                          Lista Nominal
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         onClick={(e) => { e.stopPropagation(); onDelete(turma); }}
                         className="text-destructive"

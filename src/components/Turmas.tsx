@@ -65,6 +65,106 @@ export const Turmas = () => {
   const turmaIds = useMemo(() => turmas.map((t) => t.id), [turmas]);
   const { data: statsMap = {} } = useTurmaStats(turmaIds);
 
+  const handlePrintRoster = async (turma: Turma) => {
+    try {
+      const { data: alunos, error } = await supabase
+        .from("students")
+        .select("matricula, nome, data_nascimento, telefone, email, nome_mae")
+        .eq("turma_id", turma.id)
+        .eq("status", "Ativo")
+        .order("nome", { ascending: true });
+      if (error) throw error;
+
+      const s = statsMap[turma.id];
+      const fmtDate = (d: string | null) =>
+        d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—";
+      const rows = (alunos || [])
+        .map(
+          (a, i) => `
+            <tr>
+              <td style="text-align:center">${i + 1}</td>
+              <td>${a.matricula ?? "—"}</td>
+              <td>${a.nome ?? "—"}</td>
+              <td>${fmtDate(a.data_nascimento as any)}</td>
+              <td>${a.nome_mae ?? "—"}</td>
+              <td>${a.telefone ?? "—"}</td>
+              <td>${a.email ?? "—"}</td>
+            </tr>`
+        )
+        .join("");
+
+      const html = `<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"/>
+<title>Lista Nominal - ${turma.nome}</title>
+<style>
+  @page { size: A4; margin: 18mm; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #111; font-size: 12px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 0 0 12px; color: #444; font-weight: normal; }
+  .info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 16px; margin: 10px 0 16px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+  .info div { font-size: 12px; }
+  .info b { color: #333; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { border: 1px solid #bbb; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; }
+  tfoot td { font-weight: bold; background: #f8fafc; }
+  .footer { margin-top: 20px; font-size: 11px; color: #555; display:flex; justify-content: space-between; }
+  @media print { .no-print { display: none; } }
+  .no-print { text-align:right; margin-bottom: 10px; }
+  .no-print button { padding: 8px 14px; cursor: pointer; }
+</style></head>
+<body>
+  <div class="no-print"><button onclick="window.print()">Imprimir</button></div>
+  <h1>Lista Nominal de Alunos</h1>
+  <h2>Turma: ${turma.nome}</h2>
+  <div class="info">
+    <div><b>Curso:</b> ${turma.curso ?? "—"}</div>
+    <div><b>Turno:</b> ${turma.periodo ?? "—"}</div>
+    <div><b>Ano Letivo:</b> ${turma.ano_letivo ?? "—"}</div>
+    <div><b>Horário:</b> ${turma.horario ?? "—"}</div>
+    <div><b>Início:</b> ${fmtDate(turma.data_inicio)}</div>
+    <div><b>Status:</b> ${turma.status ?? "Ativa"}</div>
+    <div><b>Disciplina Atual:</b> ${s?.disciplinaAtual ?? "—"}</div>
+    <div><b>Total de Alunos Ativos:</b> ${alunos?.length ?? 0}</div>
+    <div><b>Emitido em:</b> ${new Date().toLocaleString("pt-BR")}</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:32px">#</th>
+        <th>Matrícula</th>
+        <th>Nome</th>
+        <th>Nascimento</th>
+        <th>Nome da Mãe</th>
+        <th>Telefone</th>
+        <th>E-mail</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows || `<tr><td colspan="7" style="text-align:center;padding:20px">Nenhum aluno ativo nesta turma.</td></tr>`}
+    </tbody>
+  </table>
+  <div class="footer">
+    <span>Lista Nominal gerada pelo sistema Classe Diário.</span>
+    <span>Página 1</span>
+  </div>
+  <script>window.addEventListener('load', () => setTimeout(() => window.print(), 400));</script>
+</body></html>`;
+
+      const w = window.open("", "_blank");
+      if (!w) {
+        toast.error("Permita pop-ups para imprimir a lista nominal.");
+        return;
+      }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao gerar lista nominal: " + (e?.message || ""));
+    }
+  };
+
   useEffect(() => {
     if (user) fetchTurmas();
   }, [user]);
@@ -338,6 +438,7 @@ export const Turmas = () => {
                 onViewDetails={() => handleViewDetails(turma)}
                 onEdit={() => handleEdit(turma)}
                 onDelete={() => handleDeleteClick(turma)}
+                onPrintRoster={() => handlePrintRoster(turma)}
               />
             ))}
           </div>
@@ -348,6 +449,7 @@ export const Turmas = () => {
             onViewDetails={handleViewDetails}
             onEdit={handleEdit}
             onDelete={handleDeleteClick}
+            onPrintRoster={handlePrintRoster}
           />
         )
       ) : (
