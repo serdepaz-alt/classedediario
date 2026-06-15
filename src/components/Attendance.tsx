@@ -471,6 +471,13 @@ export const Attendance = () => {
     fetchStudents();
   }, [user, selectedDisciplina]);
 
+  // Scroll to attendance list when discipline is selected
+  useEffect(() => {
+    if (selectedDisciplina && students.length > 0 && listaChamadaRef.current) {
+      listaChamadaRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [selectedDisciplina?.id, students.length]);
+
   // Fetch presencas for selected date
   useEffect(() => {
     const fetchPresencas = async () => {
