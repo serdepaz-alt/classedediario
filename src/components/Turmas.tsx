@@ -69,26 +69,19 @@ export const Turmas = () => {
     try {
       const { data: alunos, error } = await supabase
         .from("students")
-        .select("matricula, nome, data_nascimento, telefone, email, nome_mae")
+        .select("nome")
         .eq("turma_id", turma.id)
         .eq("status", "Ativo")
         .order("nome", { ascending: true });
       if (error) throw error;
 
-      const s = statsMap[turma.id];
-      const fmtDate = (d: string | null) =>
-        d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—";
       const rows = (alunos || [])
         .map(
           (a, i) => `
             <tr>
               <td style="text-align:center">${i + 1}</td>
-              <td>${a.matricula ?? "—"}</td>
-              <td>${a.nome ?? "—"}</td>
-              <td>${fmtDate(a.data_nascimento as any)}</td>
-              <td>${a.nome_mae ?? "—"}</td>
-              <td>${a.telefone ?? "—"}</td>
-              <td>${a.email ?? "—"}</td>
+              <td style="font-size:13px">${a.nome ?? "—"}</td>
+              <td></td>
             </tr>`
         )
         .join("");
@@ -99,54 +92,44 @@ export const Turmas = () => {
 <style>
   @page { size: A4; margin: 18mm; }
   body { font-family: Arial, Helvetica, sans-serif; color: #111; font-size: 12px; }
-  h1 { font-size: 18px; margin: 0 0 4px; }
-  h2 { font-size: 14px; margin: 0 0 12px; color: #444; font-weight: normal; }
-  .info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 16px; margin: 10px 0 16px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
-  .info div { font-size: 12px; }
-  .info b { color: #333; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  th, td { border: 1px solid #bbb; padding: 6px 8px; text-align: left; vertical-align: top; }
-  th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; }
-  tfoot td { font-weight: bold; background: #f8fafc; }
-  .footer { margin-top: 20px; font-size: 11px; color: #555; display:flex; justify-content: space-between; }
+  .header { text-align: center; margin-bottom: 18px; }
+  .header h1 { font-size: 20px; margin: 0 0 4px; }
+  .header h2 { font-size: 14px; margin: 0; color: #555; font-weight: normal; }
+  .header .turma { font-size: 13px; color: #333; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { border: 1px solid #bbb; padding: 8px 10px; vertical-align: middle; }
+  th { background: #f1f5f9; font-size: 12px; text-transform: uppercase; text-align: left; }
+  td:nth-child(1) { width: 40px; text-align: center; }
+  td:nth-child(2) { width: 55%; }
+  td:nth-child(3) { width: 40%; }
+  tr { height: 36px; }
+  .footer { margin-top: 20px; font-size: 11px; color: #555; display: flex; justify-content: space-between; }
   @media print { .no-print { display: none; } }
-  .no-print { text-align:right; margin-bottom: 10px; }
+  .no-print { text-align: right; margin-bottom: 10px; }
   .no-print button { padding: 8px 14px; cursor: pointer; }
 </style></head>
 <body>
   <div class="no-print"><button onclick="window.print()">Imprimir</button></div>
-  <h1>Lista Nominal de Alunos</h1>
-  <h2>Turma: ${turma.nome}</h2>
-  <div class="info">
-    <div><b>Curso:</b> ${turma.curso ?? "—"}</div>
-    <div><b>Turno:</b> ${turma.periodo ?? "—"}</div>
-    <div><b>Ano Letivo:</b> ${turma.ano_letivo ?? "—"}</div>
-    <div><b>Horário:</b> ${turma.horario ?? "—"}</div>
-    <div><b>Início:</b> ${fmtDate(turma.data_inicio)}</div>
-    <div><b>Status:</b> ${turma.status ?? "Ativa"}</div>
-    <div><b>Disciplina Atual:</b> ${s?.disciplinaAtual ?? "—"}</div>
-    <div><b>Total de Alunos Ativos:</b> ${alunos?.length ?? 0}</div>
-    <div><b>Emitido em:</b> ${new Date().toLocaleString("pt-BR")}</div>
+  <div class="header">
+    <h1>Lista de Presença</h1>
+    <h2>Lista Nominal de Alunos</h2>
+    <div class="turma"><b>Turma:</b> ${turma.nome} &nbsp;|&nbsp; <b>Curso:</b> ${turma.curso ?? "—"} &nbsp;|&nbsp; <b>Turno:</b> ${turma.periodo ?? "—"}</div>
   </div>
   <table>
     <thead>
       <tr>
-        <th style="width:32px">#</th>
-        <th>Matrícula</th>
-        <th>Nome</th>
-        <th>Nascimento</th>
-        <th>Nome da Mãe</th>
-        <th>Telefone</th>
-        <th>E-mail</th>
+        <th style="width:40px">Nº</th>
+        <th>Nome do Aluno</th>
+        <th>Assinatura</th>
       </tr>
     </thead>
     <tbody>
-      ${rows || `<tr><td colspan="7" style="text-align:center;padding:20px">Nenhum aluno ativo nesta turma.</td></tr>`}
+      ${rows || `<tr><td colspan="3" style="text-align:center;padding:20px">Nenhum aluno ativo nesta turma.</td></tr>`}
     </tbody>
   </table>
   <div class="footer">
-    <span>Lista Nominal gerada pelo sistema Classe Diário.</span>
-    <span>Página 1</span>
+    <span>Total de alunos: ${alunos?.length ?? 0}</span>
+    <span>${new Date().toLocaleDateString("pt-BR")}</span>
   </div>
   <script>window.addEventListener('load', () => setTimeout(() => window.print(), 400));</script>
 </body></html>`;
