@@ -133,6 +133,7 @@ export const Attendance = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [studentsAtRisk, setStudentsAtRisk] = useState<StudentAtRisk[]>([]);
   const [studentsRiskMap, setStudentsRiskMap] = useState<Map<string, { absences: number; lates: number }>>(new Map());
+  const listaChamadaRef = useRef<HTMLDivElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [datesWithAttendance, setDatesWithAttendance] = useState<Set<string>>(new Set());
