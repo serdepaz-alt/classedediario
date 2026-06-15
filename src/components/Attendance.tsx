@@ -133,6 +133,7 @@ export const Attendance = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [studentsAtRisk, setStudentsAtRisk] = useState<StudentAtRisk[]>([]);
   const [studentsRiskMap, setStudentsRiskMap] = useState<Map<string, { absences: number; lates: number }>>(new Map());
+  const listaChamadaRef = useRef<HTMLDivElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [datesWithAttendance, setDatesWithAttendance] = useState<Set<string>>(new Set());
@@ -469,6 +470,13 @@ export const Attendance = () => {
 
     fetchStudents();
   }, [user, selectedDisciplina]);
+
+  // Scroll to attendance list when discipline is selected
+  useEffect(() => {
+    if (selectedDisciplina && students.length > 0 && listaChamadaRef.current) {
+      listaChamadaRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [selectedDisciplina?.id, students.length]);
 
   // Fetch presencas for selected date
   useEffect(() => {
@@ -1180,7 +1188,7 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
 
       {/* Main Content */}
       {selectedDisciplina && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div ref={listaChamadaRef} className="grid grid-cols-1 lg:grid-cols-3 gap-6 scroll-mt-4">
           {/* Student List */}
           <div className="lg:col-span-2 space-y-4">
             <Card className="gradient-card shadow-card border-0">
