@@ -223,10 +223,10 @@ export const StudentFrequencyHistory = ({
                         {getStatusIcon(record.status)}
                         <div>
                           <p className="text-sm font-medium">
-                            {format(new Date(record.data), "dd/MM/yyyy", { locale: ptBR })}
+                            {format(new Date(record.data + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(record.data), "EEEE", { locale: ptBR })}
+                            {format(new Date(record.data + "T00:00:00"), "EEEE", { locale: ptBR })}
                           </p>
                         </div>
                       </div>
