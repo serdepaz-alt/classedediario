@@ -443,6 +443,13 @@ export const Attendance = () => {
 
   // Fetch presencas for selected date
   useEffect(() => {
+    // Reset chosen lesson plan when starting a new chamada
+    // (turma/disciplina/data alterada) — permite nova escolha no dropdown
+    // "Conteúdo Programático" da disciplina em voga.
+    setSelectedAulaId(null);
+  }, [selectedDisciplina?.id, selectedTurmaId, selectedDate]);
+
+  useEffect(() => {
     const fetchPresencas = async () => {
       if (!user || !selectedDisciplina || !selectedDate) return;
 
