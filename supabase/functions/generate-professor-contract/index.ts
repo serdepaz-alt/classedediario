@@ -11,8 +11,13 @@ const corsHeaders = {
 };
 
 const SITE_NAME = "Centro de Formação Técnica em Enfermagem Irmã Dulce";
+// Sensitive identifiers (CPF/RG) of the legal representative are loaded from Edge Function secrets
+// (CONTRATANTE_NOME, CONTRATANTE_CPF, CONTRATANTE_RG) instead of being hardcoded in source.
+const CONTRATANTE_NOME = Deno.env.get("CONTRATANTE_NOME") ?? "___";
+const CONTRATANTE_CPF = Deno.env.get("CONTRATANTE_CPF") ?? "___";
+const CONTRATANTE_RG = Deno.env.get("CONTRATANTE_RG") ?? "___";
 const CONTRATANTE_BLOCK =
-  "CENTRO DE FORMAÇÃO TÉCNICA EM ENFERMAGEM IRMÃ DULCE, com sede à Av. Joana Angélica, Bairro Nazaré, Nº 177, Salvador - Bahia, inscrito no CNPJ nº 007222780001-72, neste ato representado por LUCIANO KLEBER RIBEIRO CARNEIRO, brasileiro, casado, carteira de identidade nº 03.698.960-68, inscrito (a) no CPF 766.080.005-10, responsável legal do Centro de Formação Técnica em Enfermagem Irmã Dulce, doravante denominado(a) CONTRATANTE;";
+  `CENTRO DE FORMAÇÃO TÉCNICA EM ENFERMAGEM IRMÃ DULCE, com sede à Av. Joana Angélica, Bairro Nazaré, Nº 177, Salvador - Bahia, inscrito no CNPJ nº 007222780001-72, neste ato representado por ${CONTRATANTE_NOME}, brasileiro, casado, carteira de identidade nº ${CONTRATANTE_RG}, inscrito (a) no CPF ${CONTRATANTE_CPF}, responsável legal do Centro de Formação Técnica em Enfermagem Irmã Dulce, doravante denominado(a) CONTRATANTE;`;
 
 function safe(v: unknown, fallback = "___"): string {
   const s = (v ?? "").toString().trim();
@@ -332,6 +337,20 @@ Deno.serve(async (req) => {
 
     const professor = profRes.data;
     const disciplina = discRes.data;
+
+    // Ownership check: prevent cross-admin access via service-role queries
+    if (professor.user_id !== userId) {
+      return new Response(JSON.stringify({ error: "Acesso negado" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (disciplina.user_id !== userId) {
+      return new Response(JSON.stringify({ error: "Acesso negado" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Carrega dados da turma (Turma/Turno/Curso/Data Início da Turma)
     const turmaIdFinal = turma_id ?? disciplina.turma_id ?? null;

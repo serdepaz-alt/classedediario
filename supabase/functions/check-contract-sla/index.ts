@@ -26,6 +26,22 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  // Require service role JWT or CRON_SECRET header (this function is cron-only)
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.replace("Bearer ", "") : "";
+  const cronHeader = req.headers.get("x-cron-secret") ?? "";
+  const authorized =
+    (bearer && bearer === SERVICE_ROLE) ||
+    (CRON_SECRET && cronHeader === CRON_SECRET);
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
