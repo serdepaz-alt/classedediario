@@ -68,8 +68,8 @@ export const TurmaAttendanceCard = ({
 
   const getProgress = () => {
     if (!disc) return 0;
-    const start = startOfDay(new Date(disc.data_inicio));
-    const end = startOfDay(new Date(disc.data_termino));
+    const start = startOfDay(new Date(disc.data_inicio + "T00:00:00"));
+    const end = startOfDay(new Date(disc.data_termino + "T00:00:00"));
     const total = differenceInCalendarDays(end, start) || 1;
     const elapsed = differenceInCalendarDays(today, start);
     return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
@@ -77,7 +77,7 @@ export const TurmaAttendanceCard = ({
 
   const getDiasRestantes = () => {
     if (!disc) return 0;
-    const end = startOfDay(new Date(disc.data_termino));
+    const end = startOfDay(new Date(disc.data_termino + "T00:00:00"));
     return Math.max(0, differenceInCalendarDays(end, today));
   };
 
@@ -151,7 +151,7 @@ export const TurmaAttendanceCard = ({
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <CalendarDays className="w-3 h-3" />
-                {format(new Date(disc.data_inicio), "dd/MM")} - {format(new Date(disc.data_termino), "dd/MM")}
+                {format(new Date(disc.data_inicio + "T00:00:00"), "dd/MM")} - {format(new Date(disc.data_termino + "T00:00:00"), "dd/MM")}
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />

@@ -295,8 +295,8 @@ export const Attendance = () => {
       group.disciplinas.push(d);
 
       // Check if this discipline is current (date range covers today)
-      const startDate = startOfDay(new Date(d.data_inicio));
-      const endDate = startOfDay(new Date(d.data_termino));
+      const startDate = startOfDay(new Date(d.data_inicio + "T00:00:00"));
+      const endDate = startOfDay(new Date(d.data_termino + "T00:00:00"));
       if (!isAfter(startDate, today) && !isBefore(endDate, today)) {
         group.disciplinaAtual = d;
       }
