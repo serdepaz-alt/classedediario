@@ -126,8 +126,27 @@ export function AtestadoMatricula() {
       <Card className="mx-auto max-w-[820px] bg-white text-black shadow-md print:shadow-none print:max-w-none print:border-0">
         <div className="atestado-doc px-10 py-8 print:px-12 print:py-10" style={{ fontFamily: "Garamond, 'EB Garamond', 'Times New Roman', serif" }}>
           <div className="atestado-border relative p-8 print:p-10" style={{ border: "3px double #000", boxShadow: "inset 0 0 0 1px #000" }}>
-          {/* CABEÇALHO INSTITUCIONAL — texto centralizado, sem logo */}
-          <header className="flex flex-col items-center text-center leading-snug mb-10 pb-4 border-b border-black">
+          {/* CABEÇALHO INSTITUCIONAL — logo à esquerda + texto centralizado */}
+          <header className="grid grid-cols-[140px_1fr] items-center gap-4 leading-snug mb-8 pb-4 border-b-2 border-black">
+            <button
+              type="button"
+              onClick={() => logoInput.current?.click()}
+              className="flex items-center justify-center w-[140px] h-[140px] print:pointer-events-none hover:opacity-80"
+              title="Clique para enviar a logomarca"
+            >
+              {state.logoUrl ? (
+                <img
+                  src={state.logoUrl}
+                  alt="Logomarca"
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-400 border border-dashed border-neutral-300 rounded-md print:hidden text-center px-1">
+                  <span><Upload className="h-3 w-3 inline mr-1" />Enviar logomarca</span>
+                </div>
+              )}
+            </button>
+            <div className="flex flex-col items-center text-center">
             <h1
               {...editableProps(state.institutionName, (v) =>
                 update("institutionName", v),
@@ -150,6 +169,7 @@ export function AtestadoMatricula() {
               {...editableProps(state.contatos, (v) => update("contatos", v))}
               className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
             />
+            </div>
           </header>
 
           {/* CORPO — com marca d'água */}
