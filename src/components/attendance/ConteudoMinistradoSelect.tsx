@@ -50,21 +50,22 @@ export const ConteudoMinistradoSelect = ({
     queryKey: ["conteudo-programatico-aulas", user?.id, "select", disciplinaId, disciplinaNome],
     queryFn: async (): Promise<AulaItem[]> => {
       if (!user?.id || (!disciplinaId && !disciplinaNome)) return [];
-      // Filtra por disciplina_id (quando vinculada à disciplina da turma) OU
-      // por disciplina_nome (quando o plano foi cadastrado só pelo Padrão de Marcação)
-      const filters: string[] = [];
-      if (disciplinaId) filters.push(`disciplina_id.eq.${disciplinaId}`);
-      if (disciplinaNome) filters.push(`disciplina_nome.eq.${disciplinaNome}`);
-      const query = supabase
+      // Escopo estrito à disciplina ATIVA da turma:
+      // - Se houver disciplina_id (vínculo direto), filtra exclusivamente por ele.
+      // - Caso contrário, usa disciplina_nome como fallback (planos cadastrados só pelo Padrão de Marcação).
+      let query = supabase
         .from("conteudo_programatico_aulas")
         .select("id, topico, data_aula, objetivo")
         .eq("user_id", user.id)
         .order("data_aula", { ascending: true });
-      const { data, error } = await (filters.length > 1
-        ? query.or(filters.join(","))
-        : disciplinaId
-        ? query.eq("disciplina_id", disciplinaId)
-        : query.eq("disciplina_nome", disciplinaNome!));
+
+      if (disciplinaId) {
+        query = query.eq("disciplina_id", disciplinaId);
+      } else if (disciplinaNome) {
+        query = query.eq("disciplina_nome", disciplinaNome);
+      }
+
+      const { data, error } = await query;
       if (error) return [];
       return (data || []) as AulaItem[];
     },
