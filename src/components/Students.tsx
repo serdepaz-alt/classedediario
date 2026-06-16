@@ -89,7 +89,6 @@ export const Students = () => {
       const { data, error } = await supabase
         .from("students")
         .select("*, turmas(id, nome, curso)")
-        .eq("user_id", user.id)
         .order("nome");
       if (error) throw error;
       return data;
