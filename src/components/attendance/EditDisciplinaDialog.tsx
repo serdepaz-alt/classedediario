@@ -88,8 +88,8 @@ export const EditDisciplinaDialog = ({
         turno: disciplina.turno,
         curso: disciplina.curso,
         turma_id: disciplina.turma_id || "",
-        data_inicio: new Date(disciplina.data_inicio),
-        data_termino: new Date(disciplina.data_termino),
+        data_inicio: new Date(disciplina.data_inicio + "T00:00:00"),
+        data_termino: new Date(disciplina.data_termino + "T00:00:00"),
         carga_horaria_diaria: disciplina.carga_horaria_diaria,
         nome_professor: disciplina.nome_professor || "",
       });
