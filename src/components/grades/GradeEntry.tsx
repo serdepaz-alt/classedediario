@@ -227,8 +227,19 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
       toast.info("Nota travada. Para alterar, solicite a modificação ao setor administrativo.");
       return;
     }
-    const numValue = value === "" ? null : parseFloat(value);
-    setGrades(prev => prev.map((g, i) => 
+    if (value === "") {
+      setGrades(prev => prev.map((g, i) =>
+        i === index ? { ...g, valor: null, notificacao_status: "Não Enviado" } : g
+      ));
+      setHasUnsavedChanges(true);
+      return;
+    }
+    const numValue = parseFloat(value.replace(",", "."));
+    if (Number.isNaN(numValue) || numValue < 0 || numValue > 10) {
+      toast.error("Nota inválida. Use valores entre 0 e 10.");
+      return;
+    }
+    setGrades(prev => prev.map((g, i) =>
       i === index ? { ...g, valor: numValue, notificacao_status: "Não Enviado" } : g
     ));
     setHasUnsavedChanges(true);
