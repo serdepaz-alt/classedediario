@@ -21,13 +21,13 @@ type AtestadoState = {
 const DEFAULT_STATE: AtestadoState = {
   logoUrl: "",
   signatureUrl: "",
-  institutionName: "INSTITUIÇÃO DE ENSINO",
-  parecer: "Parecer / Credenciamento MEC nº 000/0000",
-  cnpj: "CNPJ: 00.000.000/0001-00",
-  endereco: "Rua Exemplo, 123 — Bairro — Cidade/UF — CEP 00000-000",
-  contatos: "Tel: (00) 0000-0000 — contato@instituicao.edu.br",
-  responsavelNome: "Nome do Responsável",
-  responsavelCargo: "Responsável Legal",
+  institutionName: "Centro de Formação Técnica em Enfermagem Irmã Dulce",
+  parecer: "Parecer CEE 340/2023 – Resolução 227/2023 D.O. 16 de Setembro de .2023",
+  cnpj: "COREN – Ba n. 0038 – RE / RT",
+  endereco: "Avenida Joana Angélica, nº 177, Nazaré, Salvador, Bahia",
+  contatos: "Tel: 3321-9366",
+  responsavelNome: "Luciano Kleber C. Ribeiro",
+  responsavelCargo: "Responsável Legal\nCentro de Form. Técnica em Enfermagem Irmã Dulce",
   corpo:
     "Atestamos, para os devidos fins, que o(a) aluno(a) {{NOME_ALUNO}}, matrícula nº {{MATRICULA}}, encontra-se regularmente matriculado(a) no curso {{CURSO}}, turma {{TURMA}}, turno {{TURNO}}, com início em {{DATA_INICIO}} e término previsto em {{DATA_TERMINO}}.\n\nPor ser expressão da verdade, firmamos o presente atestado.",
 };
