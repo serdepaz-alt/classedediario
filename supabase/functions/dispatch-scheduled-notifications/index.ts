@@ -9,6 +9,22 @@ interface TurnoCfg { ativo: boolean; dias: string[]; horario: string }
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  // Require either the service role JWT or a shared CRON_SECRET header
+  const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? ''
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const cronHeader = req.headers.get('x-cron-secret') ?? ''
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : ''
+  const authorized =
+    (bearer && bearer === SERVICE_ROLE) ||
+    (CRON_SECRET && cronHeader === CRON_SECRET)
+  if (!authorized) {
+    return new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!

@@ -2,11 +2,33 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import * as React from 'npm:react@18.3.1'
 import { render } from 'npm:@react-email/render@0.0.17'
 import nodemailer from 'npm:nodemailer@6.9.16'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 import { template as contractTemplate } from '../_shared/transactional-email-templates/professor-contract-invitation.tsx'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Require authenticated caller (user JWT or service role)
+  const authHeader = req.headers.get('Authorization') ?? ''
+  if (!authHeader.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+  const token = authHeader.replace('Bearer ', '')
+  const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  if (token !== SERVICE_ROLE) {
+    const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!)
+    const { data, error } = await sb.auth.getUser(token)
+    if (error || !data?.user) {
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
   }
 
   try {
