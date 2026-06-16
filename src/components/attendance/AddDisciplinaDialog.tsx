@@ -148,7 +148,7 @@ export const AddDisciplinaDialog = ({ open, onOpenChange, onSuccess }: AddDiscip
       
       // Find holidays within the period
       const holidaysInPeriod = feriados.filter(f => {
-        const feriadoDate = new Date(f.data);
+        const feriadoDate = new Date(f.data + "T00:00:00");
         return feriadoDate >= dataInicio && feriadoDate <= dataTermino && !isWeekend(feriadoDate);
       });
       
@@ -588,7 +588,7 @@ export const AddDisciplinaDialog = ({ open, onOpenChange, onSuccess }: AddDiscip
                       <div>
                         <p className="font-medium">{exclusion.nome}</p>
                         <p className="text-sm text-muted-foreground">
-                          {format(new Date(exclusion.data), "dd/MM/yyyy", { locale: ptBR })}
+                          {format(new Date(exclusion.data + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
                         </p>
                       </div>
                       <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
