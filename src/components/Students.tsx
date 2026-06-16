@@ -23,58 +23,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { AddStudentDialog } from "./students/AddStudentDialog";
 import { StudentData } from "./students/IndividualStudentForm";
 
-// Mock data for display when no real students exist
-const mockStudents = [
-  {
-    id: "1",
-    name: "Ana Silva",
-    email: "ana.silva@email.com",
-    phone: "(11) 99999-1111",
-    address: "São Paulo, SP",
-    average: 9.2,
-    attendance: 96,
-    status: "Ativo",
-    joinDate: "2024-02-01",
-    turma: "Turma A - Técnico em Informática"
-  },
-  {
-    id: "2",
-    name: "João Santos",
-    email: "joao.santos@email.com",
-    phone: "(11) 99999-2222",
-    address: "São Paulo, SP", 
-    average: 8.5,
-    attendance: 92,
-    status: "Ativo",
-    joinDate: "2024-02-01",
-    turma: "Turma B - Técnico em Administração"
-  },
-  {
-    id: "3",
-    name: "Maria Costa",
-    email: "maria.costa@email.com",
-    phone: "(11) 99999-3333",
-    address: "São Paulo, SP",
-    average: 9.8,
-    attendance: 98,
-    status: "Ativo",
-    joinDate: "2024-02-01",
-    turma: null
-  },
-  {
-    id: "4",
-    name: "Pedro Lima",
-    email: "pedro.lima@email.com",
-    phone: "(11) 99999-4444",
-    address: "São Paulo, SP",
-    average: 7.3,
-    attendance: 88,
-    status: "Ativo",
-    joinDate: "2024-02-15",
-    turma: "Turma A - Técnico em Informática"
-  }
-];
-
 export const Students = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
@@ -96,8 +44,8 @@ export const Students = () => {
     enabled: !!user,
   });
 
-  // Use real data if available, otherwise show mock data
-  const students = dbStudents.length > 0 ? dbStudents.map(s => ({
+  // Only show real data from database — no mock fallback
+  const students = dbStudents.map(s => ({
     id: s.id,
     name: s.nome,
     email: s.email || "",
@@ -111,7 +59,7 @@ export const Students = () => {
     turmaId: s.turmas?.id ?? null,
     // Keep raw data for editing
     rawData: s,
-  })) : mockStudents.map(m => ({ ...m, turmaId: null, rawData: null }));
+  }));
 
   const turmaOptions = Array.from(
     new Map(
