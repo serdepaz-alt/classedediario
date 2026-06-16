@@ -64,6 +64,17 @@ const studentSchema = z.object({
 
 type StudentFormData = z.infer<typeof studentSchema>;
 
+const parseDateOnly = (value?: string | null) => {
+  if (!value) return undefined;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return undefined;
+  return new Date(year, month - 1, day);
+};
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  return error instanceof Error ? error.message : fallback;
+};
+
 export interface StudentData {
   id: string;
   matricula: string;
@@ -105,9 +116,9 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       if (error) throw error;
       toast.success("Aluno inativado da turma");
       onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      toast.error(e.message || "Erro ao inativar aluno");
+      toast.error(getErrorMessage(e, "Erro ao inativar aluno"));
     } finally {
       setIsLoading(false);
     }
@@ -120,7 +131,7 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       if (!user) return [];
       const { data, error } = await supabase
         .from("turmas")
-        .select("id, nome, curso, periodo")
+        .select("id, nome, curso, periodo, horario")
         .eq("user_id", user.id)
         .eq("status", "Ativa")
         .order("nome");
@@ -138,10 +149,10 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
     const dataMat = v.data_matricula ? fmt(v.data_matricula) : "";
     const hoje = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     const logoUrl = `${window.location.origin}/logo-irma-dulce.jpeg`;
-    const cursoNome = (turma as any)?.curso || "";
-    const turmaNome = (turma as any)?.nome || "";
-    const turno = (turma as any)?.periodo || "";
-    const horario = (turma as any)?.horario || "";
+    const cursoNome = turma?.curso || "";
+    const turmaNome = turma?.nome || "";
+    const turno = turma?.periodo || "";
+    const horario = turma?.horario || "";
 
     const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/>
 <title>Ficha de Matrícula - ${v.nome}</title>
@@ -258,9 +269,9 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
     const hoje = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     const logoUrl = `${window.location.origin}/logo-irma-dulce.jpeg`;
     const assinaturaUrl = `${window.location.origin}/assinatura-luciano.png`;
-    const cursoNome = (turma as any)?.curso || "";
-    const turno = (turma as any)?.periodo || "";
-    const horario = (turma as any)?.horario || "";
+    const cursoNome = turma?.curso || "";
+    const turno = turma?.periodo || "";
+    const horario = turma?.horario || "";
 
     const genero = (v.nome_mae || v.nome_pai) ? "" : "";
     const aluno = v.nome || "_____________________";
@@ -346,8 +357,8 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
     const dataNasc = v.data_nascimento ? fmt(v.data_nascimento) : "_____________";
     const hoje = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     const logoUrl = `${window.location.origin}/logo-irma-dulce.jpeg`;
-    const cursoNome = (turma as any)?.curso || "Técnico em Enfermagem";
-    const turno = ((turma as any)?.periodo || "").toLowerCase();
+    const cursoNome = turma?.curso || "Técnico em Enfermagem";
+    const turno = (turma?.periodo || "").toLowerCase();
 
     // Parcelas por turno (1 matrícula + N mensalidades)
     let parcelas = 25;
@@ -599,8 +610,8 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       telefone: student?.telefone || "",
       email: student?.email || "",
       endereco: student?.endereco || "",
-      data_nascimento: student?.data_nascimento ? new Date(student.data_nascimento) : undefined,
-      data_matricula: student?.data_matricula ? new Date(student.data_matricula) : new Date(),
+      data_nascimento: parseDateOnly(student?.data_nascimento),
+      data_matricula: parseDateOnly(student?.data_matricula) || new Date(),
     },
   });
 
@@ -648,9 +659,9 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       }
 
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving student:", error);
-      toast.error(error.message || "Erro ao salvar estudante");
+      toast.error(getErrorMessage(error, "Erro ao salvar estudante"));
     } finally {
       setIsLoading(false);
     }
