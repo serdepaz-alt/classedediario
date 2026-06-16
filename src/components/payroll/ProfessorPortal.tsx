@@ -35,23 +35,16 @@ export const ProfessorPortal = () => {
     if (!loginEmail || !loginSenha || !user?.id) return;
     setLoggingIn(true);
     try {
-      const { data, error } = await supabase
-        .from("cad_professores")
-        .select("id, nome, email, user_id, senha")
-        .eq("user_id", user.id)
-        .eq("email", loginEmail)
-        .single();
-
-      if (error || !data) {
-        toast.error("Professor não encontrado");
+      const { data, error } = await supabase.functions.invoke("verify-professor-login", {
+        body: { email: loginEmail, senha: loginSenha },
+      });
+      if (error || !data?.professor) {
+        toast.error("Credenciais inválidas");
         return;
       }
-      if (data.senha !== loginSenha) {
-        toast.error("Senha incorreta");
-        return;
-      }
-      setProfSession({ id: data.id, nome: data.nome, email: data.email, user_id: data.user_id });
-      toast.success(`Bem-vindo, ${data.nome}!`);
+      const p = data.professor;
+      setProfSession({ id: p.id, nome: p.nome, email: p.email, user_id: p.user_id });
+      toast.success(`Bem-vindo, ${p.nome}!`);
     } catch {
       toast.error("Erro ao autenticar");
     } finally {
