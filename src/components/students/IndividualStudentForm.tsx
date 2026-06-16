@@ -316,6 +316,7 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
 <div class="assinatura-bloco">
   <img src="${assinaturaUrl}" alt="Assinatura"/>
   <div class="carimbo">Responsável Legal</div>
+  <div class="carimbo-sub">Centro de Form. Técnica em<br/>Enfermagem Irmã Dulce<br/>Luciano Kleber C. Ribeiro</div>
 </div>
 
 <script>
