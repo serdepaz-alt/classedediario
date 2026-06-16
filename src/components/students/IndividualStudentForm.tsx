@@ -71,6 +71,10 @@ const parseDateOnly = (value?: string | null) => {
   return new Date(year, month - 1, day);
 };
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  return error instanceof Error ? error.message : fallback;
+};
+
 export interface StudentData {
   id: string;
   matricula: string;
@@ -112,9 +116,9 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       if (error) throw error;
       toast.success("Aluno inativado da turma");
       onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      toast.error(e.message || "Erro ao inativar aluno");
+      toast.error(getErrorMessage(e, "Erro ao inativar aluno"));
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +131,7 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       if (!user) return [];
       const { data, error } = await supabase
         .from("turmas")
-        .select("id, nome, curso, periodo")
+        .select("id, nome, curso, periodo, horario")
         .eq("user_id", user.id)
         .eq("status", "Ativa")
         .order("nome");
