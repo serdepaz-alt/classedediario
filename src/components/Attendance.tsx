@@ -638,8 +638,8 @@ export const Attendance = () => {
       toast.error("Apenas o usuário autorizado (serdepaz@gmail.com) pode realizar a chamada.");
       return;
     }
-    // Reset lesson plan state for the dialog
-    setSelectedAulaId(null);
+    // Preserva o Conteúdo Ministrado já escolhido no painel principal —
+    // ele será materializado em um Plano de Aula da data ao salvar.
     setSeguiuPlanejado(true);
     setConteudoMinistrado("");
     setObservacoesAula("");
@@ -655,6 +655,61 @@ export const Attendance = () => {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
       const saveTime = new Date().toISOString();
       const startTime = classStartTimeRef.current?.toISOString() || saveTime;
+
+      // Materializa o Conteúdo Ministrado escolhido em um Plano de Aula
+      // da data/turma atuais, permitindo edição posterior no módulo
+      // Conteúdo Programático. Se o aula já é do dia+turma, reusa.
+      let aulaIdForRecords: string | null = selectedAulaId || null;
+      if (selectedAulaId) {
+        const { data: srcAula } = await supabase
+          .from("conteudo_programatico_aulas")
+          .select("id, topico, objetivo, metodologia, recursos, tipo_avaliacao, observacoes, disciplina_nome, data_aula, turma_id, tier_carga")
+          .eq("id", selectedAulaId)
+          .maybeSingle();
+
+        if (srcAula) {
+          const targetTurmaId = selectedDisciplina.turma_id || null;
+          const sameDay = srcAula.data_aula === dateStr;
+          const sameTurma = (srcAula.turma_id || null) === targetTurmaId;
+
+          if (!sameDay || !sameTurma) {
+            // Procura plano já existente para data+disciplina+turma+tópico
+            const { data: existing } = await supabase
+              .from("conteudo_programatico_aulas")
+              .select("id")
+              .eq("user_id", ownerId)
+              .eq("disciplina_id", selectedDisciplina.id)
+              .eq("data_aula", dateStr)
+              .eq("topico", srcAula.topico)
+              .maybeSingle();
+
+            if (existing?.id) {
+              aulaIdForRecords = existing.id;
+            } else {
+              const { data: cloned, error: cloneErr } = await supabase
+                .from("conteudo_programatico_aulas")
+                .insert({
+                  user_id: ownerId,
+                  disciplina_id: selectedDisciplina.id,
+                  turma_id: targetTurmaId,
+                  disciplina_nome: srcAula.disciplina_nome || selectedDisciplina.nome,
+                  data_aula: dateStr,
+                  topico: srcAula.topico,
+                  objetivo: srcAula.objetivo,
+                  metodologia: srcAula.metodologia,
+                  recursos: srcAula.recursos,
+                  tipo_avaliacao: srcAula.tipo_avaliacao || "aula",
+                  observacoes: srcAula.observacoes,
+                  status: "concluido",
+                  tier_carga: srcAula.tier_carga,
+                })
+                .select("id")
+                .single();
+              if (!cloneErr && cloned) aulaIdForRecords = cloned.id;
+            }
+          }
+        }
+      }
 
       // Fetch previous day stats for comparison
       const { data: previousData } = await supabase
@@ -693,7 +748,7 @@ export const Attendance = () => {
           horario_inicio: startTime,
           horario_salvamento: saveTime,
           justificativa: justificativas.get(studentId) || null,
-          aula_programatica_id: selectedAulaId || null,
+          aula_programatica_id: aulaIdForRecords,
           conteudo_ministrado: conteudoMinistrado || null,
           observacoes_aula: observacoesAula || null,
         }));
@@ -704,11 +759,11 @@ export const Attendance = () => {
       }
 
       // Update aula status to concluido if linked
-      if (selectedAulaId) {
+      if (aulaIdForRecords) {
         await supabase
           .from("conteudo_programatico_aulas")
           .update({ status: "concluido", updated_at: new Date().toISOString() })
-          .eq("id", selectedAulaId);
+          .eq("id", aulaIdForRecords);
       }
 
       setDatesWithAttendance((prev) => new Set([...prev, dateStr]));

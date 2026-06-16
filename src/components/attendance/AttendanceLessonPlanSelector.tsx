@@ -89,17 +89,28 @@ export const AttendanceLessonPlanSelector = ({
         .order("topico", { ascending: true });
 
       if (!error && data) {
-        setAulas(data as AulaProgramatica[]);
+        let list = data as AulaProgramatica[];
+        // Inclui o template pré-selecionado (Conteúdo Ministrado) caso
+        // ele não pertença à data atual, para que apareça aqui também.
+        if (selectedAulaId && !list.some((a) => a.id === selectedAulaId)) {
+          const { data: extra } = await supabase
+            .from("conteudo_programatico_aulas")
+            .select("*")
+            .eq("id", selectedAulaId)
+            .maybeSingle();
+          if (extra) list = [extra as AulaProgramatica, ...list];
+        }
+        setAulas(list);
         // Auto-select if only one
-        if (data.length === 1 && !selectedAulaId) {
-          onSelectAula(data[0].id);
+        if (list.length === 1 && !selectedAulaId) {
+          onSelectAula(list[0].id);
         }
       }
       setIsLoading(false);
     };
 
     fetchAulas();
-  }, [user?.id, disciplinaId, dateStr]);
+  }, [user?.id, disciplinaId, dateStr, selectedAulaId]);
 
   const handleQuickCreate = async () => {
     if (!user?.id || !quickTopico.trim()) {
