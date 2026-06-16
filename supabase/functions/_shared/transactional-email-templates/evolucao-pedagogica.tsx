@@ -270,14 +270,7 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
 
             {/* 4. Gestão de Cronogramas */}
             <Section style={{ ...cardStyle, marginTop: '16px' }}>
-              <Row>
-                <Column>
-                  <Text style={sectionTitle}>Gestão de Cronogramas</Text>
-                </Column>
-                <Column align="right">
-                  <Button href={portalUrl} style={smallBlueBtn}>Notificar Aluno Agora</Button>
-                </Column>
-              </Row>
+              <Text style={sectionTitle}>Gestão de Cronogramas</Text>
               <Text style={mutedSmall}>Visualize e gerencie os cronogramas de disciplinas por turma</Text>
               <Text style={{ fontSize: '13px', color: '#111827', margin: '8px 0 2px' }}>
                 <strong>{cronograma.turmaCode}</strong> {cronograma.totalDisciplinas} disciplina(s)
@@ -346,7 +339,6 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
                   <Text style={{ fontSize: '12px', color: '#374151', margin: 0, lineHeight: '1.5' }}>{alerta.texto}</Text>
                 </Column>
                 <Column style={{ verticalAlign: 'top', width: '170px' }} align="right">
-                  <Button href={portalUrl} style={{ ...smallBlueBtn, marginBottom: '6px' }}>Notificar Aluno Agora</Button>
                   <div>
                     <span style={{ ...tagStyle, backgroundColor: '#bbf7d0', color: '#166534' }}>Alert level</span>
                     <span style={{ ...tagStyle, backgroundColor: '#fef08a', color: '#854d0e', marginLeft: '4px' }}>Alert level</span>
