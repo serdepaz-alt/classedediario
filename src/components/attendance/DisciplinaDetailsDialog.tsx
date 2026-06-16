@@ -41,7 +41,7 @@ export const DisciplinaDetailsDialog = ({
   if (!disciplina) return null;
 
   const formatDate = (dateStr: string) => {
-    return format(new Date(dateStr), "dd/MM/yyyy");
+    return format(new Date(dateStr + "T00:00:00"), "dd/MM/yyyy");
   };
 
   return (
