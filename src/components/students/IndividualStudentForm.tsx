@@ -286,8 +286,9 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
   p.body { text-align:justify; text-indent:1.5em; margin:0 0 8mm; }
   .local-data { text-align:center; font-weight:bold; margin:10mm 0 14mm; }
   .assinatura-bloco { text-align:center; margin-top:4mm; }
-  .assinatura-bloco img { width:57mm; height:auto; display:block; margin:0 auto 2mm; }
-  .assinatura-bloco .carimbo { display:inline-block; border:2px solid #000; padding:2mm 6mm; font-weight:bold; font-size:11pt; letter-spacing:0.5mm; text-transform:uppercase; transform:rotate(-3deg); color:#000; border-radius:1mm; }
+  .assinatura-bloco img { width:90mm; height:auto; display:block; margin:0 auto 1mm; }
+  .assinatura-bloco .carimbo { display:block; font-family:Garamond,'Times New Roman',serif; font-weight:bold; font-size:14pt; color:#000; margin-top:0; }
+  .assinatura-bloco .carimbo-sub { display:block; font-family:Garamond,'Times New Roman',serif; font-style:italic; font-size:10pt; color:#000; line-height:1.3; margin-top:1mm; }
   @media print { .no-print { display:none; } }
   .actions { text-align:center; padding:12px; background:#f0f0f0; position:sticky; top:0; z-index:100; }
   .actions button { padding:8px 18px; font-size:13px; cursor:pointer; margin:0 4px; }
