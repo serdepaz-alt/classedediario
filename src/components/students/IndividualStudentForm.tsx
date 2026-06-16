@@ -273,18 +273,21 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
     const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/>
 <title>Atestado de Matrícula - ${aluno}</title>
 <style>
-  @page { size: A4; margin: 22mm 22mm 22mm 22mm; }
+  @page { size: A4; margin: 16mm 18mm 18mm 18mm; }
   * { box-sizing: border-box; }
-  body { font-family: 'Times New Roman', serif; color:#000; margin:0; font-size:13pt; line-height:1.7; }
-  .header { text-align:center; margin-bottom:8px; }
-  .header img.logo { width:140px; height:auto; object-fit:contain; display:block; margin:0 auto 8px; }
-  .header .divider { height:2px; background:#1f3a93; width:100%; margin:6px 0 24px; }
-  h1.title { text-align:center; font-style:italic; font-weight:bold; font-size:18pt; text-decoration:underline; margin:24px 0 32px; }
-  p.body { text-align:justify; text-indent:1.5em; margin:0 0 28px; }
-  .local-data { text-align:center; font-weight:bold; margin:36px 0 60px; }
-  .assinatura-bloco { text-align:center; margin-top:12px; }
-  .assinatura-bloco img { width:220px; height:auto; display:block; margin:0 auto -6px; }
-  .assinatura-bloco .linha { border-top:1px solid #000; width:320px; margin:0 auto; padding-top:4px; }
+  body { font-family: Garamond, 'Times New Roman', serif; color:#000; margin:0; font-size:11pt; line-height:1.45; }
+  .header { display:grid; grid-template-columns:32mm 1fr; align-items:center; gap:8mm; padding-bottom:5mm; margin-bottom:14mm; border-bottom:2px solid #000; }
+  .logo-box { width:32mm; height:32mm; display:flex; align-items:center; justify-content:center; }
+  .header img.logo { max-width:32mm; max-height:32mm; object-fit:contain; display:block; }
+  .institution { text-align:center; line-height:1.2; }
+  .institution .name { font-weight:bold; font-size:13pt; margin:0 0 1.5mm; }
+  .institution .line { font-size:9.5pt; margin:0; }
+  h1.title { text-align:center; font-style:italic; font-weight:bold; font-size:14pt; text-decoration:underline; margin:0 0 9mm; }
+  p.body { text-align:justify; text-indent:1.5em; margin:0 0 8mm; }
+  .local-data { text-align:center; font-weight:bold; margin:10mm 0 14mm; }
+  .assinatura-bloco { text-align:center; margin-top:4mm; }
+  .assinatura-bloco img { width:42mm; height:auto; display:block; margin:0 auto -2mm; }
+  .assinatura-bloco .linha { border-top:1px solid #000; width:62mm; margin:0 auto; padding-top:1.5mm; }
   @media print { .no-print { display:none; } }
   .actions { text-align:center; padding:12px; background:#f0f0f0; position:sticky; top:0; z-index:100; }
   .actions button { padding:8px 18px; font-size:13px; cursor:pointer; margin:0 4px; }
@@ -293,10 +296,16 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
   <button onclick="window.print()">🖨️ Imprimir</button>
   <button onclick="window.close()">Fechar</button>
 </div>
-<div class="header">
-  <img class="logo" src="${logoUrl}" alt="Logo"/>
-  <div class="divider"></div>
-</div>
+<header class="header">
+  <div class="logo-box"><img class="logo" src="${logoUrl}" alt="Logomarca"/></div>
+  <div class="institution">
+    <p class="name">Centro de Formação Técnica em Enfermagem Irmã Dulce</p>
+    <p class="line">Parecer CEE nº 228/2024 – Resolução CEE, nº 228/2024 D.O. 16/09/2024</p>
+    <p class="line">CNPJ 52.062.409/0001-36</p>
+    <p class="line">Rua Arquimedes Gonçalves, nº 313, Nazaré, Salvador, Bahia</p>
+    <p class="line">Telefone: 3321-9366 / 3561-2523</p>
+  </div>
+</header>
 <h1 class="title">Atestado de Matrícula</h1>
 
 <p class="body">Atestado para devidos fins que o(a) aluno(a) <b>${aluno}</b>, CPF <b>${cpf}</b>, Matrícula: <b>${matricula}</b>, filho(a) de ${filiacao}, está matriculado(a) no curso <b>${cursoNome || "_____________________"}</b> nesse estabelecimento de Ensino, no turno <b>${turno || "_______"}</b>${horario ? `, no horário <b>${horario}</b>` : ""}.</p>
@@ -308,7 +317,15 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
   <div class="linha">Responsável Legal</div>
 </div>
 
-<script>window.addEventListener('load', () => setTimeout(() => window.print(), 500));</script>
+<script>
+  window.addEventListener('load', () => {
+    const images = Array.from(document.images);
+    Promise.all(images.map((img) => img.complete ? Promise.resolve() : new Promise((resolve) => {
+      img.onload = resolve;
+      img.onerror = resolve;
+    }))).then(() => setTimeout(() => window.print(), 300));
+  });
+</script>
 </body></html>`;
 
     const w = window.open("", "_blank", "width=900,height=1000");
