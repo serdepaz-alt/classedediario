@@ -124,15 +124,15 @@ export function AtestadoMatricula() {
       </div>
 
       <Card className="mx-auto max-w-[820px] bg-white text-black shadow-md print:shadow-none print:max-w-none print:border-0">
-        <div className="px-12 py-10 print:px-16 print:py-12">
-          {/* CABEÇALHO — 25% / 75% */}
-          <header className="grid grid-cols-4 gap-6 pb-6 border-b border-neutral-300">
-            {/* Logo column 25% */}
-            <div className="col-span-1 flex items-center justify-center">
+        <div className="atestado-doc px-10 py-8 print:px-12 print:py-10" style={{ fontFamily: "Garamond, 'EB Garamond', 'Times New Roman', serif" }}>
+          <div className="atestado-border relative p-8 print:p-10" style={{ border: "3px double #000", boxShadow: "inset 0 0 0 1px #000" }}>
+          {/* CABEÇALHO — logo à esquerda, textos centralizados */}
+          <header className="grid grid-cols-[110px_1fr] gap-4 items-center">
+            <div className="flex items-center justify-center">
               <button
                 type="button"
                 onClick={() => logoInput.current?.click()}
-                className="group relative w-full aspect-square rounded-md border-2 border-dashed border-neutral-300 hover:border-primary/60 transition-colors flex items-center justify-center overflow-hidden bg-neutral-50 print:border-0 print:bg-transparent"
+                className="group relative w-[100px] h-[100px] hover:opacity-80 transition-opacity flex items-center justify-center overflow-hidden print:border-0 print:bg-transparent"
                 title="Clique para enviar a logomarca"
               >
                 {state.logoUrl ? (
@@ -142,49 +142,48 @@ export function AtestadoMatricula() {
                     className="w-full h-full object-contain"
                   />
                 ) : (
-                  <div className="flex flex-col items-center text-neutral-500 text-xs gap-1 print:hidden">
+                  <div className="flex flex-col items-center text-neutral-400 text-[10px] gap-1 border border-dashed border-neutral-300 w-full h-full justify-center print:hidden">
                     <Upload className="h-5 w-5" />
                     <span>Enviar logo</span>
                   </div>
                 )}
-                <span className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors print:hidden" />
               </button>
             </div>
 
-            {/* Textos column 75% */}
-            <div className="col-span-3 flex flex-col justify-center text-left space-y-1">
+            {/* Textos centralizados */}
+            <div className="flex flex-col justify-center text-center leading-tight">
               <h1
                 {...editableProps(state.institutionName, (v) =>
                   update("institutionName", v),
                 )}
-                className="text-xl font-bold tracking-wide uppercase outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
-              />
-              <p
-                {...editableProps(state.parecer, (v) => update("parecer", v))}
-                className="text-xs text-neutral-700 outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
-              />
-              <p
-                {...editableProps(state.cnpj, (v) => update("cnpj", v))}
-                className="text-xs text-neutral-700 outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
+                className="text-[15px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
               />
               <p
                 {...editableProps(state.endereco, (v) => update("endereco", v))}
-                className="text-xs text-neutral-700 outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
+                className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
               />
               <p
                 {...editableProps(state.contatos, (v) => update("contatos", v))}
-                className="text-xs text-neutral-700 outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
+                className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm inline"
+              />
+              <p
+                {...editableProps(state.parecer, (v) => update("parecer", v))}
+                className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
+              />
+              <p
+                {...editableProps(state.cnpj, (v) => update("cnpj", v))}
+                className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
               />
             </div>
           </header>
 
           {/* CORPO — com marca d'água */}
-          <section className="relative mt-10 min-h-[420px]">
+          <section className="relative mt-8 min-h-[420px]">
             {state.logoUrl && (
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 flex items-center justify-center"
-                style={{ opacity: 0.1 }}
+                style={{ opacity: 0.08 }}
               >
                 <img
                   src={state.logoUrl}
@@ -195,13 +194,13 @@ export function AtestadoMatricula() {
             )}
 
             <div className="relative">
-              <h2 className="text-center text-lg font-bold tracking-[0.3em] uppercase mb-8">
-                Atestado de Matrícula
+              <h2 className="text-center text-[16px] font-bold mb-8">
+                <span style={{ textDecoration: "underline" }}>Atestado de Matrícula</span>
               </h2>
 
               <div
                 {...editableProps(state.corpo, (v) => update("corpo", v))}
-                className="text-justify leading-relaxed text-[15px] whitespace-pre-wrap outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm min-h-[200px]"
+                className="text-justify leading-[1.8] text-[14px] whitespace-pre-wrap outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm min-h-[200px] indent-8"
               />
             </div>
           </section>
@@ -219,7 +218,7 @@ export function AtestadoMatricula() {
                   src={state.signatureUrl}
                   alt="Assinatura digitalizada"
                   className="object-contain"
-                  style={{ height: 48, maxHeight: 50, width: "auto" }}
+                  style={{ height: 60, maxHeight: 70, width: "auto" }}
                 />
               ) : (
                 <div className="h-12 px-8 flex items-center justify-center text-xs text-neutral-400 border border-dashed border-neutral-300 rounded-md print:hidden">
@@ -232,15 +231,21 @@ export function AtestadoMatricula() {
               {...editableProps(state.responsavelNome, (v) =>
                 update("responsavelNome", v),
               )}
-              className="mt-1 text-[15px] font-semibold text-center outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
+              className="mt-1 text-[13px] text-center outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
             />
             <p
               {...editableProps(state.responsavelCargo, (v) =>
                 update("responsavelCargo", v),
               )}
-              className="text-[14px] text-neutral-700 text-center outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
+              className="text-[11px] text-neutral-700 text-center whitespace-pre-wrap outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
             />
           </footer>
+
+          {/* Rodapé Matriz dentro da borda */}
+          <div className="mt-10 pt-3 border-t border-neutral-400 text-[11px] text-center">
+            Matriz: Avenida Joana Angélica, 177 - Nazaré - Tel: (71) 3321-9366 / 3562-2523 / 9 9174-7744
+          </div>
+          </div>
         </div>
       </Card>
 
