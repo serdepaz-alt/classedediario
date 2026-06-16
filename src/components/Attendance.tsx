@@ -638,8 +638,8 @@ export const Attendance = () => {
       toast.error("Apenas o usuário autorizado (serdepaz@gmail.com) pode realizar a chamada.");
       return;
     }
-    // Reset lesson plan state for the dialog
-    setSelectedAulaId(null);
+    // Preserva o Conteúdo Ministrado já escolhido no painel principal —
+    // ele será materializado em um Plano de Aula da data ao salvar.
     setSeguiuPlanejado(true);
     setConteudoMinistrado("");
     setObservacoesAula("");
