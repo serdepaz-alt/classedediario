@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Plus, 
   Search, 
@@ -77,6 +78,7 @@ const mockStudents = [
 export const Students = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [turmaFilter, setTurmaFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<StudentData | null>(null);
 
@@ -107,9 +109,18 @@ export const Students = () => {
     status: s.status || "Ativo",
     joinDate: s.data_matricula,
     turma: s.turmas ? `${s.turmas.nome}${s.turmas.curso ? ` - ${s.turmas.curso}` : ""}` : null,
+    turmaId: s.turmas?.id ?? null,
     // Keep raw data for editing
     rawData: s,
-  })) : mockStudents.map(m => ({ ...m, rawData: null }));
+  })) : mockStudents.map(m => ({ ...m, turmaId: null, rawData: null }));
+
+  const turmaOptions = Array.from(
+    new Map(
+      students
+        .filter(s => s.turmaId && s.turma)
+        .map(s => [s.turmaId as string, s.turma as string])
+    ).entries()
+  ).sort((a, b) => a[1].localeCompare(b[1]));
 
   const handleEditStudent = (studentRaw: any) => {
     if (!studentRaw) return;
@@ -142,10 +153,15 @@ export const Students = () => {
     }
   };
 
-  const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (student.email && student.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredStudents = students.filter(student => {
+    const matchesSearch =
+      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (student.email && student.email.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesTurma =
+      turmaFilter === "all" ||
+      (turmaFilter === "none" ? !student.turmaId : student.turmaId === turmaFilter);
+    return matchesSearch && matchesTurma;
+  });
 
   const getPerformanceColor = (average: number) => {
     if (average >= 9) return "text-success";
@@ -185,10 +201,21 @@ export const Students = () => {
               className="pl-10"
             />
           </div>
-          <Button variant="outline" size="sm">
-            <Filter className="w-4 h-4" />
-            Filtros
-          </Button>
+          <Select value={turmaFilter} onValueChange={setTurmaFilter}>
+            <SelectTrigger className="w-[260px]">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                <SelectValue placeholder="Filtrar por turma" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as turmas</SelectItem>
+              <SelectItem value="none">Sem turma</SelectItem>
+              {turmaOptions.map(([id, label]) => (
+                <SelectItem key={id} value={id}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 
