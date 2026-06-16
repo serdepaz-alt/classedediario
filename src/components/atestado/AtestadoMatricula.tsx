@@ -126,55 +126,30 @@ export function AtestadoMatricula() {
       <Card className="mx-auto max-w-[820px] bg-white text-black shadow-md print:shadow-none print:max-w-none print:border-0">
         <div className="atestado-doc px-10 py-8 print:px-12 print:py-10" style={{ fontFamily: "Garamond, 'EB Garamond', 'Times New Roman', serif" }}>
           <div className="atestado-border relative p-8 print:p-10" style={{ border: "3px double #000", boxShadow: "inset 0 0 0 1px #000" }}>
-          {/* CABEÇALHO — logo à esquerda, textos centralizados */}
-          <header className="grid grid-cols-[110px_1fr] gap-4 items-center">
-            <div className="flex items-center justify-center">
-              <button
-                type="button"
-                onClick={() => logoInput.current?.click()}
-                className="group relative w-[100px] h-[100px] hover:opacity-80 transition-opacity flex items-center justify-center overflow-hidden print:border-0 print:bg-transparent"
-                title="Clique para enviar a logomarca"
-              >
-                {state.logoUrl ? (
-                  <img
-                    src={state.logoUrl}
-                    alt="Logomarca da instituição"
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center text-neutral-400 text-[10px] gap-1 border border-dashed border-neutral-300 w-full h-full justify-center print:hidden">
-                    <Upload className="h-5 w-5" />
-                    <span>Enviar logo</span>
-                  </div>
-                )}
-              </button>
-            </div>
-
-            {/* Textos centralizados */}
-            <div className="flex flex-col justify-center text-center leading-tight">
-              <h1
-                {...editableProps(state.institutionName, (v) =>
-                  update("institutionName", v),
-                )}
-                className="text-[15px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
-              />
-              <p
-                {...editableProps(state.endereco, (v) => update("endereco", v))}
-                className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
-              />
-              <p
-                {...editableProps(state.contatos, (v) => update("contatos", v))}
-                className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm inline"
-              />
-              <p
-                {...editableProps(state.parecer, (v) => update("parecer", v))}
-                className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
-              />
-              <p
-                {...editableProps(state.cnpj, (v) => update("cnpj", v))}
-                className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
-              />
-            </div>
+          {/* CABEÇALHO INSTITUCIONAL — texto centralizado, sem logo */}
+          <header className="flex flex-col items-center text-center leading-snug mb-10 pb-4 border-b border-black">
+            <h1
+              {...editableProps(state.institutionName, (v) =>
+                update("institutionName", v),
+              )}
+              className="text-[17px] font-bold outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
+            />
+            <p
+              {...editableProps(state.parecer, (v) => update("parecer", v))}
+              className="text-[13px] mt-1 outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
+            />
+            <p
+              {...editableProps(state.cnpj, (v) => update("cnpj", v))}
+              className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
+            />
+            <p
+              {...editableProps(state.endereco, (v) => update("endereco", v))}
+              className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
+            />
+            <p
+              {...editableProps(state.contatos, (v) => update("contatos", v))}
+              className="text-[13px] outline-none focus:ring-2 focus:ring-primary/40 focus:bg-primary/5 rounded-sm"
+            />
           </header>
 
           {/* CORPO — com marca d'água */}
