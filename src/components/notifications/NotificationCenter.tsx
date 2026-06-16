@@ -48,14 +48,19 @@ export const NotificationCenter = () => {
       const [{ data: turmasData }, { data: settings }, { data: alunos }] = await Promise.all([
         supabase.from("turmas").select("id, nome, curso").eq("status", "Ativa").order("nome"),
         supabase.from("notification_settings").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("students").select("turma_id").eq("status", "Ativo"),
+        supabase
+          .from("students")
+          .select("turma_id, email")
+          .eq("status", "Ativo")
+          .not("email", "is", null)
+          .neq("email", ""),
       ]);
 
       if (turmasData) setTurmas(turmasData as any);
 
       const counts: Record<string, number> = {};
       (alunos || []).forEach((a: any) => {
-        if (a.turma_id) counts[a.turma_id] = (counts[a.turma_id] || 0) + 1;
+        if (a.turma_id && a.email) counts[a.turma_id] = (counts[a.turma_id] || 0) + 1;
       });
       setStudentsCount(counts);
 
