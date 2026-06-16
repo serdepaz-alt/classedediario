@@ -61,7 +61,7 @@ export const useBacklog = () => {
     fetchItems();
 
     const channel = supabase
-      .channel("backlog-realtime")
+      .channel(`${user.id}:backlog-realtime`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "backlog_anotacoes", filter: `user_id=eq.${user.id}` },
