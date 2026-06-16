@@ -1376,6 +1376,7 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
                   <ConteudoMinistradoSelect
                     disciplinaId={selectedDisciplina?.id || null}
                     disciplinaNome={selectedDisciplina?.nome || null}
+                    cargaHorariaDiaria={selectedDisciplina?.carga_horaria_diaria ?? null}
                     ownerUserId={ownerId}
                     selectedDate={selectedDate}
                     value={selectedAulaId || ""}

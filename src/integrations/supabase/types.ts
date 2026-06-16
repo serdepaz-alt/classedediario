@@ -407,6 +407,7 @@ export type Database = {
           observacoes: string | null
           recursos: string | null
           status: string
+          tier_carga: string | null
           tipo_avaliacao: string
           topico: string
           turma_id: string | null
@@ -424,6 +425,7 @@ export type Database = {
           observacoes?: string | null
           recursos?: string | null
           status?: string
+          tier_carga?: string | null
           tipo_avaliacao?: string
           topico: string
           turma_id?: string | null
@@ -441,6 +443,7 @@ export type Database = {
           observacoes?: string | null
           recursos?: string | null
           status?: string
+          tier_carga?: string | null
           tipo_avaliacao?: string
           topico?: string
           turma_id?: string | null

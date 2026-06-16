@@ -23,6 +23,7 @@ interface AulaItem {
 interface Props {
   disciplinaId: string | null;
   disciplinaNome?: string | null;
+  cargaHorariaDiaria?: number | null;
   ownerUserId?: string | null;
   selectedDate: Date | undefined;
   value: string;
@@ -36,6 +37,7 @@ const CONTEUDO_TAG = /^\[Conteúdo:[^\]]*\]\s*-\s*/;
 export const ConteudoMinistradoSelect = ({
   disciplinaId,
   disciplinaNome,
+  cargaHorariaDiaria,
   ownerUserId,
   selectedDate,
   value,
@@ -47,30 +49,41 @@ export const ConteudoMinistradoSelect = ({
   const dateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : null;
   const effectiveOwnerId = ownerUserId || user?.id || null;
 
+  // Tier de carga: 3h (Matutino/Vespertino) ou 2h (Intermediário/Noturno).
+  // Usado para escolher o template correto quando a disciplina não tem aulas
+  // vinculadas diretamente por disciplina_id.
+  const tierCarga: "3h" | "2h" | null =
+    cargaHorariaDiaria == null ? null : cargaHorariaDiaria >= 3 ? "3h" : "2h";
+
   // React Query — invalida automaticamente quando novas aulas são salvas
   // (mesma chave usada por useConteudoProgramaticoAulas)
   const { data: aulas = [], isLoading } = useQuery({
-    queryKey: ["conteudo-programatico-aulas", effectiveOwnerId, "select", disciplinaId, disciplinaNome],
+    queryKey: ["conteudo-programatico-aulas", effectiveOwnerId, "select", disciplinaId, disciplinaNome, tierCarga],
     queryFn: async (): Promise<AulaItem[]> => {
       if (!effectiveOwnerId || (!disciplinaId && !disciplinaNome)) return [];
-      // Escopo estrito à disciplina ATIVA da turma:
-      // - Se houver disciplina_id (vínculo direto), filtra exclusivamente por ele.
-      // - Caso contrário, usa disciplina_nome como fallback (planos cadastrados só pelo Padrão de Marcação).
-      let query = supabase
-        .from("conteudo_programatico_aulas")
-        .select("id, topico, data_aula, objetivo")
-        .eq("user_id", effectiveOwnerId)
-        .order("data_aula", { ascending: true });
-
+      // 1) Tenta vínculo direto por disciplina_id.
       if (disciplinaId) {
-        query = query.eq("disciplina_id", disciplinaId);
-      } else if (disciplinaNome) {
-        query = query.eq("disciplina_nome", disciplinaNome);
+        const { data, error } = await supabase
+          .from("conteudo_programatico_aulas")
+          .select("id, topico, data_aula, objetivo")
+          .eq("user_id", effectiveOwnerId)
+          .eq("disciplina_id", disciplinaId)
+          .order("data_aula", { ascending: true });
+        if (!error && data && data.length > 0) return data as AulaItem[];
       }
-
-      const { data, error } = await query;
-      if (error) return [];
-      return (data || []) as AulaItem[];
+      // 2) Fallback: template por nome + tier de carga (Manhã/Tarde = 3h, Intermediário/Noite = 2h).
+      if (disciplinaNome) {
+        let q = supabase
+          .from("conteudo_programatico_aulas")
+          .select("id, topico, data_aula, objetivo")
+          .eq("user_id", effectiveOwnerId)
+          .eq("disciplina_nome", disciplinaNome)
+          .order("data_aula", { ascending: true });
+        if (tierCarga) q = q.eq("tier_carga", tierCarga);
+        const { data, error } = await q;
+        if (!error && data) return data as AulaItem[];
+      }
+      return [];
     },
     enabled: !!effectiveOwnerId && (!!disciplinaId || !!disciplinaNome),
   });
