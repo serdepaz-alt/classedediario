@@ -149,10 +149,10 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
     const dataMat = v.data_matricula ? fmt(v.data_matricula) : "";
     const hoje = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     const logoUrl = `${window.location.origin}/logo-irma-dulce.jpeg`;
-    const cursoNome = (turma as any)?.curso || "";
-    const turmaNome = (turma as any)?.nome || "";
-    const turno = (turma as any)?.periodo || "";
-    const horario = (turma as any)?.horario || "";
+    const cursoNome = turma?.curso || "";
+    const turmaNome = turma?.nome || "";
+    const turno = turma?.periodo || "";
+    const horario = turma?.horario || "";
 
     const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/>
 <title>Ficha de Matrícula - ${v.nome}</title>
@@ -269,9 +269,9 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
     const hoje = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     const logoUrl = `${window.location.origin}/logo-irma-dulce.jpeg`;
     const assinaturaUrl = `${window.location.origin}/assinatura-luciano.png`;
-    const cursoNome = (turma as any)?.curso || "";
-    const turno = (turma as any)?.periodo || "";
-    const horario = (turma as any)?.horario || "";
+    const cursoNome = turma?.curso || "";
+    const turno = turma?.periodo || "";
+    const horario = turma?.horario || "";
 
     const genero = (v.nome_mae || v.nome_pai) ? "" : "";
     const aluno = v.nome || "_____________________";
@@ -357,8 +357,8 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
     const dataNasc = v.data_nascimento ? fmt(v.data_nascimento) : "_____________";
     const hoje = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     const logoUrl = `${window.location.origin}/logo-irma-dulce.jpeg`;
-    const cursoNome = (turma as any)?.curso || "Técnico em Enfermagem";
-    const turno = ((turma as any)?.periodo || "").toLowerCase();
+    const cursoNome = turma?.curso || "Técnico em Enfermagem";
+    const turno = (turma?.periodo || "").toLowerCase();
 
     // Parcelas por turno (1 matrícula + N mensalidades)
     let parcelas = 25;
@@ -659,9 +659,9 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       }
 
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving student:", error);
-      toast.error(error.message || "Erro ao salvar estudante");
+      toast.error(getErrorMessage(error, "Erro ao salvar estudante"));
     } finally {
       setIsLoading(false);
     }
