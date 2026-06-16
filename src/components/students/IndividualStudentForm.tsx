@@ -597,6 +597,7 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
         matricula: data.matricula,
         nome: data.nome,
         turma_id: data.turma_id || null,
+        status: data.turma_id ? "Ativo" : "Inativo",
         data_nascimento: data.data_nascimento ? format(data.data_nascimento, "yyyy-MM-dd") : null,
         cpf: data.cpf || null,
         rg: data.rg || null,
