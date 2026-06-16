@@ -64,6 +64,13 @@ const studentSchema = z.object({
 
 type StudentFormData = z.infer<typeof studentSchema>;
 
+const parseDateOnly = (value?: string | null) => {
+  if (!value) return undefined;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return undefined;
+  return new Date(year, month - 1, day);
+};
+
 export interface StudentData {
   id: string;
   matricula: string;
@@ -599,8 +606,8 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
       telefone: student?.telefone || "",
       email: student?.email || "",
       endereco: student?.endereco || "",
-      data_nascimento: student?.data_nascimento ? new Date(student.data_nascimento) : undefined,
-      data_matricula: student?.data_matricula ? new Date(student.data_matricula) : new Date(),
+      data_nascimento: parseDateOnly(student?.data_nascimento),
+      data_matricula: parseDateOnly(student?.data_matricula) || new Date(),
     },
   });
 
