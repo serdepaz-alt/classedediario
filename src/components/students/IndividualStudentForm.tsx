@@ -314,7 +314,7 @@ export const IndividualStudentForm = ({ onCancel, onSuccess, student }: Individu
 
 <div class="assinatura-bloco">
   <img src="${assinaturaUrl}" alt="Assinatura"/>
-  <div class="linha">Responsável Legal</div>
+  <div class="carimbo">Responsável Legal</div>
 </div>
 
 <script>
