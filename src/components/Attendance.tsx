@@ -1376,6 +1376,7 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
                   <ConteudoMinistradoSelect
                     disciplinaId={selectedDisciplina?.id || null}
                     disciplinaNome={selectedDisciplina?.nome || null}
+                    ownerUserId={ownerId}
                     selectedDate={selectedDate}
                     value={selectedAulaId || ""}
                     onChange={(id) => setSelectedAulaId(id)}

@@ -23,6 +23,7 @@ interface AulaItem {
 interface Props {
   disciplinaId: string | null;
   disciplinaNome?: string | null;
+  ownerUserId?: string | null;
   selectedDate: Date | undefined;
   value: string;
   onChange: (value: string) => void;
@@ -35,6 +36,7 @@ const CONTEUDO_TAG = /^\[Conteúdo:[^\]]*\]\s*-\s*/;
 export const ConteudoMinistradoSelect = ({
   disciplinaId,
   disciplinaNome,
+  ownerUserId,
   selectedDate,
   value,
   onChange,
@@ -43,20 +45,21 @@ export const ConteudoMinistradoSelect = ({
 }: Props) => {
   const { user } = useAuth();
   const dateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : null;
+  const effectiveOwnerId = ownerUserId || user?.id || null;
 
   // React Query — invalida automaticamente quando novas aulas são salvas
   // (mesma chave usada por useConteudoProgramaticoAulas)
   const { data: aulas = [], isLoading } = useQuery({
-    queryKey: ["conteudo-programatico-aulas", user?.id, "select", disciplinaId, disciplinaNome],
+    queryKey: ["conteudo-programatico-aulas", effectiveOwnerId, "select", disciplinaId, disciplinaNome],
     queryFn: async (): Promise<AulaItem[]> => {
-      if (!user?.id || (!disciplinaId && !disciplinaNome)) return [];
+      if (!effectiveOwnerId || (!disciplinaId && !disciplinaNome)) return [];
       // Escopo estrito à disciplina ATIVA da turma:
       // - Se houver disciplina_id (vínculo direto), filtra exclusivamente por ele.
       // - Caso contrário, usa disciplina_nome como fallback (planos cadastrados só pelo Padrão de Marcação).
       let query = supabase
         .from("conteudo_programatico_aulas")
         .select("id, topico, data_aula, objetivo")
-        .eq("user_id", user.id)
+        .eq("user_id", effectiveOwnerId)
         .order("data_aula", { ascending: true });
 
       if (disciplinaId) {
@@ -69,7 +72,7 @@ export const ConteudoMinistradoSelect = ({
       if (error) return [];
       return (data || []) as AulaItem[];
     },
-    enabled: !!user?.id && (!!disciplinaId || !!disciplinaNome),
+    enabled: !!effectiveOwnerId && (!!disciplinaId || !!disciplinaNome),
   });
 
   // Sugestão: aula com data_aula igual à data selecionada
