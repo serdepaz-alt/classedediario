@@ -78,8 +78,9 @@ const AdministradoresPage = () => {
       return;
     }
 
-    if (form.senha) {
-      if (form.senha.length < 10) {
+    const emailChanged = form.login && form.login !== editing.email;
+    if (form.senha || emailChanged) {
+      if (form.senha && form.senha.length < 10) {
         toast.error("Senha deve ter ao menos 10 caracteres");
         return;
       }
@@ -89,14 +90,18 @@ const AdministradoresPage = () => {
       }
       setSavingPwd(true);
       const { error: pwdErr } = await supabase.functions.invoke("update-admin-password", {
-        body: { targetUserId: editing.user_id, newPassword: form.senha },
+        body: {
+          targetUserId: editing.user_id,
+          newPassword: form.senha || undefined,
+          newEmail: emailChanged ? form.login : undefined,
+        },
       });
       setSavingPwd(false);
       if (pwdErr) {
-        toast.error("Erro ao atualizar senha: " + pwdErr.message);
+        toast.error("Erro ao atualizar credenciais: " + pwdErr.message);
         return;
       }
-      toast.success("Senha atualizada");
+      toast.success(emailChanged ? "Credenciais atualizadas" : "Senha atualizada");
     }
 
     toast.success("Administrador atualizado");
@@ -256,9 +261,13 @@ const AdministradoresPage = () => {
               </div>
               <div>
                 <Label>Login (e-mail)</Label>
-                <Input value={form.login} disabled />
+                <Input
+                  type="email"
+                  value={form.login}
+                  onChange={(e) => setForm({ ...form, login: e.target.value })}
+                />
                 <p className="text-xs text-muted-foreground mt-1">
-                  O login é o e-mail e não pode ser alterado aqui.
+                  Alterar o e-mail também muda o login de acesso ao sistema.
                 </p>
               </div>
               <div>
