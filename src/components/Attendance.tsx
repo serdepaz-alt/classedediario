@@ -211,8 +211,10 @@ export const Attendance = () => {
   useEffect(() => {
     const detectActiveAula = async () => {
       if (!user) return;
-      const todayStr = format(new Date(), "yyyy-MM-dd");
-      const nowTime = format(new Date(), "HH:mm:ss");
+      const refDate = selectedDate ?? new Date();
+      const todayStr = format(refDate, "yyyy-MM-dd");
+      const isToday = format(new Date(), "yyyy-MM-dd") === todayStr;
+      const nowTime = isToday ? format(new Date(), "HH:mm:ss") : "00:00:00";
 
       // Build query for today's aulas. When a professor is logged in, scope to
       // the admin (owner) that holds the data; otherwise scope to the user.
@@ -239,22 +241,25 @@ export const Attendance = () => {
       if (allToday) {
         setTodayAulas(allToday as unknown as ActiveAula[]);
 
-        // Find current aula (within time range)
-        const current = allToday.find(
-          (a) => a.hora_inicio <= nowTime && a.hora_fim >= nowTime
-        );
-        if (current) {
-          setActiveAula(current as unknown as ActiveAula);
+        if (isToday) {
+          const current = allToday.find(
+            (a) => a.hora_inicio <= nowTime && a.hora_fim >= nowTime
+          );
+          if (current) {
+            setActiveAula(current as unknown as ActiveAula);
+          } else {
+            const next = allToday.find((a) => a.hora_inicio >= nowTime);
+            setActiveAula(next ? (next as unknown as ActiveAula) : null);
+          }
         } else {
-          // Next upcoming aula today
-          const next = allToday.find((a) => a.hora_inicio >= nowTime);
-          setActiveAula(next ? (next as unknown as ActiveAula) : null);
+          // Para datas diferentes de hoje, usa a primeira aula agendada como contexto
+          setActiveAula(allToday[0] ? (allToday[0] as unknown as ActiveAula) : null);
         }
       }
     };
 
     detectActiveAula();
-  }, [user, currentTime, professorMatch]);
+  }, [user, currentTime, professorMatch, selectedDate]);
 
   // Group disciplines by turma, prioritize cronograma-scheduled turmas for today
   const turmaGroups = useMemo((): TurmaGroup[] => {
