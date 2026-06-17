@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookOpen, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // ISO/IEC 27001 — A.9.4.3 Password management system:
 // senhas fortes (tamanho mínimo, complexidade) e proteção contra força bruta.
@@ -49,24 +50,28 @@ function clearAttempts() {
   localStorage.removeItem(ATTEMPTS_KEY);
 }
 
-const ALLOWED_EMAILS = [
-  'serdepaz@gmail.com',
-  'luciano.ribeiro@irmadulceoficial.com.br',
-  'avaliacoesdulce@gmail.com',
-];
 const EXCLUSIVE_MSG =
   'Esse aplicativo é exclusivo para os professores da Escola Irmã Dulce';
 
-async function isEmailAllowed(email: string): Promise<boolean> {
+async function resolveIdentity(
+  email: string,
+): Promise<{ allowed: boolean; nome?: string; tipo?: 'Administrador' | 'Professor' }> {
   const normalized = email.toLowerCase().trim();
-  if (ALLOWED_EMAILS.includes(normalized)) return true;
-  const { data } = await supabase
-    .from('cad_professores')
-    .select('id')
+  const { data: adm } = await supabase
+    .from('cad_administradores')
+    .select('nome')
     .ilike('email', normalized)
     .limit(1)
     .maybeSingle();
-  return !!data;
+  if (adm) return { allowed: true, nome: adm.nome, tipo: 'Administrador' };
+  const { data: prof } = await supabase
+    .from('cad_professores')
+    .select('nome')
+    .ilike('email', normalized)
+    .limit(1)
+    .maybeSingle();
+  if (prof) return { allowed: true, nome: prof.nome, tipo: 'Professor' };
+  return { allowed: false };
 }
 
 const AuthPage = () => {
@@ -108,8 +113,8 @@ const AuthPage = () => {
     setIsSubmitting(true);
 
     try {
-      const allowed = await isEmailAllowed(email);
-      if (!allowed) {
+      const identity = await resolveIdentity(email);
+      if (!identity.allowed) {
         setError(EXCLUSIVE_MSG);
         setIsSubmitting(false);
         return;
@@ -140,6 +145,12 @@ const AuthPage = () => {
         }
       } else {
         clearAttempts();
+        if (isLogin && identity.nome) {
+          const primeiroNome = identity.nome.split(' ')[0];
+          toast.success(`Bem-vindo(a), ${primeiroNome}!`, {
+            description: `Login efetuado como ${identity.tipo}.`,
+          });
+        }
       }
     } catch (err) {
       setError('Ocorreu um erro. Tente novamente.');
