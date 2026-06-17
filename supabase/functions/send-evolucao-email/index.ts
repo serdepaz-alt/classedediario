@@ -246,7 +246,7 @@ Deno.serve(async (req) => {
           if (!disciplinaAtualId) return []
           const { data: aulas } = await sb
             .from('conteudo_programatico_aulas')
-            .select('data_aula, assunto, topico, status')
+            .select('data_aula, topico, objetivo, status')
             .eq('disciplina_id', disciplinaAtualId)
             .order('data_aula', { ascending: true })
           const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
             return {
               data: d ? d.toLocaleDateString('pt-BR') : '—',
               diaSemana: d ? dias[d.getDay()] : '—',
-              assunto: a.assunto || a.topico || '—',
+              assunto: a.topico || a.objetivo || '—',
               status: a.status,
             }
           })
