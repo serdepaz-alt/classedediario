@@ -242,6 +242,24 @@ Deno.serve(async (req) => {
         gestaoCronograma,
         avaliacoes,
         frequencia,
+        conteudoAulas: await (async () => {
+          if (!disciplinaAtualId) return []
+          const { data: aulas } = await sb
+            .from('conteudo_programatico_aulas')
+            .select('data_aula, assunto, topico, status')
+            .eq('disciplina_id', disciplinaAtualId)
+            .order('data_aula', { ascending: true })
+          const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
+          return (aulas ?? []).map((a: any) => {
+            const d = a.data_aula ? new Date(a.data_aula + 'T00:00:00') : null
+            return {
+              data: d ? d.toLocaleDateString('pt-BR') : '—',
+              diaSemana: d ? dias[d.getDay()] : '—',
+              assunto: a.assunto || a.topico || '—',
+              status: a.status,
+            }
+          })
+        })(),
         alerta: {
           texto: 'Os dados de alertas e encaminhamentos oficiais estão sendo anexados internamente pelo sistema e, em breve, divulgaremos novas atualizações.',
         },
