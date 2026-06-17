@@ -14,10 +14,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ShieldCheck, Mail, MessageCircle, IdCard, Pencil } from "lucide-react";
+import { ShieldCheck, Mail, MessageCircle, IdCard, Pencil, KeyRound, AtSign } from "lucide-react";
 
 interface Administrador {
   id: string;
+  user_id: string | null;
   nome: string;
   email: string;
   telefone: string | null;
@@ -32,7 +33,8 @@ const AdministradoresPage = () => {
   const [admins, setAdmins] = useState<Administrador[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Administrador | null>(null);
-  const [form, setForm] = useState({ nome: "", whatsapp: "", cpf: "" });
+  const [form, setForm] = useState({ nome: "", whatsapp: "", cpf: "", login: "", senha: "" });
+  const [savingPwd, setSavingPwd] = useState(false);
 
   const load = async () => {
     const { data } = await supabase
@@ -53,6 +55,8 @@ const AdministradoresPage = () => {
       nome: a.nome ?? "",
       whatsapp: a.whatsapp ?? "",
       cpf: a.cpf ?? "",
+      login: a.email ?? "",
+      senha: "",
     });
   };
 
@@ -70,6 +74,28 @@ const AdministradoresPage = () => {
       toast.error("Erro ao salvar: " + error.message);
       return;
     }
+
+    if (form.senha) {
+      if (form.senha.length < 10) {
+        toast.error("Senha deve ter ao menos 10 caracteres");
+        return;
+      }
+      if (!editing.user_id) {
+        toast.error("Este administrador não tem usuário de autenticação vinculado");
+        return;
+      }
+      setSavingPwd(true);
+      const { error: pwdErr } = await supabase.functions.invoke("update-admin-password", {
+        body: { targetUserId: editing.user_id, newPassword: form.senha },
+      });
+      setSavingPwd(false);
+      if (pwdErr) {
+        toast.error("Erro ao atualizar senha: " + pwdErr.message);
+        return;
+      }
+      toast.success("Senha atualizada");
+    }
+
     toast.success("Administrador atualizado");
     setEditing(null);
     load();
@@ -137,6 +163,14 @@ const AdministradoresPage = () => {
 
                   <div className="mt-4 space-y-1.5">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <AtSign className="h-3.5 w-3.5" />
+                      <span className="truncate"><strong>Login:</strong> {a.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <KeyRound className="h-3.5 w-3.5" />
+                      <span>Senha: ••••••••</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Mail className="h-3.5 w-3.5" />
                       <span className="truncate">{a.email}</span>
                     </div>
@@ -180,6 +214,25 @@ const AdministradoresPage = () => {
                 />
               </div>
               <div>
+                <Label>Login (e-mail)</Label>
+                <Input value={form.login} disabled />
+                <p className="text-xs text-muted-foreground mt-1">
+                  O login é o e-mail e não pode ser alterado aqui.
+                </p>
+              </div>
+              <div>
+                <Label>Nova Senha</Label>
+                <Input
+                  type="password"
+                  placeholder="Deixe em branco para não alterar"
+                  value={form.senha}
+                  onChange={(e) => setForm({ ...form, senha: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mínimo 10 caracteres. A senha atual não pode ser exibida (hash bcrypt).
+                </p>
+              </div>
+              <div>
                 <Label>WhatsApp</Label>
                 <Input
                   placeholder="(00) 00000-0000"
@@ -200,7 +253,9 @@ const AdministradoresPage = () => {
               <Button variant="outline" onClick={() => setEditing(null)}>
                 Cancelar
               </Button>
-              <Button onClick={saveEdit}>Salvar</Button>
+              <Button onClick={saveEdit} disabled={savingPwd}>
+                {savingPwd ? "Salvando..." : "Salvar"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
