@@ -61,17 +61,18 @@ export const ConteudoMinistradoSelect = ({
     queryKey: ["conteudo-programatico-aulas", effectiveOwnerId, "select", disciplinaId, disciplinaNome, tierCarga],
     queryFn: async (): Promise<AulaItem[]> => {
       if (!effectiveOwnerId || (!disciplinaId && !disciplinaNome)) return [];
-      // 1) Tenta vínculo direto por disciplina_id.
+      // Une 1) vínculo direto por disciplina_id e 2) templates por nome + tier de carga,
+      // deduplicando por topico (preferindo o registro vinculado à disciplina/turma atual).
+      const merged = new Map<string, AulaItem>();
       if (disciplinaId) {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("conteudo_programatico_aulas")
           .select("id, topico, data_aula, objetivo")
           .eq("user_id", effectiveOwnerId)
           .eq("disciplina_id", disciplinaId)
           .order("data_aula", { ascending: true });
-        if (!error && data && data.length > 0) return data as AulaItem[];
+        (data || []).forEach((a: any) => merged.set(a.topico, a));
       }
-      // 2) Fallback: template por nome + tier de carga (Manhã/Tarde = 3h, Intermediário/Noite = 2h).
       if (disciplinaNome) {
         let q = supabase
           .from("conteudo_programatico_aulas")
@@ -80,10 +81,14 @@ export const ConteudoMinistradoSelect = ({
           .eq("disciplina_nome", disciplinaNome)
           .order("data_aula", { ascending: true });
         if (tierCarga) q = q.eq("tier_carga", tierCarga);
-        const { data, error } = await q;
-        if (!error && data) return data as AulaItem[];
+        const { data } = await q;
+        (data || []).forEach((a: any) => {
+          if (!merged.has(a.topico)) merged.set(a.topico, a);
+        });
       }
-      return [];
+      return Array.from(merged.values()).sort((a, b) =>
+        a.data_aula.localeCompare(b.data_aula),
+      );
     },
     enabled: !!effectiveOwnerId && (!!disciplinaId || !!disciplinaNome),
   });
