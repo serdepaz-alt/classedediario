@@ -59,6 +59,7 @@ interface EvolucaoPedagogicaProps {
     status: 'Concluído' | 'Atual' | 'Futuro' | string
   }>
   alerta?: { texto: string }
+  conteudoAulas?: Array<{ data: string; diaSemana: string; assunto: string; status?: string }>
   hardSkills?: Array<{ label: string; percent: number; color: 'blue' | 'green' | 'yellow' }>
   softSkills?: Array<{ label: string; percent: number; color: 'blue' | 'green' | 'yellow' }>
   insightsMentoria?: string
@@ -147,6 +148,7 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
   alerta = {
     texto: 'Os dados de alertas e encaminhamentos oficiais estão sendo anexados internamente pelo sistema e, em breve, divulgaremos novas atualizações.',
   },
+  conteudoAulas = [],
   hardSkills = [
     { label: 'Aferição SSVV', percent: 100, color: 'green' },
     { label: 'Punção Venosa', percent: 88, color: 'blue' },
@@ -269,6 +271,31 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
             </Section>
 
             {/* 4. Gestão de Cronogramas */}
+            {conteudoAulas && conteudoAulas.length > 0 && (
+              <Section style={{ ...cardStyle, marginTop: '16px' }}>
+                <Text style={sectionTitle}>📚 Conteúdo Programático e Plano de Aula</Text>
+                <Text style={mutedSmall}>Aulas realizadas com data, dia da semana e assunto</Text>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', fontSize: '11px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f3f4f6' }}>
+                      <th style={{ ...thStyle, textAlign: 'left' }}>Data</th>
+                      <th style={{ ...thStyle, textAlign: 'left' }}>Dia</th>
+                      <th style={{ ...thStyle, textAlign: 'left' }}>Assunto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {conteudoAulas.map((a, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <td style={{ ...tdStyle, textAlign: 'left' }}>{a.data}</td>
+                        <td style={{ ...tdStyle, textAlign: 'left' }}>{a.diaSemana}</td>
+                        <td style={{ ...tdStyle, textAlign: 'left' }}>{a.assunto}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Section>
+            )}
+
             <Section style={{ ...cardStyle, marginTop: '16px' }}>
               <Text style={sectionTitle}>Gestão de Cronogramas</Text>
               <Text style={mutedSmall}>Visualize e gerencie os cronogramas de disciplinas por turma</Text>
