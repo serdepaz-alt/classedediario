@@ -1552,6 +1552,30 @@ export type Database = {
         Args: { _auth_user_id: string }
         Returns: string
       }
+      get_meus_contratos_professor: {
+        Args: never
+        Returns: {
+          aceito_em: string
+          carga_horaria: number
+          created_at: string
+          disciplina_id: string
+          disciplina_nome: string
+          email_destino: string
+          enviado_em: string
+          id: string
+          observacoes: string
+          pdf_storage_path: string
+          periodo_aulas: string
+          professor_id: string
+          recusado_em: string
+          status: string
+          turma_id: string
+          updated_at: string
+          user_id: string
+          valor_extenso: string
+          valor_numerico: number
+        }[]
+      }
       get_professor_nome: { Args: { _auth_user_id: string }; Returns: string }
       has_role: {
         Args: {
