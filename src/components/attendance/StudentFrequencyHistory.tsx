@@ -19,9 +19,12 @@ import {
   TrendingUp,
   TrendingDown,
   Calendar,
+  BookOpen,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { format as formatDate } from "date-fns";
+import { ptBR as ptBRLocale } from "date-fns/locale";
 
 interface StudentFrequencyHistoryProps {
   open: boolean;
@@ -38,6 +41,14 @@ interface AttendanceRecord {
   justificativa: string | null;
 }
 
+interface AulaConteudo {
+  id: string;
+  data_aula: string;
+  topico: string;
+  objetivo: string | null;
+  status: string;
+}
+
 export const StudentFrequencyHistory = ({
   open,
   onOpenChange,
@@ -48,6 +59,7 @@ export const StudentFrequencyHistory = ({
   const { user } = useAuth();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [aulas, setAulas] = useState<AulaConteudo[]>([]);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -70,6 +82,23 @@ export const StudentFrequencyHistory = ({
 
     fetchHistory();
   }, [open, user, student, disciplinaId]);
+
+  useEffect(() => {
+    const fetchAulas = async () => {
+      if (!open || !user || !disciplinaId) {
+        setAulas([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("conteudo_programatico_aulas")
+        .select("id, data_aula, topico, objetivo, status")
+        .eq("user_id", user.id)
+        .eq("disciplina_id", disciplinaId)
+        .order("data_aula", { ascending: false });
+      if (data) setAulas(data as AulaConteudo[]);
+    };
+    fetchAulas();
+  }, [open, user, disciplinaId]);
 
   if (!student) return null;
 
@@ -196,6 +225,72 @@ export const StudentFrequencyHistory = ({
           </div>
 
           <Separator />
+
+          {/* Conteúdo Programático e Plano de Aula */}
+          {(() => {
+            const aulaDates = new Set(records.map((r) => r.data));
+            const aulasComChamada = aulas.filter((a) => aulaDates.has(a.data_aula));
+            return (
+              <>
+                <div>
+                  <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" />
+                    Conteúdo Programático e Plano de Aula
+                    {aulasComChamada.length > 0 && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {aulasComChamada.length}
+                      </Badge>
+                    )}
+                  </p>
+                  <ScrollArea className="h-[180px]">
+                    {aulasComChamada.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Nenhum conteúdo registrado para os dias com chamada
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {aulasComChamada.map((a) => {
+                          const d = new Date(a.data_aula + "T00:00:00");
+                          return (
+                            <div
+                              key={a.id}
+                              className="p-2 bg-background border rounded-lg"
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <div className="text-xs font-medium text-foreground">
+                                  {formatDate(d, "dd/MM/yyyy", { locale: ptBRLocale })}
+                                  <span className="text-muted-foreground ml-1">
+                                    · {formatDate(d, "EEEE", { locale: ptBRLocale })}
+                                  </span>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] ${
+                                    a.status === "concluido"
+                                      ? "border-green-300 text-green-600"
+                                      : "border-blue-300 text-blue-600"
+                                  }`}
+                                >
+                                  {a.status === "concluido" ? "Concluído" : "Planejado"}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-foreground">{a.topico}</p>
+                              {a.objetivo && (
+                                <p className="text-[11px] text-muted-foreground mt-0.5">
+                                  Objetivo: {a.objetivo}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+                <Separator />
+              </>
+            );
+          })()}
 
           {/* Timeline */}
           <div>
