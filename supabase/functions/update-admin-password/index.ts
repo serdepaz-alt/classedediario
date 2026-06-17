@@ -40,22 +40,46 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { targetUserId, newPassword } = await req.json();
-    if (!targetUserId || !newPassword || newPassword.length < 10) {
+    const { targetUserId, newPassword, newEmail } = await req.json();
+    if (!targetUserId) {
+      return new Response(JSON.stringify({ error: "targetUserId obrigatório" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!newPassword && !newEmail) {
+      return new Response(JSON.stringify({ error: "Nada para atualizar" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (newPassword && newPassword.length < 10) {
       return new Response(JSON.stringify({ error: "Senha mínima de 10 caracteres" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { error } = await admin.auth.admin.updateUserById(targetUserId, {
-      password: newPassword,
-    });
+    const updates: Record<string, unknown> = {};
+    if (newPassword) updates.password = newPassword;
+    if (newEmail) {
+      updates.email = newEmail;
+      updates.email_confirm = true;
+    }
+
+    const { error } = await admin.auth.admin.updateUserById(targetUserId, updates);
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (newEmail) {
+      await admin
+        .from("cad_administradores")
+        .update({ email: newEmail })
+        .eq("user_id", targetUserId);
     }
 
     return new Response(JSON.stringify({ success: true }), {
