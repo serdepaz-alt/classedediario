@@ -15,13 +15,16 @@ import {
   MapPin,
   GraduationCap,
   BookOpen,
-  Pencil
+  Pencil,
+  Send,
+  Loader2
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AddStudentDialog } from "./students/AddStudentDialog";
 import { StudentData } from "./students/IndividualStudentForm";
+import { toast } from "sonner";
 
 export const Students = () => {
   const { user } = useAuth();
@@ -29,6 +32,26 @@ export const Students = () => {
   const [turmaFilter, setTurmaFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<StudentData | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+
+  const handleEnviarEvolucao = async (studentId: string, email: string, nome: string) => {
+    if (!email) {
+      toast.warning("Aluno sem e-mail cadastrado.");
+      return;
+    }
+    setSendingId(studentId);
+    try {
+      const { error } = await supabase.functions.invoke("send-evolucao-email", {
+        body: { to: email, studentId, data: { studentName: nome } },
+      });
+      if (error) throw error;
+      toast.success(`Evolução enviada para ${nome}.`);
+    } catch (e: any) {
+      toast.error(`Falha ao enviar: ${e.message ?? e}`);
+    } finally {
+      setSendingId(null);
+    }
+  };
 
   const { data: dbStudents = [], refetch } = useQuery({
     queryKey: ["students", user?.id],
