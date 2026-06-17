@@ -21,6 +21,7 @@ import AceiteContratoPage from "./pages/AceiteContratoPage";
 import GestaoExcecoesPage from "./pages/GestaoExcecoesPage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
+import AdministradoresPage from "./pages/AdministradoresPage";
 import PayrollPage from "./pages/PayrollPage";
 import BacklogPage from "./pages/BacklogPage";
 import NotificationCenterPage from "./pages/NotificationCenterPage";
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/gestao-excecoes" element={<ProtectedRoute><GestaoExcecoesPage /></ProtectedRoute>} />
             <Route path="/payroll" element={<ProtectedRoute><PayrollPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+            <Route path="/administradores" element={<ProtectedRoute><AdministradoresPage /></ProtectedRoute>} />
             <Route path="/notification-center" element={<ProtectedRoute><NotificationCenterPage /></ProtectedRoute>} />
             <Route path="/atestado-matricula" element={<ProtectedRoute><AtestadoMatriculaPage /></ProtectedRoute>} />
             <Route path="/em-construcao" element={<EmConstrucaoPage />} />
