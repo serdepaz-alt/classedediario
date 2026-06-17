@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ShieldCheck, Mail, MessageCircle, IdCard, Pencil, KeyRound, AtSign } from "lucide-react";
+import { ShieldCheck, Mail, MessageCircle, IdCard, Pencil, KeyRound, AtSign, Plus } from "lucide-react";
 
 interface Administrador {
   id: string;
@@ -35,6 +35,9 @@ const AdministradoresPage = () => {
   const [editing, setEditing] = useState<Administrador | null>(null);
   const [form, setForm] = useState({ nome: "", whatsapp: "", cpf: "", login: "", senha: "" });
   const [savingPwd, setSavingPwd] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newForm, setNewForm] = useState({ nome: "", email: "", senha: "", whatsapp: "", cpf: "", funcao: "" });
+  const [savingNew, setSavingNew] = useState(false);
 
   const load = async () => {
     const { data } = await supabase
@@ -107,6 +110,24 @@ const AdministradoresPage = () => {
     return `https://wa.me/${num}`;
   };
 
+  const createAdmin = async () => {
+    if (!newForm.nome || !newForm.email || newForm.senha.length < 10) {
+      toast.error("Nome, e-mail e senha (mín. 10 caracteres) são obrigatórios");
+      return;
+    }
+    setSavingNew(true);
+    const { error } = await supabase.functions.invoke("create-admin", { body: newForm });
+    setSavingNew(false);
+    if (error) {
+      toast.error("Erro ao criar: " + error.message);
+      return;
+    }
+    toast.success("Administrador criado");
+    setCreating(false);
+    setNewForm({ nome: "", email: "", senha: "", whatsapp: "", cpf: "", funcao: "" });
+    load();
+  };
+
   const statusColors: Record<string, string> = {
     Ativo: "bg-success/10 text-success border-success/20",
     Inativo: "bg-muted text-muted-foreground border-muted",
@@ -119,10 +140,13 @@ const AdministradoresPage = () => {
           <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center">
             <ShieldCheck className="w-6 h-6 text-white" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">Administradores</h1>
             <p className="text-muted-foreground">Usuários com acesso administrativo ao sistema</p>
           </div>
+          <Button onClick={() => setCreating(true)} className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Administrador
+          </Button>
         </div>
 
         {loading ? (
@@ -255,6 +279,46 @@ const AdministradoresPage = () => {
               </Button>
               <Button onClick={saveEdit} disabled={savingPwd}>
                 {savingPwd ? "Salvando..." : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={creating} onOpenChange={setCreating}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Novo Administrador</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Nome *</Label>
+                <Input value={newForm.nome} onChange={(e) => setNewForm({ ...newForm, nome: e.target.value })} />
+              </div>
+              <div>
+                <Label>E-mail (login) *</Label>
+                <Input type="email" value={newForm.email} onChange={(e) => setNewForm({ ...newForm, email: e.target.value })} />
+              </div>
+              <div>
+                <Label>Senha * (mín. 10 caracteres)</Label>
+                <Input type="password" value={newForm.senha} onChange={(e) => setNewForm({ ...newForm, senha: e.target.value })} />
+              </div>
+              <div>
+                <Label>Função</Label>
+                <Input placeholder="Ex: Administrador Geral" value={newForm.funcao} onChange={(e) => setNewForm({ ...newForm, funcao: e.target.value })} />
+              </div>
+              <div>
+                <Label>WhatsApp</Label>
+                <Input placeholder="(00) 00000-0000" value={newForm.whatsapp} onChange={(e) => setNewForm({ ...newForm, whatsapp: e.target.value })} />
+              </div>
+              <div>
+                <Label>CPF</Label>
+                <Input placeholder="000.000.000-00" value={newForm.cpf} onChange={(e) => setNewForm({ ...newForm, cpf: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreating(false)}>Cancelar</Button>
+              <Button onClick={createAdmin} disabled={savingNew}>
+                {savingNew ? "Criando..." : "Criar"}
               </Button>
             </DialogFooter>
           </DialogContent>
