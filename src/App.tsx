@@ -25,6 +25,7 @@ import PayrollPage from "./pages/PayrollPage";
 import BacklogPage from "./pages/BacklogPage";
 import NotificationCenterPage from "./pages/NotificationCenterPage";
 import AtestadoMatriculaPage from "./pages/AtestadoMatriculaPage";
+import EmConstrucaoPage from "./pages/EmConstrucaoPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,8 @@ const App = () => (
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="/notification-center" element={<ProtectedRoute><NotificationCenterPage /></ProtectedRoute>} />
             <Route path="/atestado-matricula" element={<ProtectedRoute><AtestadoMatriculaPage /></ProtectedRoute>} />
+            <Route path="/em-construcao" element={<EmConstrucaoPage />} />
+            <Route path="/portal" element={<EmConstrucaoPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

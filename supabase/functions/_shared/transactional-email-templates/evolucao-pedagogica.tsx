@@ -160,7 +160,7 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
     { label: 'Liderança de Equipe', percent: 75, color: 'blue' },
   ],
   insightsMentoria = 'Aluno da mentoria, é notável o seu avanço e dedicação nos estudos. Continue assim.',
-  portalUrl = 'https://diariodeclasse2026.lovable.app',
+  portalUrl = 'https://diariodeclasse2026.lovable.app/em-construcao',
 }) => {
   const cronogramaPercent = Math.round((cronograma.concluidas / cronograma.total) * 100)
 
