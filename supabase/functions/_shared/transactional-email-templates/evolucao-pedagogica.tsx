@@ -376,7 +376,12 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
 
             {/* 6. Mentoria e Skills */}
             <Section style={{ ...cardStyle, marginTop: '16px' }}>
-              <Text style={sectionTitle}>Mentoria e Skills</Text>
+              <Text style={sectionTitle}>
+                Mentoria e Skills{' '}
+                <span style={{ fontSize: '11px', fontWeight: 400, color: '#6b7280', fontStyle: 'italic' }}>
+                  (Sua Mentoria DOM, exclusiva, está pronta em breve divulgaremos)
+                </span>
+              </Text>
               <Row>
                 <Column style={{ width: '50%', verticalAlign: 'top', paddingRight: '8px' }}>
                   <Text style={subTitle}>Hard Skills</Text>
