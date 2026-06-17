@@ -252,8 +252,20 @@ export const Students = () => {
               </div>
 
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" size="sm" className="flex-1">
-                  Ver Detalhes
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => handleEnviarEvolucao(student.id, student.email, student.name)}
+                  disabled={!student.email || sendingId === student.id}
+                  title={student.email ? "Enviar Evolução Pedagógica por e-mail" : "Sem e-mail cadastrado"}
+                >
+                  {sendingId === student.id ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4 mr-1" />
+                  )}
+                  Enviar Evolução
                 </Button>
                 <Button 
                   variant="default" 
