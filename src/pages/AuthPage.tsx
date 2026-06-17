@@ -113,13 +113,6 @@ const AuthPage = () => {
     setIsSubmitting(true);
 
     try {
-      const identity = await resolveIdentity(email);
-      if (!identity.allowed) {
-        setError(EXCLUSIVE_MSG);
-        setIsSubmitting(false);
-        return;
-      }
-
       const { error: authError } = isLogin 
         ? await signIn(email, password)
         : await signUp(email, password);
@@ -145,11 +138,21 @@ const AuthPage = () => {
         }
       } else {
         clearAttempts();
-        if (isLogin && identity.nome) {
-          const primeiroNome = identity.nome.split(' ')[0];
-          toast.success(`Bem-vindo(a), ${primeiroNome}!`, {
-            description: `Login efetuado como ${identity.tipo}.`,
-          });
+        if (isLogin) {
+          // Identidade só pode ser consultada APÓS autenticação (RLS exige sessão)
+          const identity = await resolveIdentity(email);
+          if (!identity.allowed) {
+            await supabase.auth.signOut();
+            setError(EXCLUSIVE_MSG);
+            setIsSubmitting(false);
+            return;
+          }
+          if (identity.nome) {
+            const primeiroNome = identity.nome.split(' ')[0];
+            toast.success(`Bem-vindo(a), ${primeiroNome}!`, {
+              description: `Login efetuado como ${identity.tipo}.`,
+            });
+          }
         }
       }
     } catch (err) {
