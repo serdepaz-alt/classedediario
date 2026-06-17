@@ -780,6 +780,12 @@ export const Attendance = () => {
 
       setDatesWithAttendance((prev) => new Set([...prev, dateStr]));
 
+      // Update chart records immediately
+      setAllAttendanceRecords((prev) => [
+        ...prev,
+        ...records.map((r) => ({ data: r.data, status: r.status })),
+      ]);
+
       // Mark turma as done for today
       if (selectedDisciplina.turma_id) {
         setTodayAttendanceDone((prev) => new Set([...prev, selectedDisciplina.turma_id!]));
