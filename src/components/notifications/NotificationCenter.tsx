@@ -347,7 +347,31 @@ export const NotificationCenter = () => {
                     {turmas.length === 0 && (
                       <p className="text-xs text-muted-foreground p-2">Nenhuma turma ativa</p>
                     )}
-                    {turmas.map((t) => (
+                    {turmas.length > 0 && (
+                      <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          {selectedTurmas.length} de {turmas.length} selecionada(s)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedTurmas(
+                              selectedTurmas.length === turmas.length ? [] : turmas.map((t) => t.id),
+                            )
+                          }
+                          className="text-xs text-primary hover:underline"
+                        >
+                          {selectedTurmas.length === turmas.length ? "Limpar" : "Selecionar todas"}
+                        </button>
+                      </div>
+                    )}
+                    {[...turmas]
+                      .sort((a, b) => {
+                        const sa = selectedTurmas.includes(a.id) ? 0 : 1;
+                        const sb = selectedTurmas.includes(b.id) ? 0 : 1;
+                        return sa - sb || a.nome.localeCompare(b.nome);
+                      })
+                      .map((t) => (
                       <label
                         key={t.id}
                         className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
@@ -371,6 +395,25 @@ export const NotificationCenter = () => {
                   Enviar agora ({estimatedEmails})
                 </Button>
               </div>
+
+              {selectedTurmas.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {turmas
+                    .filter((t) => selectedTurmas.includes(t.id))
+                    .map((t) => (
+                      <Badge
+                        key={t.id}
+                        variant="secondary"
+                        className="cursor-pointer gap-1"
+                        onClick={() => toggleTurma(t.id)}
+                        title="Clique para remover"
+                      >
+                        {t.nome}
+                        <span className="text-muted-foreground">×</span>
+                      </Badge>
+                    ))}
+                </div>
+              )}
 
               <div>
                 <h3 className="text-sm font-semibold mb-2">Política de Envio por Turno</h3>
