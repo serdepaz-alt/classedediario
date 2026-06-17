@@ -28,7 +28,8 @@ import {
   ClipboardCheck,
   ShieldAlert,
   Wallet,
-  Bell
+  Bell,
+  ShieldCheck
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -40,6 +41,7 @@ const mainMenuItems = [
 
 const adminSubMenuItems = [
   { icon: Bell, label: "Backlog", path: "/backlog" },
+  { icon: ShieldCheck, label: "Administradores", path: "/administradores" },
   { icon: ShieldAlert, label: "Gestão de Exceções", path: "/gestao-excecoes" },
   { icon: CalendarClock, label: "Cronograma", path: "/cronograma" },
   { icon: CalendarRange, label: "Gestão de Cronogramas/Feriados", path: "/admin", requiresAuth: true },
