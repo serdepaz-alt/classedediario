@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +14,25 @@ const authSchema = z.object({
   email: z.string().trim().email('Email inválido').max(255, 'Email muito longo'),
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').max(72, 'Senha muito longa'),
 });
+
+const ALLOWED_EMAILS = [
+  'serdepaz@gmail.com',
+  'luciano.ribeiro@irmadulceoficial.com.br',
+];
+const EXCLUSIVE_MSG =
+  'Esse aplicativo é exclusivo para os professores da Escola Irmã Dulce';
+
+async function isEmailAllowed(email: string): Promise<boolean> {
+  const normalized = email.toLowerCase().trim();
+  if (ALLOWED_EMAILS.includes(normalized)) return true;
+  const { data } = await supabase
+    .from('cad_professores')
+    .select('id')
+    .ilike('email', normalized)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -43,6 +63,13 @@ const AuthPage = () => {
     setIsSubmitting(true);
 
     try {
+      const allowed = await isEmailAllowed(email);
+      if (!allowed) {
+        setError(EXCLUSIVE_MSG);
+        setIsSubmitting(false);
+        return;
+      }
+
       const { error: authError } = isLogin 
         ? await signIn(email, password)
         : await signUp(email, password);
