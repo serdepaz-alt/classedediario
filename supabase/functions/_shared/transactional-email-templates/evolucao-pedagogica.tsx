@@ -148,6 +148,7 @@ const EvolucaoPedagogicaEmail: React.FC<EvolucaoPedagogicaProps> = ({
   alerta = {
     texto: 'Os dados de alertas e encaminhamentos oficiais estão sendo anexados internamente pelo sistema e, em breve, divulgaremos novas atualizações.',
   },
+  conteudoAulas = [],
   hardSkills = [
     { label: 'Aferição SSVV', percent: 100, color: 'green' },
     { label: 'Punção Venosa', percent: 88, color: 'blue' },
