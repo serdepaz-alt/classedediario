@@ -26,8 +26,22 @@ export const useUserRole = () => {
         .eq("user_id", user.id);
       if (!active) return;
       const roles = (data ?? []).map((r: any) => r.role as AppRole);
+
+      // Fallback: if email matches a registered administrator, grant admin role
+      let isAdminByEmail = false;
+      if (!roles.includes("admin") && user.email) {
+        const { data: adm } = await supabase
+          .from("cad_administradores")
+          .select("id")
+          .ilike("email", user.email.toLowerCase().trim())
+          .limit(1)
+          .maybeSingle();
+        if (!active) return;
+        isAdminByEmail = !!adm;
+      }
+
       // Priority: admin > professor
-      if (roles.includes("admin")) setRole("admin");
+      if (roles.includes("admin") || isAdminByEmail) setRole("admin");
       else if (roles.includes("professor")) setRole("professor");
       else if (roles.length > 0) setRole(roles[0]);
       else setRole(null);
