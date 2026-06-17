@@ -59,6 +59,7 @@ interface EvolucaoPedagogicaProps {
     status: 'Concluído' | 'Atual' | 'Futuro' | string
   }>
   alerta?: { texto: string }
+  conteudoAulas?: Array<{ data: string; diaSemana: string; assunto: string; status?: string }>
   hardSkills?: Array<{ label: string; percent: number; color: 'blue' | 'green' | 'yellow' }>
   softSkills?: Array<{ label: string; percent: number; color: 'blue' | 'green' | 'yellow' }>
   insightsMentoria?: string
