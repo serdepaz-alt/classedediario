@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ShieldCheck, Mail, MessageCircle, IdCard, Pencil, KeyRound, AtSign, Plus } from "lucide-react";
+import { ShieldCheck, Mail, MessageCircle, IdCard, Pencil, KeyRound, AtSign, Plus, Eye, EyeOff } from "lucide-react";
 
 interface Administrador {
   id: string;
@@ -38,6 +38,8 @@ const AdministradoresPage = () => {
   const [creating, setCreating] = useState(false);
   const [newForm, setNewForm] = useState({ nome: "", email: "", senha: "", whatsapp: "", cpf: "", funcao: "" });
   const [savingNew, setSavingNew] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
 
   const load = async () => {
     const { data } = await supabase
@@ -272,12 +274,23 @@ const AdministradoresPage = () => {
               </div>
               <div>
                 <Label>Nova Senha</Label>
-                <Input
-                  type="password"
-                  placeholder="Deixe em branco para não alterar"
-                  value={form.senha}
-                  onChange={(e) => setForm({ ...form, senha: e.target.value })}
-                />
+                <div className="relative">
+                  <Input
+                    type={showPwd ? "text" : "password"}
+                    placeholder="Deixe em branco para não alterar"
+                    value={form.senha}
+                    onChange={(e) => setForm({ ...form, senha: e.target.value })}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Mínimo 10 caracteres. A senha atual não pode ser exibida (hash bcrypt).
                 </p>
@@ -326,7 +339,22 @@ const AdministradoresPage = () => {
               </div>
               <div>
                 <Label>Senha * (mín. 10 caracteres)</Label>
-                <Input type="password" value={newForm.senha} onChange={(e) => setNewForm({ ...newForm, senha: e.target.value })} />
+                <div className="relative">
+                  <Input
+                    type={showNewPwd ? "text" : "password"}
+                    value={newForm.senha}
+                    onChange={(e) => setNewForm({ ...newForm, senha: e.target.value })}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPwd((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showNewPwd ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showNewPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <Label>Função</Label>
