@@ -191,6 +191,7 @@ export type Database = {
       }
       cad_administradores: {
         Row: {
+          cpf: string | null
           created_at: string
           email: string
           funcao: string | null
@@ -201,8 +202,10 @@ export type Database = {
           telefone: string | null
           updated_at: string
           user_id: string | null
+          whatsapp: string | null
         }
         Insert: {
+          cpf?: string | null
           created_at?: string
           email: string
           funcao?: string | null
@@ -213,8 +216,10 @@ export type Database = {
           telefone?: string | null
           updated_at?: string
           user_id?: string | null
+          whatsapp?: string | null
         }
         Update: {
+          cpf?: string | null
           created_at?: string
           email?: string
           funcao?: string | null
@@ -225,6 +230,7 @@ export type Database = {
           telefone?: string | null
           updated_at?: string
           user_id?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }

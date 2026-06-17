@@ -3,13 +3,26 @@ import { Layout } from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, Mail, Phone, User as UserIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { ShieldCheck, Mail, MessageCircle, IdCard, Pencil } from "lucide-react";
 
 interface Administrador {
   id: string;
   nome: string;
   email: string;
   telefone: string | null;
+  whatsapp: string | null;
+  cpf: string | null;
   funcao: string | null;
   status: string;
   observacoes: string | null;
@@ -18,17 +31,55 @@ interface Administrador {
 const AdministradoresPage = () => {
   const [admins, setAdmins] = useState<Administrador[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Administrador | null>(null);
+  const [form, setForm] = useState({ nome: "", whatsapp: "", cpf: "" });
+
+  const load = async () => {
+    const { data } = await supabase
+      .from("cad_administradores")
+      .select("*")
+      .order("nome");
+    setAdmins((data as Administrador[]) ?? []);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("cad_administradores")
-        .select("*")
-        .order("nome");
-      setAdmins((data as Administrador[]) ?? []);
-      setLoading(false);
-    })();
+    load();
   }, []);
+
+  const openEdit = (a: Administrador) => {
+    setEditing(a);
+    setForm({
+      nome: a.nome ?? "",
+      whatsapp: a.whatsapp ?? "",
+      cpf: a.cpf ?? "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    const { error } = await supabase
+      .from("cad_administradores")
+      .update({
+        nome: form.nome,
+        whatsapp: form.whatsapp || null,
+        cpf: form.cpf || null,
+      })
+      .eq("id", editing.id);
+    if (error) {
+      toast.error("Erro ao salvar: " + error.message);
+      return;
+    }
+    toast.success("Administrador atualizado");
+    setEditing(null);
+    load();
+  };
+
+  const waLink = (n: string) => {
+    const digits = n.replace(/\D/g, "");
+    const num = digits.startsWith("55") ? digits : "55" + digits;
+    return `https://wa.me/${num}`;
+  };
 
   const statusColors: Record<string, string> = {
     Ativo: "bg-success/10 text-success border-success/20",
@@ -64,7 +115,7 @@ const AdministradoresPage = () => {
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-foreground truncate">{a.nome}</h3>
+                      <h3 className="font-semibold text-foreground truncate">Adm. {a.nome}</h3>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <Badge variant="outline" className={statusColors[a.status] ?? ""}>
                           {a.status}
@@ -74,6 +125,14 @@ const AdministradoresPage = () => {
                         )}
                       </div>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEdit(a)}
+                      aria-label="Editar"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                   </div>
 
                   <div className="mt-4 space-y-1.5">
@@ -81,16 +140,23 @@ const AdministradoresPage = () => {
                       <Mail className="h-3.5 w-3.5" />
                       <span className="truncate">{a.email}</span>
                     </div>
-                    {a.telefone && (
+                    {a.whatsapp && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="h-3.5 w-3.5" />
-                        <span>{a.telefone}</span>
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        <a
+                          href={waLink(a.whatsapp)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-primary hover:underline"
+                        >
+                          {a.whatsapp}
+                        </a>
                       </div>
                     )}
-                    {a.observacoes && (
-                      <div className="flex items-start gap-2 text-xs text-muted-foreground mt-2">
-                        <UserIcon className="h-3.5 w-3.5 mt-0.5" />
-                        <span>{a.observacoes}</span>
+                    {a.cpf && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <IdCard className="h-3.5 w-3.5" />
+                        <span>CPF: {a.cpf}</span>
                       </div>
                     )}
                   </div>
@@ -99,6 +165,45 @@ const AdministradoresPage = () => {
             ))}
           </div>
         )}
+
+        <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Administrador</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Nome do Adm</Label>
+                <Input
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>WhatsApp</Label>
+                <Input
+                  placeholder="(00) 00000-0000"
+                  value={form.whatsapp}
+                  onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>CPF</Label>
+                <Input
+                  placeholder="000.000.000-00"
+                  value={form.cpf}
+                  onChange={(e) => setForm({ ...form, cpf: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditing(null)}>
+                Cancelar
+              </Button>
+              <Button onClick={saveEdit}>Salvar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
