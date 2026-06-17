@@ -10,10 +10,44 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookOpen, Loader2 } from 'lucide-react';
 
-const authSchema = z.object({
+// ISO/IEC 27001 — A.9.4.3 Password management system:
+// senhas fortes (tamanho mínimo, complexidade) e proteção contra força bruta.
+const loginSchema = z.object({
   email: z.string().trim().email('Email inválido').max(255, 'Email muito longo'),
-  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').max(72, 'Senha muito longa'),
+  password: z.string().min(1, 'Informe a senha').max(72, 'Senha muito longa'),
 });
+
+const signupSchema = z.object({
+  email: z.string().trim().email('Email inválido').max(255, 'Email muito longo'),
+  password: z
+    .string()
+    .min(10, 'A senha deve ter no mínimo 10 caracteres')
+    .max(72, 'Senha muito longa')
+    .regex(/[A-Z]/, 'A senha deve conter ao menos uma letra maiúscula')
+    .regex(/[a-z]/, 'A senha deve conter ao menos uma letra minúscula')
+    .regex(/[0-9]/, 'A senha deve conter ao menos um número')
+    .regex(/[^A-Za-z0-9]/, 'A senha deve conter ao menos um caractere especial'),
+});
+
+// ISO/IEC 27001 — A.9.4.2: proteção contra tentativas repetidas.
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 min
+const ATTEMPTS_KEY = 'auth_attempts_v1';
+
+type AttemptState = { count: number; lockedUntil: number };
+function readAttempts(): AttemptState {
+  try {
+    return JSON.parse(localStorage.getItem(ATTEMPTS_KEY) || '') as AttemptState;
+  } catch {
+    return { count: 0, lockedUntil: 0 };
+  }
+}
+function writeAttempts(s: AttemptState) {
+  localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(s));
+}
+function clearAttempts() {
+  localStorage.removeItem(ATTEMPTS_KEY);
+}
 
 const ALLOWED_EMAILS = [
   'serdepaz@gmail.com',
@@ -40,6 +74,7 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
   const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -53,8 +88,17 @@ const AuthPage = () => {
     e.preventDefault();
     setError(null);
 
-    // Validate input
-    const validation = authSchema.safeParse({ email, password });
+    // Bloqueio temporário após tentativas excessivas
+    const attempts = readAttempts();
+    if (attempts.lockedUntil && Date.now() < attempts.lockedUntil) {
+      const mins = Math.ceil((attempts.lockedUntil - Date.now()) / 60000);
+      setError(`Muitas tentativas. Tente novamente em ${mins} min.`);
+      return;
+    }
+
+    // Validação de entrada (regras mais rigorosas no cadastro)
+    const schema = isLogin ? loginSchema : signupSchema;
+    const validation = schema.safeParse({ email, password });
     if (!validation.success) {
       setError(validation.error.errors[0].message);
       return;
@@ -75,16 +119,26 @@ const AuthPage = () => {
         : await signUp(email, password);
 
       if (authError) {
-        // Handle common error messages
-        if (authError.message.includes('Invalid login credentials')) {
-          setError('Email ou senha incorretos');
-        } else if (authError.message.includes('User already registered')) {
-          setError('Este email já está cadastrado. Tente fazer login.');
-        } else if (authError.message.includes('Email not confirmed')) {
+        // Mensagens genéricas evitam enumeração de usuários (ISO 27001 A.9.4.2)
+        const msg = authError.message || '';
+        if (msg.includes('Email not confirmed')) {
           setError('Por favor, confirme seu email antes de fazer login.');
+        } else if (msg.toLowerCase().includes('pwned') || msg.toLowerCase().includes('compromised')) {
+          setError('Esta senha foi exposta em vazamentos públicos. Escolha outra.');
+        } else if (isLogin) {
+          const next = { count: attempts.count + 1, lockedUntil: 0 };
+          if (next.count >= MAX_ATTEMPTS) {
+            next.lockedUntil = Date.now() + LOCKOUT_MS;
+            setError(`Muitas tentativas. Conta bloqueada por 15 minutos.`);
+          } else {
+            setError('Credenciais inválidas.');
+          }
+          writeAttempts(next);
         } else {
-          setError(authError.message);
+          setError('Não foi possível concluir o cadastro. Verifique os dados.');
         }
+      } else {
+        clearAttempts();
       }
     } catch (err) {
       setError('Ocorreu um erro. Tente novamente.');
@@ -142,9 +196,19 @@ const AuthPage = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyUp={(e) => setCapsLock(e.getModifierState && e.getModifierState('CapsLock'))}
                 required
                 autoComplete={isLogin ? 'current-password' : 'new-password'}
+                maxLength={72}
               />
+              {capsLock && (
+                <p className="text-xs text-amber-600">Caps Lock está ativado.</p>
+              )}
+              {!isLogin && (
+                <p className="text-xs text-muted-foreground">
+                  Mín. 10 caracteres com maiúscula, minúscula, número e símbolo.
+                </p>
+              )}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
