@@ -36,19 +36,58 @@ Deno.serve(async (req) => {
     if (!nome || !email || !senha || senha.length < 10)
       return json({ error: "Nome, e-mail e senha (min. 10) são obrigatórios" }, 400);
 
+    // Tenta criar; se o e-mail já existir, reaproveita o usuário existente
+    // (permitido APENAS para cadastro Administrativo — esta função só é
+    // acessível por quem já possui a role 'admin').
+    let userId: string | null = null;
     const { data: created, error: cErr } = await admin.auth.admin.createUser({
       email,
       password: senha,
       email_confirm: true,
     });
-    if (cErr || !created.user) return json({ error: cErr?.message ?? "Falha ao criar usuário" }, 400);
 
-    const userId = created.user.id;
+    if (cErr || !created?.user) {
+      const msg = (cErr?.message ?? "").toLowerCase();
+      const emailExists =
+        msg.includes("already") || msg.includes("registered") || msg.includes("exist");
+      if (!emailExists) return json({ error: cErr?.message ?? "Falha ao criar usuário" }, 400);
 
+      // Localiza o usuário existente por e-mail
+      const { data: list, error: lErr } = await admin.auth.admin.listUsers({
+        page: 1,
+        perPage: 200,
+      });
+      if (lErr) return json({ error: lErr.message }, 400);
+      const existing = list.users.find(
+        (u) => (u.email ?? "").toLowerCase() === email.toLowerCase(),
+      );
+      if (!existing) return json({ error: "E-mail já registrado mas usuário não encontrado" }, 400);
+      userId = existing.id;
+
+      // Atualiza a senha do usuário existente para a senha informada
+      const { error: pErr } = await admin.auth.admin.updateUserById(userId, {
+        password: senha,
+      });
+      if (pErr) return json({ error: pErr.message }, 400);
+    } else {
+      userId = created.user.id;
+    }
+
+    // Garante a role admin (ignora duplicidade pela constraint UNIQUE)
     const { error: rErr } = await admin
       .from("user_roles")
-      .insert({ user_id: userId, role: "admin" });
+      .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
     if (rErr) return json({ error: rErr.message }, 400);
+
+    // Evita duplicar o cadastro administrativo para o mesmo e-mail
+    const { data: existingAdmin } = await admin
+      .from("cad_administradores")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+    if (existingAdmin) {
+      return json({ error: "Já existe um administrador com este e-mail" }, 409);
+    }
 
     const { error: iErr } = await admin.from("cad_administradores").insert({
       user_id: userId,
