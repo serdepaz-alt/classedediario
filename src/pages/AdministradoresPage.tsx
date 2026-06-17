@@ -116,10 +116,27 @@ const AdministradoresPage = () => {
       return;
     }
     setSavingNew(true);
-    const { error } = await supabase.functions.invoke("create-admin", { body: newForm });
+    const { data, error } = await supabase.functions.invoke("create-admin", { body: newForm });
     setSavingNew(false);
+    let errMsg: string | null = null;
     if (error) {
-      toast.error("Erro ao criar: " + error.message);
+      // Tenta ler o corpo da resposta (FunctionsHttpError)
+      try {
+        const ctx = (error as any).context;
+        if (ctx?.json) {
+          const body = await ctx.json();
+          errMsg = body?.error ?? null;
+        } else if (ctx?.text) {
+          errMsg = await ctx.text();
+        }
+      } catch {
+        // ignore
+      }
+      toast.error(errMsg ?? error.message ?? "Erro ao criar administrador");
+      return;
+    }
+    if ((data as any)?.error) {
+      toast.error((data as any).error);
       return;
     }
     toast.success("Administrador criado");
