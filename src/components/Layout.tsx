@@ -10,15 +10,11 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-// Rotas onde, no mobile, o menu deve ficar oculto por padrão para maximizar
-// área de trabalho ao cadastrar presença ou notas.
-const FOCUS_ROUTES = ["/attendance", "/grades"];
-
 export const Layout = ({ children }: LayoutProps) => {
   const isMobile = useIsMobile();
   const { pathname } = useLocation();
-  const isFocusRoute = FOCUS_ROUTES.some((r) => pathname.startsWith(r));
-  const shouldAutoHide = isMobile && isFocusRoute;
+  // No mobile, ocultar o menu por padrão em todas as rotas para maximizar a área útil.
+  const shouldAutoHide = isMobile;
 
   const [hidden, setHidden] = useState(shouldAutoHide);
 
@@ -31,8 +27,8 @@ export const Layout = ({ children }: LayoutProps) => {
     <div className="flex min-h-screen bg-background">
       {!hidden && <Sidebar />}
 
-      {/* Botão flutuante para reexibir/ocultar o menu no mobile nas rotas de foco */}
-      {isMobile && isFocusRoute && (
+      {/* Botão flutuante para reexibir/ocultar o menu no mobile */}
+      {isMobile && (
         <Button
           variant="secondary"
           size="icon"
