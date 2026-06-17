@@ -52,6 +52,7 @@ function clearAttempts() {
 const ALLOWED_EMAILS = [
   'serdepaz@gmail.com',
   'luciano.ribeiro@irmadulceoficial.com.br',
+  'avaliacoesdulce@gmail.com',
 ];
 const EXCLUSIVE_MSG =
   'Esse aplicativo é exclusivo para os professores da Escola Irmã Dulce';
