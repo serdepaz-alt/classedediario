@@ -46,11 +46,17 @@ Deno.serve(async (req) => {
 
     const { data: professores, error: profErr } = await admin
       .from("cad_professores")
-      .select("id, nome, email, senha, data_nascimento")
+      .select("id, nome, email, data_nascimento")
       .eq("user_id", adminUserId)
       .in("id", professorIds);
 
     if (profErr) throw profErr;
+
+    const gerarSenha = (nome: string, dn: string | null): string => {
+      const primeiro = (nome || "").trim().split(/\s+/)[0].toLowerCase();
+      const ano = dn ? new Date(dn + "T12:00:00").getFullYear() : "";
+      return `${primeiro}${ano}`;
+    };
 
     const results: Array<{
       professor_id: string;
@@ -58,16 +64,28 @@ Deno.serve(async (req) => {
       email: string | null;
       status: "created" | "linked" | "exists" | "skipped" | "error";
       message?: string;
+      senha_gerada?: string;
     }> = [];
 
     for (const p of professores ?? []) {
-      if (!p.email || !p.senha) {
+      if (!p.email) {
         results.push({
           professor_id: p.id,
           nome: p.nome,
           email: p.email,
           status: "skipped",
-          message: "Email ou senha ausente",
+          message: "Email ausente",
+        });
+        continue;
+      }
+      const senhaGerada = gerarSenha(p.nome, p.data_nascimento);
+      if (senhaGerada.length < 6) {
+        results.push({
+          professor_id: p.id,
+          nome: p.nome,
+          email: p.email,
+          status: "skipped",
+          message: "Não foi possível gerar senha padrão (nome/data de nascimento ausentes)",
         });
         continue;
       }
@@ -84,7 +102,7 @@ Deno.serve(async (req) => {
         if (!isProtected) {
           try {
             await admin.auth.admin.updateUserById(existingLink.auth_user_id, {
-              password: p.senha,
+              password: senhaGerada,
             });
           } catch (_) { /* ignore */ }
         }
@@ -93,6 +111,7 @@ Deno.serve(async (req) => {
           nome: p.nome,
           email: p.email,
           status: "exists",
+          senha_gerada: isProtected ? undefined : senhaGerada,
           message: isProtected
             ? "Login já existente (senha preservada)"
             : "Login já existente (senha sincronizada)",
@@ -104,7 +123,7 @@ Deno.serve(async (req) => {
       let authUserId: string | null = null;
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
         email: p.email,
-        password: p.senha,
+        password: senhaGerada,
         email_confirm: true,
         user_metadata: { nome: p.nome, role: "professor" },
       });
@@ -118,7 +137,7 @@ Deno.serve(async (req) => {
         if (found) {
           authUserId = found.id;
           if (!PROTECTED_EMAILS.has(p.email.toLowerCase())) {
-            await admin.auth.admin.updateUserById(found.id, { password: p.senha });
+            await admin.auth.admin.updateUserById(found.id, { password: senhaGerada });
           }
         } else {
           results.push({
@@ -162,6 +181,7 @@ Deno.serve(async (req) => {
         nome: p.nome,
         email: p.email,
         status: "created",
+        senha_gerada: senhaGerada,
       });
     }
 

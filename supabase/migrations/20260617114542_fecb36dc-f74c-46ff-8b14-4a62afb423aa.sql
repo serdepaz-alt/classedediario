@@ -1,0 +1,1 @@
+ALTER TABLE public.cad_professores DROP COLUMN IF EXISTS senha;

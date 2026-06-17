@@ -284,7 +284,6 @@ export type Database = {
           nome: string
           profissao: string | null
           rg: string | null
-          senha: string | null
           status: string | null
           telefone: string | null
           telefone2: string | null
@@ -315,7 +314,6 @@ export type Database = {
           nome: string
           profissao?: string | null
           rg?: string | null
-          senha?: string | null
           status?: string | null
           telefone?: string | null
           telefone2?: string | null
@@ -346,7 +344,6 @@ export type Database = {
           nome?: string
           profissao?: string | null
           rg?: string | null
-          senha?: string | null
           status?: string | null
           telefone?: string | null
           telefone2?: string | null

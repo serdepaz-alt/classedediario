@@ -138,10 +138,10 @@ export const ProfessoresList = () => {
 
   const handleAtribuirLogins = async () => {
     const elegiveis = professores.filter(
-      (p) => p.email && p.senha && (p.status || "Ativo") === "Ativo"
+      (p) => p.email && (p.status || "Ativo") === "Ativo"
     );
     if (elegiveis.length === 0) {
-      toast.error("Nenhum professor ativo com email e senha cadastrados");
+      toast.error("Nenhum professor ativo com email cadastrado");
       return;
     }
     setProvisioning(true);

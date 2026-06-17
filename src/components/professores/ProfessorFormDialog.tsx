@@ -103,7 +103,6 @@ const defaultValues: ProfessorFormData = {
   coren: "",
   disciplinas_lecionar: "",
   turnos_disponiveis: "",
-  senha: "",
 };
 
 export const ProfessorFormDialog = ({
@@ -176,9 +175,6 @@ export const ProfessorFormDialog = ({
         coren: professor.coren || "",
         disciplinas_lecionar: professor.disciplinas_lecionar || "",
         turnos_disponiveis: professor.turnos_disponiveis || "",
-        senha:
-          professor.senha ||
-          buildDefaultSenha(professor.nome, professor.data_nascimento || ""),
       });
     } else {
       form.reset(defaultValues);
@@ -679,41 +675,22 @@ export const ProfessorFormDialog = ({
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="senha"
-                  render={({ field }) => {
-                    const nome = form.watch("nome");
-                    const dn = form.watch("data_nascimento");
-                    const suggested = buildDefaultSenha(nome, dn || "");
-                    return (
-                      <FormItem>
-                        <FormLabel className="flex items-center justify-between">
-                          <span>Senha</span>
-                          {suggested && suggested !== field.value && (
-                            <button
-                              type="button"
-                              className="text-[11px] text-primary hover:underline"
-                              onClick={() => field.onChange(suggested)}
-                            >
-                              usar padrão: {suggested}
-                            </button>
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder={suggested || "PrimeiroNome+AnoNascimento"}
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-[11px] text-muted-foreground">
-                          Padrão: primeiro nome (minúsculo) + ano de nascimento. Ex.: luciano1971
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
+                <FormItem>
+                  <FormLabel>Senha</FormLabel>
+                  <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                    {(() => {
+                      const nome = form.watch("nome");
+                      const dn = form.watch("data_nascimento");
+                      const suggested = buildDefaultSenha(nome, dn || "");
+                      return suggested
+                        ? <>Padrão gerado: <span className="font-mono text-foreground">{suggested}</span></>
+                        : "Preencha nome e data de nascimento para ver o padrão.";
+                    })()}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    A senha é gerada e gravada com segurança no provedor de autenticação ao atribuir o login. Não é armazenada em texto puro.
+                  </p>
+                </FormItem>
               </div>
             </div>
 
