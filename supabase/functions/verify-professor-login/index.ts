@@ -47,11 +47,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3) Read senha via service role (not exposed to the client)
+    // 3) Verify credentials against Supabase Auth (passwords are no longer stored in the DB)
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
     const { data: prof, error: profErr } = await admin
       .from("cad_professores")
-      .select("id, nome, email, user_id, senha")
+      .select("id, nome, email, user_id")
       .eq("user_id", adminUserId)
       .eq("email", email)
       .maybeSingle();
@@ -62,8 +62,22 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!prof || !prof.senha || prof.senha !== senha) {
-      // Same generic message for both cases to avoid user enumeration
+    if (!prof) {
+      return new Response(JSON.stringify({ error: "Credenciais inválidas" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate the password via a throwaway auth client (no session persisted).
+    const authVerifier = createClient(SUPABASE_URL, ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { error: signInErr } = await authVerifier.auth.signInWithPassword({
+      email,
+      password: senha,
+    });
+    if (signInErr) {
       return new Response(JSON.stringify({ error: "Credenciais inválidas" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
