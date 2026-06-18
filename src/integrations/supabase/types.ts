@@ -1253,6 +1253,7 @@ export type Database = {
           backed_up_at: string
           data: string | null
           disciplina_id: string | null
+          disciplina_nome: string | null
           id: string
           justificativa: string | null
           operacao: string
@@ -1261,12 +1262,15 @@ export type Database = {
           status: string | null
           student_id: string | null
           turma_id: string | null
+          turma_nome: string | null
+          turno: string | null
           user_id: string
         }
         Insert: {
           backed_up_at?: string
           data?: string | null
           disciplina_id?: string | null
+          disciplina_nome?: string | null
           id?: string
           justificativa?: string | null
           operacao: string
@@ -1275,12 +1279,15 @@ export type Database = {
           status?: string | null
           student_id?: string | null
           turma_id?: string | null
+          turma_nome?: string | null
+          turno?: string | null
           user_id: string
         }
         Update: {
           backed_up_at?: string
           data?: string | null
           disciplina_id?: string | null
+          disciplina_nome?: string | null
           id?: string
           justificativa?: string | null
           operacao?: string
@@ -1289,6 +1296,8 @@ export type Database = {
           status?: string | null
           student_id?: string | null
           turma_id?: string | null
+          turma_nome?: string | null
+          turno?: string | null
           user_id?: string
         }
         Relationships: []
