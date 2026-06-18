@@ -544,15 +544,20 @@ export const useSequenciaDisciplinas = () => {
     setIsSaving(true);
 
     try {
-      // Delete existing disciplinas for this turma to replace
-      await supabase
+      // Preserve attendance: UPSERT by nome instead of delete+insert.
+      // presencas.disciplina_id has ON DELETE CASCADE, so deleting a disciplina
+      // wipes its chamadas. We keep the same row id when the nome matches.
+      const { data: existentes, error: fetchErr } = await supabase
         .from("disciplinas")
-        .delete()
-        .eq("turma_id", selectedTurmaId)
-        .eq("user_id", user.id);
+        .select("id, nome")
+        .eq("user_id", user.id)
+        .eq("turma_id", selectedTurmaId);
+      if (fetchErr) throw fetchErr;
 
-      // Insert all disciplinas in sequence
-      const rows = sequencia.map((item) => ({
+      const existentesByNome = new Map((existentes || []).map((d) => [d.nome, d.id]));
+      const nomesNaSequencia = new Set(sequencia.map((s) => s.nome));
+
+      const baseRow = (item: typeof sequencia[number]) => ({
         user_id: user.id,
         turma_id: selectedTurmaId,
         nome: item.nome,
@@ -564,13 +569,46 @@ export const useSequenciaDisciplinas = () => {
         data_inicio: item.data_inicio,
         data_termino: item.data_termino,
         nome_professor: item.nome_professor || null,
-      }));
+      });
 
-      const { error: insertError } = await supabase
-        .from("disciplinas")
-        .insert(rows);
+      // UPDATE existing + INSERT new
+      const toInsert: ReturnType<typeof baseRow>[] = [];
+      for (const item of sequencia) {
+        const existingId = existentesByNome.get(item.nome);
+        if (existingId) {
+          const { error: updErr } = await supabase
+            .from("disciplinas")
+            .update(baseRow(item))
+            .eq("id", existingId);
+          if (updErr) throw updErr;
+        } else {
+          toInsert.push(baseRow(item));
+        }
+      }
+      if (toInsert.length > 0) {
+        const { error: insErr } = await supabase.from("disciplinas").insert(toInsert);
+        if (insErr) throw insErr;
+      }
 
-      if (insertError) throw insertError;
+      // Delete disciplinas removed from the sequence — but only if they have NO chamadas.
+      const removidas = (existentes || []).filter((d) => !nomesNaSequencia.has(d.nome));
+      let preservadasComChamadas = 0;
+      for (const rem of removidas) {
+        const { count } = await supabase
+          .from("presencas")
+          .select("id", { count: "exact", head: true })
+          .eq("disciplina_id", rem.id);
+        if ((count || 0) > 0) {
+          preservadasComChamadas++;
+          continue;
+        }
+        await supabase.from("disciplinas").delete().eq("id", rem.id);
+      }
+      if (preservadasComChamadas > 0) {
+        toast.warning(
+          `${preservadasComChamadas} disciplina(s) removida(s) da sequência foram mantidas porque possuem chamadas registradas.`
+        );
+      }
 
       queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
       queryClient.invalidateQueries({ queryKey: ["cronograma"] });
