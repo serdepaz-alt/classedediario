@@ -1248,6 +1248,51 @@ export type Database = {
           },
         ]
       }
+      presencas_backup: {
+        Row: {
+          backed_up_at: string
+          data: string | null
+          disciplina_id: string | null
+          id: string
+          justificativa: string | null
+          operacao: string
+          presenca_id: string
+          snapshot: Json
+          status: string | null
+          student_id: string | null
+          turma_id: string | null
+          user_id: string
+        }
+        Insert: {
+          backed_up_at?: string
+          data?: string | null
+          disciplina_id?: string | null
+          id?: string
+          justificativa?: string | null
+          operacao: string
+          presenca_id: string
+          snapshot: Json
+          status?: string | null
+          student_id?: string | null
+          turma_id?: string | null
+          user_id: string
+        }
+        Update: {
+          backed_up_at?: string
+          data?: string | null
+          disciplina_id?: string | null
+          id?: string
+          justificativa?: string | null
+          operacao?: string
+          presenca_id?: string
+          snapshot?: Json
+          status?: string | null
+          student_id?: string | null
+          turma_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       professor_logins: {
         Row: {
           admin_user_id: string
