@@ -742,12 +742,33 @@ export const Attendance = () => {
         });
       }
 
-      await supabase
+      // NOTE: DELETE em `presencas` é bloqueado por trigger (fn_block_presenca_delete)
+      // e por revogação de privilégio. Mantemos a chamada apenas para detectar
+      // tentativas remanescentes — qualquer erro aqui é logado e reportado.
+      const { error: deleteError } = await supabase
         .from("presencas")
         .delete()
         .eq("user_id", ownerId)
         .eq("disciplina_id", selectedDisciplina.id)
         .eq("data", dateStr);
+      if (deleteError) {
+        console.error("[saveAttendance] DELETE presencas falhou (esperado pós-blindagem):", {
+          code: (deleteError as any).code,
+          message: deleteError.message,
+          details: (deleteError as any).details,
+          hint: (deleteError as any).hint,
+          ownerId,
+          disciplina_id: selectedDisciplina.id,
+          data: dateStr,
+        });
+        // Se já existem chamadas para essa data, abortamos com mensagem clara
+        // em vez de tentar inserir duplicatas.
+        toast.error(
+          `Já existem chamadas registradas para ${dateStr} nesta disciplina e elas não podem ser apagadas. (${deleteError.message})`
+        );
+        setIsLoading(false);
+        return;
+      }
 
       const records = Array.from(presencas.entries())
         .filter(([_, status]) => status !== "pending")
@@ -766,8 +787,40 @@ export const Attendance = () => {
         }));
 
       if (records.length > 0) {
-        const { error } = await supabase.from("presencas").insert(records);
-        if (error) throw error;
+        console.log("[saveAttendance] Inserindo presencas:", {
+          count: records.length,
+          ownerId,
+          disciplina_id: selectedDisciplina.id,
+          turma_id: selectedDisciplina.turma_id,
+          data: dateStr,
+          sample: records[0],
+        });
+        const { data: inserted, error } = await supabase
+          .from("presencas")
+          .insert(records)
+          .select("id");
+        if (error) {
+          console.error("[saveAttendance] INSERT presencas falhou:", {
+            code: (error as any).code,
+            message: error.message,
+            details: (error as any).details,
+            hint: (error as any).hint,
+            recordsCount: records.length,
+            firstRecord: records[0],
+          });
+          throw error;
+        }
+        console.log("[saveAttendance] INSERT presencas OK:", {
+          inseridos: inserted?.length ?? 0,
+          enviados: records.length,
+        });
+        if ((inserted?.length ?? 0) !== records.length) {
+          toast.error(
+            `Atenção: enviadas ${records.length} chamadas, persistidas ${inserted?.length ?? 0}. Verifique RLS/políticas.`
+          );
+        }
+      } else {
+        console.warn("[saveAttendance] Nenhum registro marcado para salvar (todos 'pending').");
       }
 
       // Update aula status to concluido if linked
@@ -875,7 +928,22 @@ export const Attendance = () => {
       classStartTimeRef.current = new Date();
       setShowSummaryDialog(true);
     } catch (error: any) {
-      toast.error("Erro ao salvar chamada: " + error.message);
+      console.error("[saveAttendance] Falha geral ao salvar chamada:", {
+        name: error?.name,
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        status: error?.status,
+        stack: error?.stack,
+        raw: error,
+      });
+      toast.error(
+        `Erro ao salvar chamada [${error?.code ?? "sem-código"}]: ${error?.message ?? "erro desconhecido"}${
+          error?.hint ? ` — Dica: ${error.hint}` : ""
+        }`,
+        { duration: 10000 }
+      );
     } finally {
       setIsLoading(false);
     }
