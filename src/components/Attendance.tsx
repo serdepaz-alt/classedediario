@@ -162,6 +162,9 @@ export const Attendance = () => {
   const [observacoesAula, setObservacoesAula] = useState("");
 
   const classStartTimeRef = useRef<Date | null>(null);
+  // Lock para evitar saves concorrentes (race condition de duplo-clique
+  // e troca de disciplina/data mid-flight).
+  const savingLockRef = useRef(false);
 
   useEffect(() => {
     if (!classStartTimeRef.current) {
@@ -661,26 +664,50 @@ export const Attendance = () => {
   const saveAttendance = async () => {
     if (!user || !selectedDisciplina || !selectedDate) return;
 
+    // ---- Guard de concorrência ----
+    if (savingLockRef.current) {
+      console.warn("[saveAttendance] Ignorado: save anterior em andamento.");
+      return;
+    }
+    savingLockRef.current = true;
+
+    // ---- Snapshot imutável do estado no instante do clique ----
+    // Protege contra stale closures e contra troca de disciplina/data
+    // enquanto a requisição async está em voo.
+    const snap = {
+      disciplina: selectedDisciplina,
+      disciplinaId: selectedDisciplina.id,
+      turmaId: selectedDisciplina.turma_id,
+      date: selectedDate,
+      presencas: new Map(presencas),
+      justificativas: new Map(justificativas),
+      students: students.slice(),
+      aulaId: selectedAulaId,
+      conteudo: conteudoMinistrado,
+      observacoes: observacoesAula,
+      ocorrencias,
+    };
+
     setIsLoading(true);
     setShowConfirmDialog(false);
     try {
-      const dateStr = format(selectedDate, "yyyy-MM-dd");
+      const dateStr = format(snap.date, "yyyy-MM-dd");
       const saveTime = new Date().toISOString();
       const startTime = classStartTimeRef.current?.toISOString() || saveTime;
 
       // Materializa o Conteúdo Ministrado escolhido em um Plano de Aula
       // da data/turma atuais, permitindo edição posterior no módulo
       // Conteúdo Programático. Se o aula já é do dia+turma, reusa.
-      let aulaIdForRecords: string | null = selectedAulaId || null;
-      if (selectedAulaId) {
+      let aulaIdForRecords: string | null = snap.aulaId || null;
+      if (snap.aulaId) {
         const { data: srcAula } = await supabase
           .from("conteudo_programatico_aulas")
           .select("id, topico, objetivo, metodologia, recursos, tipo_avaliacao, observacoes, disciplina_nome, data_aula, turma_id, tier_carga")
-          .eq("id", selectedAulaId)
+          .eq("id", snap.aulaId)
           .maybeSingle();
 
         if (srcAula) {
-          const targetTurmaId = selectedDisciplina.turma_id || null;
+          const targetTurmaId = snap.turmaId || null;
           const sameDay = srcAula.data_aula === dateStr;
           const sameTurma = (srcAula.turma_id || null) === targetTurmaId;
 
@@ -690,7 +717,7 @@ export const Attendance = () => {
               .from("conteudo_programatico_aulas")
               .select("id")
               .eq("user_id", ownerId)
-              .eq("disciplina_id", selectedDisciplina.id)
+              .eq("disciplina_id", snap.disciplinaId)
               .eq("data_aula", dateStr)
               .eq("topico", srcAula.topico)
               .maybeSingle();
@@ -702,9 +729,9 @@ export const Attendance = () => {
                 .from("conteudo_programatico_aulas")
                 .insert({
                   user_id: ownerId,
-                  disciplina_id: selectedDisciplina.id,
+                  disciplina_id: snap.disciplinaId,
                   turma_id: targetTurmaId,
-                  disciplina_nome: srcAula.disciplina_nome || selectedDisciplina.nome,
+                  disciplina_nome: srcAula.disciplina_nome || snap.disciplina.nome,
                   data_aula: dateStr,
                   topico: srcAula.topico,
                   objetivo: srcAula.objetivo,
@@ -728,10 +755,10 @@ export const Attendance = () => {
         .from("presencas")
         .select("status")
         .eq("user_id", ownerId)
-        .eq("disciplina_id", selectedDisciplina.id)
+        .eq("disciplina_id", snap.disciplinaId)
         .lt("data", dateStr)
         .order("data", { ascending: false })
-        .limit(students.length);
+        .limit(snap.students.length);
 
       if (previousData && previousData.length > 0) {
         setPreviousDayStats({
@@ -742,65 +769,44 @@ export const Attendance = () => {
         });
       }
 
-      // NOTE: DELETE em `presencas` é bloqueado por trigger (fn_block_presenca_delete)
-      // e por revogação de privilégio. Mantemos a chamada apenas para detectar
-      // tentativas remanescentes — qualquer erro aqui é logado e reportado.
-      const { error: deleteError } = await supabase
-        .from("presencas")
-        .delete()
-        .eq("user_id", ownerId)
-        .eq("disciplina_id", selectedDisciplina.id)
-        .eq("data", dateStr);
-      if (deleteError) {
-        console.error("[saveAttendance] DELETE presencas falhou (esperado pós-blindagem):", {
-          code: (deleteError as any).code,
-          message: deleteError.message,
-          details: (deleteError as any).details,
-          hint: (deleteError as any).hint,
-          ownerId,
-          disciplina_id: selectedDisciplina.id,
-          data: dateStr,
-        });
-        // Se já existem chamadas para essa data, abortamos com mensagem clara
-        // em vez de tentar inserir duplicatas.
-        toast.error(
-          `Já existem chamadas registradas para ${dateStr} nesta disciplina e elas não podem ser apagadas. (${deleteError.message})`
-        );
-        setIsLoading(false);
-        return;
-      }
-
-      const records = Array.from(presencas.entries())
+      // NÃO apagamos mais — presencas são imutáveis. Usamos UPSERT idempotente
+      // sobre a UNIQUE(disciplina_id, student_id, data). Re-salvar a mesma
+      // data atualiza o status existente (e o trigger de backup grava UPDATE
+      // no histórico, mantendo trilha de auditoria completa).
+      const records = Array.from(snap.presencas.entries())
         .filter(([_, status]) => status !== "pending")
         .map(([studentId, status]) => ({
           user_id: ownerId,
-          disciplina_id: selectedDisciplina.id,
+          disciplina_id: snap.disciplinaId,
           student_id: studentId,
           data: dateStr,
           status,
           horario_inicio: startTime,
           horario_salvamento: saveTime,
-          justificativa: justificativas.get(studentId) || null,
+          justificativa: snap.justificativas.get(studentId) || null,
           aula_programatica_id: aulaIdForRecords,
-          conteudo_ministrado: conteudoMinistrado || null,
-          observacoes_aula: observacoesAula || null,
+          conteudo_ministrado: snap.conteudo || null,
+          observacoes_aula: snap.observacoes || null,
         }));
 
       if (records.length > 0) {
-        console.log("[saveAttendance] Inserindo presencas:", {
+        console.log("[saveAttendance] UPSERT presencas:", {
           count: records.length,
           ownerId,
-          disciplina_id: selectedDisciplina.id,
-          turma_id: selectedDisciplina.turma_id,
+          disciplina_id: snap.disciplinaId,
+          turma_id: snap.turmaId,
           data: dateStr,
           sample: records[0],
         });
-        const { data: inserted, error } = await supabase
+        const { data: upserted, error } = await supabase
           .from("presencas")
-          .insert(records)
+          .upsert(records, {
+            onConflict: "disciplina_id,student_id,data",
+            ignoreDuplicates: false,
+          })
           .select("id");
         if (error) {
-          console.error("[saveAttendance] INSERT presencas falhou:", {
+          console.error("[saveAttendance] UPSERT presencas falhou:", {
             code: (error as any).code,
             message: error.message,
             details: (error as any).details,
@@ -810,13 +816,14 @@ export const Attendance = () => {
           });
           throw error;
         }
-        console.log("[saveAttendance] INSERT presencas OK:", {
-          inseridos: inserted?.length ?? 0,
+        console.log("[saveAttendance] UPSERT presencas OK:", {
+          persistidos: upserted?.length ?? 0,
           enviados: records.length,
         });
-        if ((inserted?.length ?? 0) !== records.length) {
-          toast.error(
-            `Atenção: enviadas ${records.length} chamadas, persistidas ${inserted?.length ?? 0}. Verifique RLS/políticas.`
+        if ((upserted?.length ?? 0) !== records.length) {
+          // Falha dura — não mostramos resumo verde de falso sucesso.
+          throw new Error(
+            `Persistência parcial: enviadas ${records.length}, persistidas ${upserted?.length ?? 0}. Provável bloqueio de RLS.`
           );
         }
       } else {
@@ -840,16 +847,16 @@ export const Attendance = () => {
       ]);
 
       // Mark turma as done for today
-      if (selectedDisciplina.turma_id) {
-        setTodayAttendanceDone((prev) => new Set([...prev, selectedDisciplina.turma_id!]));
+      if (snap.turmaId) {
+        setTodayAttendanceDone((prev) => new Set([...prev, snap.turmaId!]));
       }
 
       // Calculate stats for summary
       const stats = {
-        present: Array.from(presencas.values()).filter((s) => s === "presente").length,
-        absent: Array.from(presencas.values()).filter((s) => s === "ausente").length,
-        late: Array.from(presencas.values()).filter((s) => s === "atrasado").length,
-        total: students.length,
+        present: Array.from(snap.presencas.values()).filter((s) => s === "presente").length,
+        absent: Array.from(snap.presencas.values()).filter((s) => s === "ausente").length,
+        late: Array.from(snap.presencas.values()).filter((s) => s === "atrasado").length,
+        total: snap.students.length,
       };
       setLastSaveStats(stats);
 
@@ -860,7 +867,7 @@ export const Attendance = () => {
         .from("presencas")
         .select("student_id, status")
         .eq("user_id", ownerId)
-        .eq("disciplina_id", selectedDisciplina.id);
+        .eq("disciplina_id", snap.disciplinaId);
 
       let issuesCount = 0;
       if (allPresencas) {
@@ -874,7 +881,7 @@ export const Attendance = () => {
           }
         });
 
-        const studentsWithIssues = students
+        const studentsWithIssues = snap.students
           .filter((s) => {
             const st = studentStats.get(s.id);
             return st && st.absences + st.lates >= 2;
@@ -892,7 +899,7 @@ export const Attendance = () => {
               student_email: s.email || null,
               total_absences: st.absences,
               total_lates: st.lates,
-              status: presencas.get(s.id) || "pending",
+              status: snap.presencas.get(s.id) || "pending",
               frequencia_percent: frequenciaPercent,
             };
           });
@@ -900,21 +907,21 @@ export const Attendance = () => {
         issuesCount = studentsWithIssues.length;
         setStudentsWithIssuesCount(issuesCount);
 
-        const studentsPresent = students
-          .filter((s) => presencas.get(s.id) === "presente")
+        const studentsPresent = snap.students
+          .filter((s) => snap.presencas.get(s.id) === "presente")
           .map((s) => ({ student_id: s.id, student_name: s.nome, student_email: s.email || null }));
 
         if (studentsWithIssues.length > 0 || studentsPresent.length > 0) {
           try {
             await supabase.functions.invoke("send-attendance-notifications", {
               body: {
-                disciplina_id: selectedDisciplina.id,
-                disciplina_nome: selectedDisciplina.nome,
+                disciplina_id: snap.disciplinaId,
+                disciplina_nome: snap.disciplina.nome,
                 data: dateStr,
                 admin_email: user.email || "",
                 students_with_issues: studentsWithIssues,
                 students_present: studentsPresent,
-                ocorrencias: ocorrencias || null,
+                ocorrencias: snap.ocorrencias || null,
               },
             });
             setNotificationsSent(true);
@@ -946,6 +953,7 @@ export const Attendance = () => {
       );
     } finally {
       setIsLoading(false);
+      savingLockRef.current = false;
     }
   };
 
