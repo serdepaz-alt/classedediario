@@ -17,13 +17,16 @@ import {
   BookOpen,
   Pencil,
   Send,
-  Loader2
+  Loader2,
+  Printer,
+  FileText
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AddStudentDialog } from "./students/AddStudentDialog";
 import { StudentData } from "./students/IndividualStudentForm";
+import { printFichaMatricula, printContratoMatricula } from "@/lib/studentDocuments";
 import { toast } from "sonner";
 
 export const Students = () => {
@@ -59,7 +62,7 @@ export const Students = () => {
       if (!user) return [];
       const { data, error } = await supabase
         .from("students")
-        .select("*, turmas(id, nome, curso)")
+        .select("*, turmas(id, nome, curso, periodo, horario)")
         .order("nome");
       if (error) throw error;
       return data;
@@ -80,6 +83,7 @@ export const Students = () => {
     joinDate: s.data_matricula,
     turma: s.turmas ? `${s.turmas.nome}${s.turmas.curso ? ` - ${s.turmas.curso}` : ""}` : null,
     turmaId: s.turmas?.id ?? null,
+    turmaRaw: s.turmas ?? null,
     // Keep raw data for editing
     rawData: s,
   }));
@@ -276,6 +280,26 @@ export const Students = () => {
                 >
                   <Pencil className="w-4 h-4 mr-1" />
                   Editar
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => printFichaMatricula(student.rawData, student.turmaRaw)}
+                  title="Imprimir ficha de matrícula"
+                >
+                  <Printer className="w-4 h-4 mr-1" />
+                  Ficha de Matrícula
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => printContratoMatricula(student.rawData, student.turmaRaw)}
+                  title="Imprimir contrato de prestação de serviços"
+                >
+                  <FileText className="w-4 h-4 mr-1" />
+                  Contrato
                 </Button>
               </div>
             </Card>
