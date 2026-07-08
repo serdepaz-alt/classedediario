@@ -28,6 +28,7 @@ import { format, isBefore, isAfter, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
@@ -116,9 +117,9 @@ interface ActiveAula {
 
 export const Attendance = () => {
   const { user } = useAuth();
-  const ALLOWED_CHAMADA_EMAIL = "serdepaz@gmail.com";
-  const canMakeChamada =
-    (user?.email || "").toLowerCase() === ALLOWED_CHAMADA_EMAIL;
+  const { role, isAdmin, isProfessor } = useUserRole();
+  // Admins e professores autenticados podem realizar a chamada
+  const canMakeChamada = !!user && (isAdmin || isProfessor);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [selectedDisciplina, setSelectedDisciplina] = useState<Disciplina | null>(null);
@@ -1549,7 +1550,7 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
                   onClick={handleSaveClick}
                   title={
                     !canMakeChamada
-                      ? "Apenas serdepaz@gmail.com pode realizar a chamada"
+                      ? "Você não tem permissão para registrar a chamada"
                       : undefined
                   }
                 >
