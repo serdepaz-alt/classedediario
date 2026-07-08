@@ -1550,7 +1550,7 @@ ${ocorrencias ? `\nOCORRÊNCIAS\n-----------\n${ocorrencias}` : ""}
                   onClick={handleSaveClick}
                   title={
                     !canMakeChamada
-                      ? "Apenas serdepaz@gmail.com pode realizar a chamada"
+                      ? "Você não tem permissão para registrar a chamada"
                       : undefined
                   }
                 >
