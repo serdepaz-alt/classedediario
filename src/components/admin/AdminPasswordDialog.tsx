@@ -12,14 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Lock, Eye, EyeOff, LogIn, ShieldCheck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AdminPasswordDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const ADMIN_EMAIL = "luciano.ribeiro@irmadulceoficial.com.br";
-const ADMIN_PASSWORD = "202600";
 
 export const AdminPasswordDialog = ({ open, onOpenChange }: AdminPasswordDialogProps) => {
   const navigate = useNavigate();
@@ -39,20 +37,47 @@ export const AdminPasswordDialog = ({ open, onOpenChange }: AdminPasswordDialogP
     }
 
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const cleanEmail = email.toLowerCase().trim();
 
-    if (email.toLowerCase().trim() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      toast.success("Acesso administrativo liberado!");
-      onOpenChange(false);
-      setEmail("");
-      setPassword("");
-      navigate("/admin");
-    } else {
-      setError("Credenciais incorretas");
-      toast.error("Credenciais inválidas");
+    // 1) Confirma que o e-mail pertence a um administrador cadastrado e ativo
+    const { data: adm, error: admErr } = await supabase
+      .from("cad_administradores")
+      .select("id,status")
+      .ilike("email", cleanEmail)
+      .maybeSingle();
+
+    if (admErr || !adm) {
+      setError("E-mail não cadastrado como administrador");
+      toast.error("E-mail não cadastrado como administrador");
+      setIsLoading(false);
+      return;
     }
-    
+    if ((adm.status ?? "").toLowerCase() !== "ativo") {
+      setError("Administrador inativo");
+      toast.error("Administrador inativo");
+      setIsLoading(false);
+      return;
+    }
+
+    // 2) Valida a senha individual do administrador
+    const { error: signErr } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
+
+    if (signErr) {
+      setError("Senha incorreta");
+      toast.error("Senha incorreta");
+      setIsLoading(false);
+      return;
+    }
+
+    toast.success("Acesso administrativo liberado!");
+    onOpenChange(false);
+    setEmail("");
+    setPassword("");
     setIsLoading(false);
+    navigate("/admin");
   };
 
   const handleClose = () => {
