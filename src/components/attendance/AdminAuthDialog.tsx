@@ -10,9 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Lock, Eye, EyeOff, LogIn } from "lucide-react";
-
-const ADMIN_EMAIL = "luciano.ribeiro@irmadulceoficial.com.br";
-const ADMIN_PASSWORD = "202600";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AdminAuthDialogProps {
   open: boolean;
@@ -35,16 +33,39 @@ export const AdminAuthDialog = ({ open, onOpenChange, onSuccess }: AdminAuthDial
     }
 
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const cleanEmail = email.toLowerCase().trim();
 
-    if (email.toLowerCase().trim() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      toast.success("Autenticação bem-sucedida!");
-      onSuccess();
-      setEmail("");
-      setPassword("");
-    } else {
-      toast.error("Credenciais inválidas");
+    const { data: adm } = await supabase
+      .from("cad_administradores")
+      .select("id,status")
+      .ilike("email", cleanEmail)
+      .maybeSingle();
+
+    if (!adm) {
+      toast.error("E-mail não cadastrado como administrador");
+      setIsLoading(false);
+      return;
     }
+    if ((adm.status ?? "").toLowerCase() !== "ativo") {
+      toast.error("Administrador inativo");
+      setIsLoading(false);
+      return;
+    }
+
+    const { error: signErr } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
+    if (signErr) {
+      toast.error("Senha incorreta");
+      setIsLoading(false);
+      return;
+    }
+
+    toast.success("Autenticação bem-sucedida!");
+    onSuccess();
+    setEmail("");
+    setPassword("");
     setIsLoading(false);
   };
 
