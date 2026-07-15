@@ -42,6 +42,7 @@ import { TurmaDisciplinaSelector } from "@/components/grades/TurmaDisciplinaSele
 import { useAceiteCronograma } from "@/hooks/useAceiteCronograma";
 import { useGrades } from "@/hooks/useGrades";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -65,6 +66,7 @@ export const Grades = () => {
   const [turmaDisciplinas, setTurmaDisciplinas] = useState<{ turma_id: string; turma_nome: string; disciplina_id: string; disciplina_nome: string }[]>([]);
   const { hasPending, pendingCount } = useAceiteCronograma();
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
   const { professorNome, turmasDisponiveis, loading: loadingProfessor, fetchAllGradesForDisciplina } = useGrades();
 
   // Filter by turma
@@ -189,13 +191,17 @@ export const Grades = () => {
   // Handle turma selection from dropdown - fetch disciplinas for that turma
   const handleTurmaSelect = async (turma: { id: string; nome: string }) => {
     const today = new Date().toISOString().split('T')[0];
-    const { data } = await supabase
+    // Admin: pode lançar notas em disciplinas atuais e anteriores.
+    // Professor: apenas a disciplina atual.
+    let query = supabase
       .from("disciplinas")
       .select("id, nome")
       .eq("turma_id", turma.id)
-      .lte("data_inicio", today)
-      .gte("data_termino", today)
-      .order("nome");
+      .lte("data_inicio", today);
+    if (!isAdmin) {
+      query = query.gte("data_termino", today);
+    }
+    const { data } = await query.order("data_inicio", { ascending: false });
 
     if (data && data.length > 0) {
       setTurmaDisciplinas(data.map(d => ({
