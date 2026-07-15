@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { MoreHorizontal, Calendar, GraduationCap, Users, BookOpen, Printer } from "lucide-react";
+import { Phone } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +29,7 @@ interface TurmaCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onPrintRoster?: () => void;
+  onPrintPhoneList?: () => void;
 }
 
 export const TurmaCard = ({
@@ -37,6 +39,7 @@ export const TurmaCard = ({
   onEdit,
   onDelete,
   onPrintRoster,
+  onPrintPhoneList,
 }: TurmaCardProps) => {
   const getStatusColor = (status: string | null) => {
     switch (status) {
@@ -86,6 +89,12 @@ export const TurmaCard = ({
                 <DropdownMenuItem onClick={onPrintRoster}>
                   <Printer className="w-4 h-4 mr-2" />
                   Lista Nominal
+                </DropdownMenuItem>
+              )}
+              {onPrintPhoneList && (
+                <DropdownMenuItem onClick={onPrintPhoneList}>
+                  <Phone className="w-4 h-4 mr-2" />
+                  Lista Telefônica
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={onDelete} className="text-destructive">

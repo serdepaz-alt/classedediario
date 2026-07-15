@@ -148,6 +148,96 @@ export const Turmas = () => {
     }
   };
 
+  const handlePrintPhoneList = async (turma: Turma) => {
+    try {
+      const { data: alunos, error } = await supabase
+        .from("students")
+        .select("nome, telefone, email")
+        .eq("turma_id", turma.id)
+        .eq("status", "Ativo")
+        .order("nome", { ascending: true });
+      if (error) throw error;
+
+      const rows = (alunos || [])
+        .map((a, i) => {
+          const tel = (a.telefone ?? "").toString().trim();
+          const digits = tel.replace(/\D/g, "");
+          const waLink = digits
+            ? `<a href="https://wa.me/55${digits}" target="_blank" style="color:#059669;text-decoration:none">${tel}</a>`
+            : "—";
+          return `
+            <tr>
+              <td style="text-align:center">${i + 1}</td>
+              <td style="font-size:13px">${a.nome ?? "—"}</td>
+              <td style="font-size:13px;font-family:monospace">${waLink}</td>
+              <td style="font-size:12px;color:#555">${a.email ?? "—"}</td>
+            </tr>`;
+        })
+        .join("");
+
+      const html = `<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"/>
+<title>Lista Telefônica - ${turma.nome}</title>
+<style>
+  @page { size: A4; margin: 18mm; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #111; font-size: 12px; }
+  .header { text-align: center; margin-bottom: 18px; }
+  .header h1 { font-size: 20px; margin: 0 0 4px; }
+  .header h2 { font-size: 14px; margin: 0; color: #555; font-weight: normal; }
+  .header .turma { font-size: 13px; color: #333; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { border: 1px solid #bbb; padding: 8px 10px; vertical-align: middle; }
+  th { background: #f1f5f9; font-size: 12px; text-transform: uppercase; text-align: left; }
+  td:nth-child(1) { width: 40px; text-align: center; }
+  td:nth-child(2) { width: 38%; }
+  td:nth-child(3) { width: 22%; }
+  tr { height: 32px; }
+  .footer { margin-top: 20px; font-size: 11px; color: #555; display: flex; justify-content: space-between; }
+  @media print { .no-print { display: none; } }
+  .no-print { text-align: right; margin-bottom: 10px; }
+  .no-print button { padding: 8px 14px; cursor: pointer; }
+</style></head>
+<body>
+  <div class="no-print"><button onclick="window.print()">Imprimir</button></div>
+  <div class="header">
+    <h1>Lista Telefônica</h1>
+    <h2>Contatos dos Alunos</h2>
+    <div class="turma"><b>Turma:</b> ${turma.nome} &nbsp;|&nbsp; <b>Curso:</b> ${turma.curso ?? "—"} &nbsp;|&nbsp; <b>Turno:</b> ${turma.periodo ?? "—"}</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:40px">Nº</th>
+        <th>Nome do Aluno</th>
+        <th>Telefone</th>
+        <th>E-mail</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows || `<tr><td colspan="4" style="text-align:center;padding:20px">Nenhum aluno ativo nesta turma.</td></tr>`}
+    </tbody>
+  </table>
+  <div class="footer">
+    <span>Total de alunos: ${alunos?.length ?? 0}</span>
+    <span>${new Date().toLocaleDateString("pt-BR")}</span>
+  </div>
+  <script>window.addEventListener('load', () => setTimeout(() => window.print(), 400));</script>
+</body></html>`;
+
+      const w = window.open("", "_blank");
+      if (!w) {
+        toast.error("Permita pop-ups para imprimir a lista telefônica.");
+        return;
+      }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao gerar lista telefônica: " + (e?.message || ""));
+    }
+  };
+
   useEffect(() => {
     if (user) fetchTurmas();
   }, [user]);
@@ -422,6 +512,7 @@ export const Turmas = () => {
                 onEdit={() => handleEdit(turma)}
                 onDelete={() => handleDeleteClick(turma)}
                 onPrintRoster={() => handlePrintRoster(turma)}
+                onPrintPhoneList={() => handlePrintPhoneList(turma)}
               />
             ))}
           </div>
