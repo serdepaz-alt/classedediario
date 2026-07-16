@@ -102,16 +102,20 @@ export const Grades = () => {
   useEffect(() => {
     if (!user) return;
     const fetchActiveTurmas = async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("turmas")
         .select("id, nome, curso")
-        .eq("user_id", user.id)
-        .eq("status", "Ativa")
-        .order("nome");
+        .eq("status", "Ativa");
+      // Admin vê todas as turmas ativas (staff da instituição).
+      // Professor/usuário comum vê apenas as próprias.
+      if (!isAdmin) {
+        query = query.eq("user_id", user.id);
+      }
+      const { data } = await query.order("nome");
       setActiveTurmas(data || []);
     };
     fetchActiveTurmas();
-  }, [user]);
+  }, [user, isAdmin]);
 
   // Load grades for a selected turma only
   const loadTurmaData = useCallback(async (turmaId: string) => {
