@@ -608,6 +608,14 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                     }}
                     className="w-20"
                   />
+                          {bg.valor !== null ? (
+                            <Badge variant="outline" className="border-green-300 text-green-700 bg-green-50 dark:bg-green-950/30 gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              Lançada
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground w-16 text-center">—</span>
+                          )}
                 </div>
               ))}
             </div>
@@ -752,6 +760,12 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
                           </Button>
 
                           <div className="flex items-center gap-1 ml-auto">
+                            {grade.valor !== null && (
+                              <Badge variant="outline" className="border-green-300 text-green-700 bg-green-50 dark:bg-green-950/30 gap-1 mr-2">
+                                <CheckCircle className="w-3 h-3" />
+                                Lançada
+                              </Badge>
+                            )}
                             {grade.notificacao_status === "Enviado" ? (
                               <Check className="w-4 h-4 text-green-500" />
                             ) : (
