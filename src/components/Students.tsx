@@ -5,6 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Plus, 
   Search, 
@@ -19,7 +27,9 @@ import {
   Send,
   Loader2,
   Printer,
-  FileText
+  FileText,
+  Award,
+  ScrollText,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -214,9 +224,46 @@ export const Students = () => {
                     </Badge>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="flex items-center gap-2">
+                      <Printer className="w-4 h-4" />
+                      Imprimir
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => printFichaMatricula(student.rawData, student.turmaRaw)}
+                      disabled={!student.rawData}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Ficha de Matrícula
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => printContratoMatricula(student.rawData, student.turmaRaw)}
+                      disabled={!student.rawData}
+                    >
+                      <ScrollText className="w-4 h-4 mr-2" />
+                      Contrato de Matrícula
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => window.open("/atestado-matricula", "_blank")}
+                    >
+                      <Award className="w-4 h-4 mr-2" />
+                      Atestado de Matrícula
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => window.print()}
+                    >
+                      <Printer className="w-4 h-4 mr-2" />
+                      Ficha Resumo (tela)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <div className="space-y-3 mb-4">
