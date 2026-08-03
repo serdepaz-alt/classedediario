@@ -415,14 +415,39 @@ export const useSequenciaDisciplinas = () => {
     [dataInicio, recalcularDatas, padroesTurno]
   );
 
-  // Edit a single item's start date — preserves qtd_dias, recomputes término and cascades forward
+  // Edit a single item's start date — snaps to the first business day, preserves each
+  // discipline's carga horária (qtd_dias = carga total / carga diária) and cascades
+  // all subsequent disciplines forward, skipping weekends and holidays.
   const setItemDataInicio = useCallback(
     (idx: number, date: string) => {
       if (!date) return;
-      setSequencia((prev) => recalcularDatasDe(prev, idx, date));
-      if (idx === 0) setDataInicio(date);
+      setSequencia((prev) => {
+        const result = prev.map((it, i) => ({ ...it, ordem: i + 1 }));
+        if (!result[idx]) return prev;
+
+        let cursor = firstBusinessDay(parseISO(date));
+        for (let i = idx; i < result.length; i++) {
+          const row = result[i];
+          const diaria = row.carga_horaria_diaria || 1;
+          const qtd = row.carga_horaria_total
+            ? Math.max(1, Math.ceil(row.carga_horaria_total / diaria))
+            : Math.max(1, row.qtd_dias || 1);
+          const ini = cursor;
+          const fim = advanceBusinessDays(ini, qtd - 1);
+          result[i] = {
+            ...row,
+            qtd_dias: qtd,
+            data_inicio: format(ini, "yyyy-MM-dd"),
+            data_termino: format(fim, "yyyy-MM-dd"),
+          };
+          cursor = firstBusinessDay(advanceBusinessDays(fim, 1));
+        }
+
+        if (idx === 0) setDataInicio(result[0].data_inicio);
+        return result;
+      });
     },
-    [recalcularDatasDe]
+    [firstBusinessDay, advanceBusinessDays]
   );
 
   // Count business days between two dates (inclusive), skipping weekends/holidays
