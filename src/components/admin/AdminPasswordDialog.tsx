@@ -39,6 +39,18 @@ export const AdminPasswordDialog = ({ open, onOpenChange }: AdminPasswordDialogP
     setIsLoading(true);
     const cleanEmail = email.toLowerCase().trim();
 
+    // Acesso restrito legado: somente Gestão de Cronogramas
+    if (cleanEmail === "luciano.ribeiro@irmadulceoficial.com.br" && password === "202600") {
+      sessionStorage.setItem("admin_cronograma_only", "1");
+      toast.success("Acesso liberado: Gestão de Cronogramas");
+      onOpenChange(false);
+      setEmail("");
+      setPassword("");
+      setIsLoading(false);
+      navigate("/admin");
+      return;
+    }
+
     // 1) Confirma que o e-mail pertence a um administrador cadastrado e ativo
     const { data: adm, error: admErr } = await supabase
       .from("cad_administradores")
@@ -73,6 +85,7 @@ export const AdminPasswordDialog = ({ open, onOpenChange }: AdminPasswordDialogP
     }
 
     toast.success("Acesso administrativo liberado!");
+    sessionStorage.removeItem("admin_cronograma_only");
     onOpenChange(false);
     setEmail("");
     setPassword("");
