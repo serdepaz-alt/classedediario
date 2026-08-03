@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -124,6 +125,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
 
   const handleSkipEmails = () => {
     setConfirmEmailOpen(false);
+    toast.success("Cronograma salvo. Nenhum e-mail foi disparado.");
     onOpenChange(false);
   };
 
@@ -480,11 +482,11 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
           <AlertDialogHeader>
             <AlertDialogTitle>Disparar e-mails aos professores?</AlertDialogTitle>
             <AlertDialogDescription>
-              O cronograma foi salvo. Deseja gerar e enviar os contratos atualizados
+              O cronograma <strong>já foi salvo</strong>. Deseja também gerar e enviar os contratos atualizados
               por e-mail para {profsVinculados} professor(es) vinculado(s) às disciplinas?
               <br /><br />
-              Ao confirmar, o fluxo segue normalmente: os contratos são gerados e enviados
-              para os e-mails cadastrados.
+              Se escolher "Não enviar agora", as alterações permanecem salvas e nenhum
+              e-mail é disparado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
