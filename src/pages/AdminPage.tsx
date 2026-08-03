@@ -7,6 +7,7 @@ import { PadroesMaracacoTab } from "@/components/admin/PadroesMaracacoTab";
 import { CronogramasTab } from "@/components/admin/CronogramasTab";
 
 const AdminPage = () => {
+  const cronogramaOnly = typeof window !== "undefined" && sessionStorage.getItem("admin_cronograma_only") === "1";
   return (
     <Layout>
       <div className="space-y-6">
@@ -16,25 +17,31 @@ const AdminPage = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Módulo Administrativo</h1>
-            <p className="text-muted-foreground">Configurações e padrões do sistema</p>
+            <p className="text-muted-foreground">
+              {cronogramaOnly ? "Acesso restrito: Gestão de Cronogramas" : "Configurações e padrões do sistema"}
+            </p>
           </div>
         </div>
 
         <Tabs defaultValue="cronogramas" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger value="padroes" className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4" />
-              Padrões de Marcação
-            </TabsTrigger>
+          <TabsList className={`grid w-full max-w-md ${cronogramaOnly ? "grid-cols-1" : "grid-cols-2"}`}>
+            {!cronogramaOnly && (
+              <TabsTrigger value="padroes" className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4" />
+                Padrões de Marcação
+              </TabsTrigger>
+            )}
             <TabsTrigger value="cronogramas" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               Cronogramas
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="padroes" className="mt-6">
-            <PadroesMaracacoTab />
-          </TabsContent>
+          {!cronogramaOnly && (
+            <TabsContent value="padroes" className="mt-6">
+              <PadroesMaracacoTab />
+            </TabsContent>
+          )}
 
           <TabsContent value="cronogramas" className="mt-6">
             <CronogramasTab />
