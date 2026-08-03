@@ -223,6 +223,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -480,6 +481,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
           </Button>
         </DialogFooter>
       </DialogContent>
+    </Dialog>
       <AlertDialog open={confirmEmailOpen} onOpenChange={setConfirmEmailOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -500,6 +502,6 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Dialog>
+    </>
   );
 };
