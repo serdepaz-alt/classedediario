@@ -119,14 +119,17 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
 
   const handleConfirmSendEmails = async () => {
     setConfirmEmailOpen(false);
-    await gerarContratos();
-    onOpenChange(false);
+    try {
+      await gerarContratos();
+    } finally {
+      setTimeout(() => onOpenChange(false), 0);
+    }
   };
 
   const handleSkipEmails = () => {
     setConfirmEmailOpen(false);
     toast.success("Cronograma salvo. Nenhum e-mail foi disparado.");
-    onOpenChange(false);
+    setTimeout(() => onOpenChange(false), 0);
   };
 
   const formatDateBR = (dateStr: string) => {
@@ -220,6 +223,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -477,6 +481,7 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
           </Button>
         </DialogFooter>
       </DialogContent>
+    </Dialog>
       <AlertDialog open={confirmEmailOpen} onOpenChange={setConfirmEmailOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -497,6 +502,6 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Dialog>
+    </>
   );
 };
