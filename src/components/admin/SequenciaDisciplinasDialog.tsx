@@ -119,14 +119,17 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
 
   const handleConfirmSendEmails = async () => {
     setConfirmEmailOpen(false);
-    await gerarContratos();
-    onOpenChange(false);
+    try {
+      await gerarContratos();
+    } finally {
+      setTimeout(() => onOpenChange(false), 0);
+    }
   };
 
   const handleSkipEmails = () => {
     setConfirmEmailOpen(false);
     toast.success("Cronograma salvo. Nenhum e-mail foi disparado.");
-    onOpenChange(false);
+    setTimeout(() => onOpenChange(false), 0);
   };
 
   const formatDateBR = (dateStr: string) => {
