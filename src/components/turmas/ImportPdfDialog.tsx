@@ -142,27 +142,45 @@ export const ImportPdfDialog = ({
         "Sábado": "Sábado",
       };
 
-      const { data: turmaData, error: turmaError } = await supabase
+      // Reuse existing turma with the same name instead of creating a duplicate
+      const { data: existingTurma } = await supabase
         .from("turmas")
-        .insert({
-          user_id: user.id,
-          nome: parsedData.turma.nome,
-          ano_letivo: parsedData.turma.data_inicio
-            ? parseInt(parsedData.turma.data_inicio.split("-")[0])
-            : new Date().getFullYear(),
-          periodo: turnoMap[parsedData.turma.turno || ""] || parsedData.turma.turno,
-          curso: parsedData.turma.curso,
-          data_inicio: parsedData.turma.data_inicio,
-          status: "Ativa",
-        })
-        .select()
-        .single();
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("nome", parsedData.turma.nome)
+        .maybeSingle();
 
-      if (turmaError) throw turmaError;
+      let turmaId = existingTurma?.id as string | undefined;
 
-      const studentsToInsert = parsedData.students.map((student) => ({
+      if (!turmaId) {
+        const { data: turmaData, error: turmaError } = await supabase
+          .from("turmas")
+          .insert({
+            user_id: user.id,
+            nome: parsedData.turma.nome,
+            ano_letivo: parsedData.turma.data_inicio
+              ? parseInt(parsedData.turma.data_inicio.split("-")[0])
+              : new Date().getFullYear(),
+            periodo: turnoMap[parsedData.turma.turno || ""] || parsedData.turma.turno,
+            curso: parsedData.turma.curso,
+            data_inicio: parsedData.turma.data_inicio,
+            status: "Ativa",
+          })
+          .select()
+          .single();
+
+        if (turmaError) throw turmaError;
+        turmaId = turmaData.id;
+      }
+
+      // Deduplicate by matricula within the extracted list
+      const uniqueStudents = Array.from(
+        new Map(parsedData.students.map((s) => [s.matricula, s])).values()
+      );
+
+      const studentsToInsert = uniqueStudents.map((student) => ({
         user_id: user.id,
-        turma_id: turmaData.id,
+        turma_id: turmaId!,
         matricula: student.matricula,
         nome: student.nome,
         data_nascimento: student.data_nascimento,
@@ -180,14 +198,17 @@ export const ImportPdfDialog = ({
         status: "Ativo",
       }));
 
+      // Upsert avoids "duplicate key" when a student was already imported
       const { error: studentsError } = await supabase
         .from("students")
-        .insert(studentsToInsert);
+        .upsert(studentsToInsert, { onConflict: "user_id,matricula" });
 
       if (studentsError) throw studentsError;
 
       setStep("success");
-      toast.success(`Turma ${parsedData.turma.nome} criada com ${parsedData.students.length} alunos!`);
+      toast.success(
+        `Turma ${parsedData.turma.nome} atualizada com ${studentsToInsert.length} alunos!`
+      );
 
       setTimeout(() => {
         resetDialog();
