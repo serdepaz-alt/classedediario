@@ -635,6 +635,15 @@ export const useSequenciaDisciplinas = () => {
         );
       }
 
+      // Persist the turma start date along with the sequence
+      if (dataInicio) {
+        const { error: turmaErr } = await supabase
+          .from("turmas")
+          .update({ data_inicio: dataInicio })
+          .eq("id", selectedTurmaId);
+        if (turmaErr) throw turmaErr;
+      }
+
       queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
       queryClient.invalidateQueries({ queryKey: ["cronograma"] });
       queryClient.invalidateQueries({ queryKey: ["turmas"] });
@@ -653,7 +662,7 @@ export const useSequenciaDisciplinas = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [validate, user?.id, selectedTurma, selectedTurmaId, sequencia, turno, queryClient, professores]);
+  }, [validate, user?.id, selectedTurma, selectedTurmaId, sequencia, turno, dataInicio, queryClient, professores]);
 
   // Returns the set of discipline names that have been modified vs. the
   // initial loaded state. New disciplines also count as modified.
