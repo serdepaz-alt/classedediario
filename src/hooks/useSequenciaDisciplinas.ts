@@ -637,6 +637,10 @@ export const useSequenciaDisciplinas = () => {
 
       queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
       queryClient.invalidateQueries({ queryKey: ["cronograma"] });
+      queryClient.invalidateQueries({ queryKey: ["turmas"] });
+      // Persisted state becomes the new baseline so the saved changes are not
+      // lost or re-flagged as pending, regardless of the e-mail decision.
+      setSequenciaInicial(sequencia.map((s) => ({ ...s })));
       toast.success(
         `Cronograma da turma "${selectedTurma.nome}" salvo com ${sequencia.length} disciplina(s)!`
       );
