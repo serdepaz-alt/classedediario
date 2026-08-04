@@ -258,7 +258,14 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
                   <SelectContent className="bg-background z-50">
                     {turmas.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
-                        {t.nome}
+                        <span className="flex items-center gap-2">
+                          {t.nome}
+                          {t.data_inicio && (
+                            <span className="text-muted-foreground text-xs">
+                              ({formatDateBR(t.data_inicio)})
+                            </span>
+                          )}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
