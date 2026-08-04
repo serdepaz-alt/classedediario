@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { GraduationCap, BookOpen, ChevronRight, ArrowLeft } from "lucide-react";
 
 interface TurmaOption {
