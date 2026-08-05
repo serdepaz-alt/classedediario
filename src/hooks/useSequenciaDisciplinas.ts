@@ -574,13 +574,24 @@ export const useSequenciaDisciplinas = () => {
       // wipes its chamadas. We keep the same row id when the nome matches.
       const { data: existentes, error: fetchErr } = await supabase
         .from("disciplinas")
-        .select("id, nome")
+        .select("id, nome, data_inicio")
         .eq("user_id", user.id)
-        .eq("turma_id", selectedTurmaId);
+        .eq("turma_id", selectedTurmaId)
+        .order("data_inicio", { ascending: true });
       if (fetchErr) throw fetchErr;
 
-      const existentesByNome = new Map((existentes || []).map((d) => [d.nome, d.id]));
-      const nomesNaSequencia = new Set(sequencia.map((s) => s.nome));
+      // Uma turma pode ter disciplinas com o MESMO nome repetidas na sequência.
+      // Por isso mapeamos nome -> fila de ids (ordenada por data de início) e
+      // consumimos um id por linha, evitando que duas linhas gravem no mesmo
+      // registro (o que fazia a última sobrescrever a anterior e a alteração
+      // "não continuar" após salvar).
+      const filaPorNome = new Map<string, string[]>();
+      (existentes || []).forEach((d) => {
+        const fila = filaPorNome.get(d.nome) || [];
+        fila.push(d.id);
+        filaPorNome.set(d.nome, fila);
+      });
+      const idsUsados = new Set<string>();
 
       const baseRow = (item: typeof sequencia[number]) => ({
         user_id: user.id,
@@ -599,8 +610,10 @@ export const useSequenciaDisciplinas = () => {
       // UPDATE existing + INSERT new
       const toInsert: ReturnType<typeof baseRow>[] = [];
       for (const item of sequencia) {
-        const existingId = existentesByNome.get(item.nome);
+        const fila = filaPorNome.get(item.nome);
+        const existingId = fila && fila.length > 0 ? fila.shift() : undefined;
         if (existingId) {
+          idsUsados.add(existingId);
           const { error: updErr } = await supabase
             .from("disciplinas")
             .update(baseRow(item))
@@ -616,7 +629,7 @@ export const useSequenciaDisciplinas = () => {
       }
 
       // Delete disciplinas removed from the sequence — but only if they have NO chamadas.
-      const removidas = (existentes || []).filter((d) => !nomesNaSequencia.has(d.nome));
+      const removidas = (existentes || []).filter((d) => !idsUsados.has(d.id));
       let preservadasComChamadas = 0;
       for (const rem of removidas) {
         const { count } = await supabase
