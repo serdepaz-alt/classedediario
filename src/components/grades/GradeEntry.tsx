@@ -43,6 +43,7 @@ import {
 import { toast } from "sonner";
 import { useGrades } from "@/hooks/useGrades";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminAuthDialog } from "@/components/attendance/AdminAuthDialog";
 
 interface GradeRow {
   id?: string;
@@ -111,6 +112,9 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
   const [editingEvalIndex, setEditingEvalIndex] = useState<number | null>(null);
   const [editEvalName, setEditEvalName] = useState("");
   const [editEvalPeso, setEditEvalPeso] = useState(1);
+  const [unlockAuthOpen, setUnlockAuthOpen] = useState(false);
+  const [unlockAuthorized, setUnlockAuthorized] = useState(false);
+  const [pendingUnlockIndex, setPendingUnlockIndex] = useState<number | null>(null);
 
   // Load students with status
   useEffect(() => {
@@ -248,7 +252,16 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
   const handleToggleLock = (index: number) => {
     const grade = grades[index];
     if (grade?.is_locked) {
-      toast.info("Nota já travada. Para destravá-la, solicite a modificação ao setor administrativo.");
+      if (!unlockAuthorized) {
+        setPendingUnlockIndex(index);
+        setUnlockAuthOpen(true);
+        return;
+      }
+      setGrades(prev => prev.map((g, i) =>
+        i === index ? { ...g, is_locked: false } : g
+      ));
+      setHasUnsavedChanges(true);
+      toast.success("Nota destravada. Faça a correção e salve.");
       return;
     }
     setGrades(prev => prev.map((g, i) => 
@@ -974,6 +987,25 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdminAuthDialog
+        open={unlockAuthOpen}
+        onOpenChange={(open) => {
+          setUnlockAuthOpen(open);
+          if (!open) setPendingUnlockIndex(null);
+        }}
+        onSuccess={() => {
+          setUnlockAuthorized(true);
+          setUnlockAuthOpen(false);
+          if (pendingUnlockIndex !== null) {
+            const idx = pendingUnlockIndex;
+            setGrades(prev => prev.map((g, i) => (i === idx ? { ...g, is_locked: false } : g)));
+            setHasUnsavedChanges(true);
+            toast.success("Nota destravada. Faça a correção e salve.");
+          }
+          setPendingUnlockIndex(null);
+        }}
+      />
     </div>
   );
 };
