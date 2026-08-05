@@ -112,6 +112,9 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
   const [editingEvalIndex, setEditingEvalIndex] = useState<number | null>(null);
   const [editEvalName, setEditEvalName] = useState("");
   const [editEvalPeso, setEditEvalPeso] = useState(1);
+  const [unlockAuthOpen, setUnlockAuthOpen] = useState(false);
+  const [unlockAuthorized, setUnlockAuthorized] = useState(false);
+  const [pendingUnlockIndex, setPendingUnlockIndex] = useState<number | null>(null);
 
   // Load students with status
   useEffect(() => {
