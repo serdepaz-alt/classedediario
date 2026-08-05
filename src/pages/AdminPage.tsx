@@ -7,7 +7,7 @@ import { PadroesMaracacoTab } from "@/components/admin/PadroesMaracacoTab";
 import { CronogramasTab } from "@/components/admin/CronogramasTab";
 
 const AdminPage = () => {
-  const cronogramaOnly = typeof window !== "undefined" && sessionStorage.getItem("admin_cronograma_only") === "1";
+  const cronogramaOnly = false;
   return (
     <Layout>
       <div className="space-y-6">
