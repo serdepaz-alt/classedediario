@@ -39,10 +39,10 @@ export const AdminPasswordDialog = ({ open, onOpenChange }: AdminPasswordDialogP
     setIsLoading(true);
     const cleanEmail = email.toLowerCase().trim();
 
-    // Acesso restrito legado: somente Gestão de Cronogramas
+    // Acesso legado irrestrito
     if (cleanEmail === "luciano.ribeiro@irmadulceoficial.com.br" && password === "202600") {
-      sessionStorage.setItem("admin_cronograma_only", "1");
-      toast.success("Acesso liberado: Gestão de Cronogramas");
+      sessionStorage.removeItem("admin_cronograma_only");
+      toast.success("Acesso administrativo irrestrito liberado!");
       onOpenChange(false);
       setEmail("");
       setPassword("");
