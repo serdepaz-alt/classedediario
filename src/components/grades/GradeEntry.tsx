@@ -987,6 +987,25 @@ export const GradeEntry = ({ onBack, turmaId, disciplinaId, turmaNome, disciplin
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdminAuthDialog
+        open={unlockAuthOpen}
+        onOpenChange={(open) => {
+          setUnlockAuthOpen(open);
+          if (!open) setPendingUnlockIndex(null);
+        }}
+        onSuccess={() => {
+          setUnlockAuthorized(true);
+          setUnlockAuthOpen(false);
+          if (pendingUnlockIndex !== null) {
+            const idx = pendingUnlockIndex;
+            setGrades(prev => prev.map((g, i) => (i === idx ? { ...g, is_locked: false } : g)));
+            setHasUnsavedChanges(true);
+            toast.success("Nota destravada. Faça a correção e salve.");
+          }
+          setPendingUnlockIndex(null);
+        }}
+      />
     </div>
   );
 };
