@@ -58,7 +58,13 @@ Deno.serve(async (req) => {
     );
 
     const gerarSenha = (nome: string, dn: string | null): string => {
-      const primeiro = (nome || "").trim().split(/\s+/)[0].toLowerCase();
+      const primeiro = (nome || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^A-Za-z\s]/g, "")
+        .trim()
+        .split(/\s+/)[0]
+        .toLowerCase();
       const ano = dn ? new Date(dn + "T12:00:00").getFullYear() : "";
       let senha = `${primeiro}${ano}`;
       if (!ano) senha = `${primeiro}2026`;
