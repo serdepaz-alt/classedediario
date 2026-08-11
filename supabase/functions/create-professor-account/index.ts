@@ -72,6 +72,13 @@ Deno.serve(async (req) => {
       return senha;
     };
 
+    const reforcar = (senha: string): string => {
+      const cap = senha.charAt(0).toUpperCase() + senha.slice(1);
+      return `${cap}@Dulce`;
+    };
+    const isWeakErr = (m?: string) =>
+      !!m && /weak|pwned|compromis|leak/i.test(m);
+
     const results: Array<{
       professor_id: string;
       nome: string;
@@ -133,11 +140,20 @@ Deno.serve(async (req) => {
         );
         const isProtected = PROTECTED_EMAILS.has(p.email.toLowerCase());
         let syncErr: string | undefined;
+        let senhaAplicada = senhaGerada;
         if (!isProtected) {
-          const { error: updErr } = await admin.auth.admin.updateUserById(
+          let { error: updErr } = await admin.auth.admin.updateUserById(
             existingLink.auth_user_id,
             { password: senhaGerada, email_confirm: true },
           );
+          if (updErr && isWeakErr(updErr.message)) {
+            senhaAplicada = reforcar(senhaGerada);
+            const retry = await admin.auth.admin.updateUserById(
+              existingLink.auth_user_id,
+              { password: senhaAplicada, email_confirm: true },
+            );
+            updErr = retry.error ?? null;
+          }
           if (updErr) syncErr = updErr.message;
         }
         results.push({
@@ -145,7 +161,7 @@ Deno.serve(async (req) => {
           nome: p.nome,
           email: p.email,
           status: "exists",
-          senha_gerada: isProtected ? undefined : senhaGerada,
+          senha_gerada: isProtected ? undefined : senhaAplicada,
           message: isProtected
             ? "Login já existente (senha preservada)"
             : syncErr
@@ -157,12 +173,24 @@ Deno.serve(async (req) => {
 
       // Cria conta auth (ou recupera existente)
       let authUserId: string | null = null;
-      const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      let senhaAplicada = senhaGerada;
+      let { data: created, error: createErr } = await admin.auth.admin.createUser({
         email: p.email,
         password: senhaGerada,
         email_confirm: true,
         user_metadata: { nome: p.nome, role: "professor" },
       });
+      if (createErr && isWeakErr(createErr.message)) {
+        senhaAplicada = reforcar(senhaGerada);
+        const retry = await admin.auth.admin.createUser({
+          email: p.email,
+          password: senhaAplicada,
+          email_confirm: true,
+          user_metadata: { nome: p.nome, role: "professor" },
+        });
+        created = retry.data;
+        createErr = retry.error;
+      }
 
       if (createErr) {
         // Provavelmente já existe — procurar
@@ -173,7 +201,17 @@ Deno.serve(async (req) => {
         if (found) {
           authUserId = found.id;
           if (!PROTECTED_EMAILS.has(p.email.toLowerCase())) {
-            await admin.auth.admin.updateUserById(found.id, { password: senhaGerada });
+            const upd = await admin.auth.admin.updateUserById(found.id, {
+              password: senhaGerada,
+              email_confirm: true,
+            });
+            if (upd.error && isWeakErr(upd.error.message)) {
+              senhaAplicada = reforcar(senhaGerada);
+              await admin.auth.admin.updateUserById(found.id, {
+                password: senhaAplicada,
+                email_confirm: true,
+              });
+            }
           }
         } else {
           results.push({
@@ -220,7 +258,7 @@ Deno.serve(async (req) => {
         nome: p.nome,
         email: p.email,
         status: "created",
-        senha_gerada: senhaGerada,
+        senha_gerada: senhaAplicada,
       });
     }
 
