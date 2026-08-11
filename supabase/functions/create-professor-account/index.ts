@@ -28,8 +28,10 @@ Deno.serve(async (req) => {
     }
     const adminUserId = userData.user.id;
 
-    const { professorIds } = await req.json();
-    if (!Array.isArray(professorIds) || professorIds.length === 0) {
+    const body = await req.json().catch(() => ({}));
+    const professorIds = body?.professorIds;
+    const all = body?.all === true;
+    if (!all && (!Array.isArray(professorIds) || professorIds.length === 0)) {
       return new Response(JSON.stringify({ error: "professorIds requerido" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -44,18 +46,24 @@ Deno.serve(async (req) => {
       "luciano.ribeiro@irmadulceoficial.com.br",
     ]);
 
-    const { data: professores, error: profErr } = await admin
+    let query = admin
       .from("cad_professores")
-      .select("id, nome, email, data_nascimento")
-      .eq("user_id", adminUserId)
-      .in("id", professorIds);
+      .select("id, nome, email, data_nascimento, user_id, status");
+    if (!all) query = query.in("id", professorIds);
+    const { data: professoresRaw, error: profErr } = await query;
 
     if (profErr) throw profErr;
+    const professores = (professoresRaw ?? []).filter(
+      (p: any) => (p.status ?? "Ativo").toLowerCase() === "ativo",
+    );
 
     const gerarSenha = (nome: string, dn: string | null): string => {
       const primeiro = (nome || "").trim().split(/\s+/)[0].toLowerCase();
       const ano = dn ? new Date(dn + "T12:00:00").getFullYear() : "";
-      return `${primeiro}${ano}`;
+      let senha = `${primeiro}${ano}`;
+      if (!ano) senha = `${primeiro}2026`;
+      while (senha.length < 8) senha += "0";
+      return senha;
     };
 
     const results: Array<{
@@ -67,6 +75,7 @@ Deno.serve(async (req) => {
       senha_gerada?: string;
     }> = [];
 
+    const emailsUsados = new Map<string, string>();
     for (const p of professores ?? []) {
       if (!p.email) {
         results.push({
@@ -78,6 +87,20 @@ Deno.serve(async (req) => {
         });
         continue;
       }
+      const emailKey = p.email.toLowerCase().trim();
+      const donoAnterior = emailsUsados.get(emailKey);
+      if (donoAnterior && donoAnterior !== p.id) {
+        results.push({
+          professor_id: p.id,
+          nome: p.nome,
+          email: p.email,
+          status: "skipped",
+          message: "Email duplicado — já usado por outro professor",
+        });
+        continue;
+      }
+      emailsUsados.set(emailKey, p.id);
+
       const senhaGerada = gerarSenha(p.nome, p.data_nascimento);
       if (senhaGerada.length < 6) {
         results.push({
@@ -98,6 +121,10 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (existingLink) {
+        await admin.from("user_roles").upsert(
+          { user_id: existingLink.auth_user_id, role: "professor" },
+          { onConflict: "user_id,role", ignoreDuplicates: true },
+        );
         const isProtected = PROTECTED_EMAILS.has(p.email.toLowerCase());
         if (!isProtected) {
           try {
@@ -154,11 +181,14 @@ Deno.serve(async (req) => {
       }
 
       // Vincula
-      const { error: linkErr } = await admin.from("professor_logins").insert({
-        auth_user_id: authUserId!,
-        professor_id: p.id,
-        admin_user_id: adminUserId,
-      });
+      const { error: linkErr } = await admin.from("professor_logins").upsert(
+        {
+          auth_user_id: authUserId!,
+          professor_id: p.id,
+          admin_user_id: p.user_id ?? adminUserId,
+        },
+        { onConflict: "auth_user_id" },
+      );
       if (linkErr) {
         results.push({
           professor_id: p.id,
@@ -171,10 +201,10 @@ Deno.serve(async (req) => {
       }
 
       // Role
-      await admin.from("user_roles").insert({
-        user_id: authUserId!,
-        role: "professor",
-      });
+      await admin.from("user_roles").upsert(
+        { user_id: authUserId!, role: "professor" },
+        { onConflict: "user_id,role", ignoreDuplicates: true },
+      );
 
       results.push({
         professor_id: p.id,
