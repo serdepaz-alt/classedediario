@@ -132,12 +132,13 @@ Deno.serve(async (req) => {
           { onConflict: "user_id,role", ignoreDuplicates: true },
         );
         const isProtected = PROTECTED_EMAILS.has(p.email.toLowerCase());
+        let syncErr: string | undefined;
         if (!isProtected) {
-          try {
-            await admin.auth.admin.updateUserById(existingLink.auth_user_id, {
-              password: senhaGerada,
-            });
-          } catch (_) { /* ignore */ }
+          const { error: updErr } = await admin.auth.admin.updateUserById(
+            existingLink.auth_user_id,
+            { password: senhaGerada, email_confirm: true },
+          );
+          if (updErr) syncErr = updErr.message;
         }
         results.push({
           professor_id: p.id,
@@ -147,7 +148,9 @@ Deno.serve(async (req) => {
           senha_gerada: isProtected ? undefined : senhaGerada,
           message: isProtected
             ? "Login já existente (senha preservada)"
-            : "Login já existente (senha sincronizada)",
+            : syncErr
+              ? `Falha ao sincronizar senha: ${syncErr}`
+              : "Login já existente (senha sincronizada)",
         });
         continue;
       }
