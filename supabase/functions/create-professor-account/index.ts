@@ -66,10 +66,9 @@ Deno.serve(async (req) => {
         .split(/\s+/)[0]
         .toLowerCase();
       const ano = dn ? new Date(dn + "T12:00:00").getFullYear() : "";
-      let senha = `${primeiro}${ano}`;
-      if (!ano) senha = `${primeiro}2026`;
-      while (senha.length < 8) senha += "0";
-      return senha;
+      const base = `${primeiro}${ano || 2026}`;
+      // Padrão único: PrimeiroNomeAno@Dulce (ex.: Fabio1981@Dulce)
+      return `${base.charAt(0).toUpperCase()}${base.slice(1)}@Dulce`;
     };
 
     const reforcar = (senha: string): string => {
