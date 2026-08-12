@@ -122,7 +122,9 @@ export const ProfessorFormDialog = ({
     const firstName = nome.trim().split(/\s+/)[0]?.toLowerCase() || "";
     const year = data_nascimento.slice(0, 4);
     if (!firstName || !year) return "";
-    return `${firstName}${year}`;
+    const base = `${firstName}${year}`;
+    // Padrão único: PrimeiroNomeAno@Dulce (ex.: Fabio1981@Dulce)
+    return `${base.charAt(0).toUpperCase()}${base.slice(1)}@Dulce`;
   };
 
   // Fetch distinct discipline names from padroes_disciplinas
