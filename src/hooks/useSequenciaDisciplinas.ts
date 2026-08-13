@@ -627,6 +627,8 @@ export const useSequenciaDisciplinas = () => {
       };
       const alteradasIds: string[] = [];
       const alteradasNovas: string[] = [];
+      const profNamesSet = new Set(professores.map((p) => p.nome));
+      let alteradasComProfessor = 0;
 
       const baseRow = (item: typeof sequencia[number]) => ({
         user_id: user.id,
@@ -648,6 +650,9 @@ export const useSequenciaDisciplinas = () => {
         const fila = filaPorNome.get(item.nome);
         const existingId = fila && fila.length > 0 ? fila.shift() : undefined;
         const alterado = foiAlterado(item);
+        if (alterado && item.nome_professor && profNamesSet.has(item.nome_professor)) {
+          alteradasComProfessor++;
+        }
         if (existingId) {
           idsUsados.add(existingId);
           if (alterado) alteradasIds.push(existingId);
@@ -675,6 +680,7 @@ export const useSequenciaDisciplinas = () => {
         });
       }
       alteradasIdsRef.current = alteradasIds;
+      alteradasComProfessorRef.current = alteradasComProfessor;
 
       // Delete disciplinas removed from the sequence — but only if they have NO chamadas.
       const removidas = (existentes || []).filter((d) => !idsUsados.has(d.id));
@@ -752,19 +758,10 @@ export const useSequenciaDisciplinas = () => {
   }, [sequencia, sequenciaInicial]);
 
   // Conta professores das disciplinas ALTERADAS no último salvamento.
-  const contarProfessoresVinculados = useCallback((): number => {
-    const profNames = new Set(professores.map((p) => p.nome));
-    const alteradas = new Set(alteradasIdsRef.current);
-    if (alteradas.size === 0) return 0;
-    // fallback quando ainda não houve salvamento nesta sessão
-    return sequencia.filter(
-      (s) => s.nome_professor && profNames.has(s.nome_professor)
-    ).length > 0
-      ? alteradas.size > 0
-        ? sequencia.filter((s) => s.nome_professor && profNames.has(s.nome_professor)).length
-        : 0
-      : 0;
-  }, [sequencia, professores]);
+  const contarProfessoresVinculados = useCallback(
+    (): number => alteradasComProfessorRef.current,
+    []
+  );
 
   const gerarContratos = useCallback(async (): Promise<boolean> => {
     if (!user?.id || !selectedTurmaId) return false;
