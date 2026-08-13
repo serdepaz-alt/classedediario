@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFeriados } from "@/hooks/useFeriados";
@@ -66,6 +66,10 @@ export const useSequenciaDisciplinas = () => {
   const [isLoadingTurmas, setIsLoadingTurmas] = useState(false);
   const [isLoadingPadroes, setIsLoadingPadroes] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Ids das disciplinas efetivamente alteradas no último salvamento — usados
+  // para gerar/enviar contrato apenas para essas disciplinas.
+  const alteradasIdsRef = useRef<string[]>([]);
 
   const holidayDates = useMemo(
     () => feriados.map((f) => f.data),
