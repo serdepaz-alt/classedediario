@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFeriados } from "@/hooks/useFeriados";
@@ -66,6 +66,12 @@ export const useSequenciaDisciplinas = () => {
   const [isLoadingTurmas, setIsLoadingTurmas] = useState(false);
   const [isLoadingPadroes, setIsLoadingPadroes] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Ids das disciplinas efetivamente alteradas no último salvamento — usados
+  // para gerar/enviar contrato apenas para essas disciplinas.
+  const alteradasIdsRef = useRef<string[]>([]);
+  // Quantidade de disciplinas alteradas que possuem professor cadastrado vinculado.
+  const alteradasComProfessorRef = useRef<number>(0);
 
   const holidayDates = useMemo(
     () => feriados.map((f) => f.data),
@@ -593,6 +599,37 @@ export const useSequenciaDisciplinas = () => {
       });
       const idsUsados = new Set<string>();
 
+      // Chave por ocorrência (nome + n-ésima repetição) para comparar cada
+      // linha com seu estado inicial, mesmo com nomes repetidos na turma.
+      const occKey = (nome: string, n: number) => `${nome}#${n}`;
+      const contadorInicial = new Map<string, number>();
+      const inicialPorChave = new Map<string, SequenciaItem>();
+      sequenciaInicial.forEach((s) => {
+        const n = contadorInicial.get(s.nome) ?? 0;
+        contadorInicial.set(s.nome, n + 1);
+        inicialPorChave.set(occKey(s.nome, n), s);
+      });
+      const contadorAtual = new Map<string, number>();
+      const foiAlterado = (item: SequenciaItem) => {
+        const n = contadorAtual.get(item.nome) ?? 0;
+        contadorAtual.set(item.nome, n + 1);
+        const original = inicialPorChave.get(occKey(item.nome, n));
+        if (!original) return true; // disciplina nova
+        return (
+          original.nome_professor !== item.nome_professor ||
+          original.data_inicio !== item.data_inicio ||
+          original.data_termino !== item.data_termino ||
+          original.carga_horaria_total !== item.carga_horaria_total ||
+          original.carga_horaria_diaria !== item.carga_horaria_diaria ||
+          original.qtd_dias !== item.qtd_dias ||
+          original.ordem !== item.ordem
+        );
+      };
+      const alteradasIds: string[] = [];
+      const alteradasNovas: string[] = [];
+      const profNamesSet = new Set(professores.map((p) => p.nome));
+      let alteradasComProfessor = 0;
+
       const baseRow = (item: typeof sequencia[number]) => ({
         user_id: user.id,
         turma_id: selectedTurmaId,
@@ -612,21 +649,38 @@ export const useSequenciaDisciplinas = () => {
       for (const item of sequencia) {
         const fila = filaPorNome.get(item.nome);
         const existingId = fila && fila.length > 0 ? fila.shift() : undefined;
+        const alterado = foiAlterado(item);
+        if (alterado && item.nome_professor && profNamesSet.has(item.nome_professor)) {
+          alteradasComProfessor++;
+        }
         if (existingId) {
           idsUsados.add(existingId);
+          if (alterado) alteradasIds.push(existingId);
           const { error: updErr } = await supabase
             .from("disciplinas")
             .update(baseRow(item))
             .eq("id", existingId);
           if (updErr) throw updErr;
         } else {
+          alteradasNovas.push(item.nome);
           toInsert.push(baseRow(item));
         }
       }
       if (toInsert.length > 0) {
         const { error: insErr } = await supabase.from("disciplinas").insert(toInsert);
         if (insErr) throw insErr;
+        const { data: recemCriadas } = await supabase
+          .from("disciplinas")
+          .select("id, nome")
+          .eq("user_id", user.id)
+          .eq("turma_id", selectedTurmaId)
+          .in("nome", alteradasNovas);
+        (recemCriadas || []).forEach((d) => {
+          if (!idsUsados.has(d.id) && !alteradasIds.includes(d.id)) alteradasIds.push(d.id);
+        });
       }
+      alteradasIdsRef.current = alteradasIds;
+      alteradasComProfessorRef.current = alteradasComProfessor;
 
       // Delete disciplinas removed from the sequence — but only if they have NO chamadas.
       const removidas = (existentes || []).filter((d) => !idsUsados.has(d.id));
@@ -703,22 +757,17 @@ export const useSequenciaDisciplinas = () => {
     return modified;
   }, [sequencia, sequenciaInicial]);
 
-  const contarProfessoresVinculados = useCallback((): number => {
-    const profNames = new Set(professores.map((p) => p.nome));
-    const modificadas = getDisciplinasModificadas();
-    return sequencia.filter(
-      (s) =>
-        modificadas.has(s.nome) &&
-        s.nome_professor &&
-        profNames.has(s.nome_professor)
-    ).length;
-  }, [sequencia, professores, getDisciplinasModificadas]);
+  // Conta professores das disciplinas ALTERADAS no último salvamento.
+  const contarProfessoresVinculados = useCallback(
+    (): number => alteradasComProfessorRef.current,
+    []
+  );
 
   const gerarContratos = useCallback(async (): Promise<boolean> => {
     if (!user?.id || !selectedTurmaId) return false;
     try {
-      const modificadas = getDisciplinasModificadas();
-      if (modificadas.size === 0) {
+      const alteradasIds = alteradasIdsRef.current;
+      if (alteradasIds.length === 0) {
         toast.info("Nenhuma disciplina foi modificada — nenhum contrato a enviar.");
         return true;
       }
@@ -726,14 +775,12 @@ export const useSequenciaDisciplinas = () => {
         .from("disciplinas")
         .select("id, nome, nome_professor")
         .eq("user_id", user.id)
-        .eq("turma_id", selectedTurmaId);
+        .eq("turma_id", selectedTurmaId)
+        .in("id", alteradasIds);
 
       const profMap = new Map(professores.map((p) => [p.nome, p.id]));
       const targets = (savedDisciplinas || []).filter(
-        (d) =>
-          modificadas.has(d.nome) &&
-          d.nome_professor &&
-          profMap.has(d.nome_professor)
+        (d) => d.nome_professor && profMap.has(d.nome_professor)
       );
 
       if (targets.length === 0) {
@@ -785,7 +832,7 @@ export const useSequenciaDisciplinas = () => {
       toast.warning("Houve falha na geração de contratos.");
       return false;
     }
-  }, [user?.id, selectedTurmaId, professores, getDisciplinasModificadas]);
+  }, [user?.id, selectedTurmaId, professores]);
 
   const reset = useCallback(() => {
     setSelectedTurmaId("");
