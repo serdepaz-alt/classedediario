@@ -120,14 +120,18 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
   const handleConfirmSendEmails = async () => {
     setConfirmEmailOpen(false);
     try {
+      // Garante a persistência do cronograma mesmo que a geração falhe
+      await salvar();
       await gerarContratos();
     } finally {
       setTimeout(() => onOpenChange(false), 0);
     }
   };
 
-  const handleSkipEmails = () => {
+  const handleSkipEmails = async () => {
     setConfirmEmailOpen(false);
+    // Regrava para garantir que nada fique pendente ao pular o envio
+    await salvar();
     toast.success("Cronograma salvo. Nenhum e-mail foi disparado.");
     setTimeout(() => onOpenChange(false), 0);
   };
@@ -489,7 +493,16 @@ export const SequenciaDisciplinasDialog = ({ open, onOpenChange, initialTurmaId 
         </DialogFooter>
       </DialogContent>
     </Dialog>
-      <AlertDialog open={confirmEmailOpen} onOpenChange={setConfirmEmailOpen}>
+      <AlertDialog
+        open={confirmEmailOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            void handleSkipEmails();
+          } else {
+            setConfirmEmailOpen(true);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Disparar e-mails aos professores?</AlertDialogTitle>
