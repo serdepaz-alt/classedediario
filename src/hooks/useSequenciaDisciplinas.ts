@@ -70,6 +70,8 @@ export const useSequenciaDisciplinas = () => {
   // Ids das disciplinas efetivamente alteradas no último salvamento — usados
   // para gerar/enviar contrato apenas para essas disciplinas.
   const alteradasIdsRef = useRef<string[]>([]);
+  // Quantidade de disciplinas alteradas que possuem professor cadastrado vinculado.
+  const alteradasComProfessorRef = useRef<number>(0);
 
   const holidayDates = useMemo(
     () => feriados.map((f) => f.data),
