@@ -111,10 +111,44 @@ export const ProfessoresList = () => {
   };
 
   const handleSubmit = async (data: ProfessorFormData) => {
+    let professorId: string | undefined;
+    let email: string | undefined;
+    let status: string | undefined;
     if (selectedProfessor) {
-      await updateProfessor.mutateAsync({ id: selectedProfessor.id, formData: data });
+      const updated: any = await updateProfessor.mutateAsync({ id: selectedProfessor.id, formData: data });
+      professorId = updated?.id ?? selectedProfessor.id;
+      email = updated?.email ?? data.email;
+      status = updated?.status ?? data.status;
     } else {
-      await createProfessor.mutateAsync(data);
+      const created: any = await createProfessor.mutateAsync(data);
+      professorId = created?.id;
+      email = created?.email ?? data.email;
+      status = created?.status ?? data.status;
+    }
+
+    // Provisiona acesso automaticamente para professores ativos com email
+    if (professorId && email && (status || "Ativo") === "Ativo") {
+      try {
+        const { data: res, error } = await supabase.functions.invoke(
+          "create-professor-account",
+          { body: { professorIds: [professorId] } }
+        );
+        if (error) throw error;
+        const r = (res?.results ?? [])[0] as
+          | { status: string; senha_gerada?: string; message?: string }
+          | undefined;
+        if (r?.status === "created" || r?.status === "exists") {
+          toast.success(
+            r.senha_gerada
+              ? `Acesso liberado — senha: ${r.senha_gerada}`
+              : "Acesso liberado"
+          );
+        } else if (r) {
+          toast.warning(`Acesso não criado: ${r.message ?? r.status}`);
+        }
+      } catch (e: any) {
+        toast.error(`Falha ao criar acesso: ${e.message ?? e}`);
+      }
     }
   };
 
