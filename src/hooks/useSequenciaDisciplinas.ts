@@ -597,6 +597,35 @@ export const useSequenciaDisciplinas = () => {
       });
       const idsUsados = new Set<string>();
 
+      // Chave por ocorrência (nome + n-ésima repetição) para comparar cada
+      // linha com seu estado inicial, mesmo com nomes repetidos na turma.
+      const occKey = (nome: string, n: number) => `${nome}#${n}`;
+      const contadorInicial = new Map<string, number>();
+      const inicialPorChave = new Map<string, SequenciaItem>();
+      sequenciaInicial.forEach((s) => {
+        const n = contadorInicial.get(s.nome) ?? 0;
+        contadorInicial.set(s.nome, n + 1);
+        inicialPorChave.set(occKey(s.nome, n), s);
+      });
+      const contadorAtual = new Map<string, number>();
+      const foiAlterado = (item: SequenciaItem) => {
+        const n = contadorAtual.get(item.nome) ?? 0;
+        contadorAtual.set(item.nome, n + 1);
+        const original = inicialPorChave.get(occKey(item.nome, n));
+        if (!original) return true; // disciplina nova
+        return (
+          original.nome_professor !== item.nome_professor ||
+          original.data_inicio !== item.data_inicio ||
+          original.data_termino !== item.data_termino ||
+          original.carga_horaria_total !== item.carga_horaria_total ||
+          original.carga_horaria_diaria !== item.carga_horaria_diaria ||
+          original.qtd_dias !== item.qtd_dias ||
+          original.ordem !== item.ordem
+        );
+      };
+      const alteradasIds: string[] = [];
+      const alteradasNovas: string[] = [];
+
       const baseRow = (item: typeof sequencia[number]) => ({
         user_id: user.id,
         turma_id: selectedTurmaId,
@@ -616,21 +645,34 @@ export const useSequenciaDisciplinas = () => {
       for (const item of sequencia) {
         const fila = filaPorNome.get(item.nome);
         const existingId = fila && fila.length > 0 ? fila.shift() : undefined;
+        const alterado = foiAlterado(item);
         if (existingId) {
           idsUsados.add(existingId);
+          if (alterado) alteradasIds.push(existingId);
           const { error: updErr } = await supabase
             .from("disciplinas")
             .update(baseRow(item))
             .eq("id", existingId);
           if (updErr) throw updErr;
         } else {
+          alteradasNovas.push(item.nome);
           toInsert.push(baseRow(item));
         }
       }
       if (toInsert.length > 0) {
         const { error: insErr } = await supabase.from("disciplinas").insert(toInsert);
         if (insErr) throw insErr;
+        const { data: recemCriadas } = await supabase
+          .from("disciplinas")
+          .select("id, nome")
+          .eq("user_id", user.id)
+          .eq("turma_id", selectedTurmaId)
+          .in("nome", alteradasNovas);
+        (recemCriadas || []).forEach((d) => {
+          if (!idsUsados.has(d.id) && !alteradasIds.includes(d.id)) alteradasIds.push(d.id);
+        });
       }
+      alteradasIdsRef.current = alteradasIds;
 
       // Delete disciplinas removed from the sequence — but only if they have NO chamadas.
       const removidas = (existentes || []).filter((d) => !idsUsados.has(d.id));
