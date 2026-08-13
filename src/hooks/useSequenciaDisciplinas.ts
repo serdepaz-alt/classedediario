@@ -749,22 +749,26 @@ export const useSequenciaDisciplinas = () => {
     return modified;
   }, [sequencia, sequenciaInicial]);
 
+  // Conta professores das disciplinas ALTERADAS no último salvamento.
   const contarProfessoresVinculados = useCallback((): number => {
     const profNames = new Set(professores.map((p) => p.nome));
-    const modificadas = getDisciplinasModificadas();
+    const alteradas = new Set(alteradasIdsRef.current);
+    if (alteradas.size === 0) return 0;
+    // fallback quando ainda não houve salvamento nesta sessão
     return sequencia.filter(
-      (s) =>
-        modificadas.has(s.nome) &&
-        s.nome_professor &&
-        profNames.has(s.nome_professor)
-    ).length;
-  }, [sequencia, professores, getDisciplinasModificadas]);
+      (s) => s.nome_professor && profNames.has(s.nome_professor)
+    ).length > 0
+      ? alteradas.size > 0
+        ? sequencia.filter((s) => s.nome_professor && profNames.has(s.nome_professor)).length
+        : 0
+      : 0;
+  }, [sequencia, professores]);
 
   const gerarContratos = useCallback(async (): Promise<boolean> => {
     if (!user?.id || !selectedTurmaId) return false;
     try {
-      const modificadas = getDisciplinasModificadas();
-      if (modificadas.size === 0) {
+      const alteradasIds = alteradasIdsRef.current;
+      if (alteradasIds.length === 0) {
         toast.info("Nenhuma disciplina foi modificada — nenhum contrato a enviar.");
         return true;
       }
@@ -772,14 +776,12 @@ export const useSequenciaDisciplinas = () => {
         .from("disciplinas")
         .select("id, nome, nome_professor")
         .eq("user_id", user.id)
-        .eq("turma_id", selectedTurmaId);
+        .eq("turma_id", selectedTurmaId)
+        .in("id", alteradasIds);
 
       const profMap = new Map(professores.map((p) => [p.nome, p.id]));
       const targets = (savedDisciplinas || []).filter(
-        (d) =>
-          modificadas.has(d.nome) &&
-          d.nome_professor &&
-          profMap.has(d.nome_professor)
+        (d) => d.nome_professor && profMap.has(d.nome_professor)
       );
 
       if (targets.length === 0) {
@@ -831,7 +833,7 @@ export const useSequenciaDisciplinas = () => {
       toast.warning("Houve falha na geração de contratos.");
       return false;
     }
-  }, [user?.id, selectedTurmaId, professores, getDisciplinasModificadas]);
+  }, [user?.id, selectedTurmaId, professores]);
 
   const reset = useCallback(() => {
     setSelectedTurmaId("");
